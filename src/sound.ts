@@ -35,19 +35,45 @@ class SoundEngine {
     try { this.muted = localStorage.getItem(STORE) === 'off'; } catch { /* private mode */ }
     if (typeof window === 'undefined') return;
     const unlock = () => this.unlock();
-    for (const ev of ['pointerdown', 'touchend', 'keydown']) window.addEventListener(ev, unlock, { capture: true, passive: true });
+    // touchend and click are the gestures iOS Safari accepts for audio; pointerdown is enough elsewhere
+    for (const ev of ['pointerdown', 'touchend', 'click', 'keydown']) window.addEventListener(ev, unlock, { capture: true, passive: true });
+    // iOS Safari: after the page is hidden (app switch, lock screen, a call, Control Center) the context can come back
+    // "running" but silent, or stay "interrupted". Mark it stale and build a fresh one on the next gesture.
+    const away = () => { if (this.ctx) this.stale = true; };
+    document.addEventListener('visibilitychange', () => { if (document.hidden) away(); });
+    window.addEventListener('pagehide', away);
+    window.addEventListener('pageshow', (e) => { if ((e as PageTransitionEvent).persisted) away(); });
   }
+
+  private stale = false;
 
   /** Create or wake the audio context. Browsers only allow it inside a user gesture. */
   unlock() {
     if (this.muted) return;
+    // A stale or closed context is replaced, not resumed: that is what brings iOS back reliably
+    if (this.ctx && (this.stale || this.ctx.state === 'closed')) {
+      this.ctx.close().catch(() => {});
+      this.ctx = null;
+    }
+    this.stale = false;
     if (!this.ctx) {
       const AC = window.AudioContext || (window as any).webkitAudioContext;
       if (!AC) return;
-      this.ctx = new AC({ latencyHint: 'interactive' });
-      this.build(this.ctx);
+      const ctx: AudioContext = new AC({ latencyHint: 'interactive' });
+      this.ctx = ctx;
+      this.lastTick = 0; // a new context's clock starts at 0 again
+      this.build(ctx);
+      // iOS reports "interrupted" (not in the spec) when another app or a call takes the audio
+      ctx.addEventListener('statechange', () => { if ((ctx.state as string) === 'interrupted' && ctx === this.ctx) this.stale = true; });
     }
-    if (this.ctx.state === 'suspended') this.ctx.resume().catch(() => {});
+    if (this.ctx.state !== 'running') {
+      this.ctx.resume().catch(() => {});
+      // Old iOS only opens the audio when something plays inside the gesture: one silent sample
+      const ping = this.ctx.createBufferSource();
+      ping.buffer = this.ctx.createBuffer(1, 1, this.ctx.sampleRate);
+      ping.connect(this.ctx.destination);
+      ping.start();
+    }
   }
 
   setMuted(m: boolean) {
@@ -105,8 +131,13 @@ class SoundEngine {
     }
   }
 
+  /** The context to play on. A context that is still waking up (the first gesture, or just after a resume) is used
+      anyway: sounds scheduled on it play the moment it runs, instead of the first tap being lost. */
   private ready() {
-    if (this.muted || !this.ctx || this.ctx.state !== 'running') return null;
+    if (this.muted || !this.ctx || this.stale) return null;
+    const state = this.ctx.state as string;
+    if (state === 'closed' || state === 'interrupted') return null;
+    if (state !== 'running') this.ctx.resume().catch(() => {});
     return this.ctx;
   }
 
