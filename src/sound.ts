@@ -87,7 +87,7 @@ class SoundEngine {
   private build(ctx: AudioContext) {
     // Bus → soft tape saturation → gentle glue compressor → speakers; plus a send to a short, bright room
     this.bus = ctx.createGain();
-    this.bus.gain.value = 0.9;
+    this.bus.gain.value = 0.62;
     const sat = ctx.createWaveShaper();
     const curve = new Float32Array(2048);
     for (let i = 0; i < curve.length; i++) { const x = (i / (curve.length - 1)) * 2 - 1; curve[i] = Math.tanh(1.6 * x) / Math.tanh(1.6); }
@@ -98,10 +98,15 @@ class SoundEngine {
     comp.ratio.value = 3;
     comp.attack.value = 0.002;
     comp.release.value = 0.12;
-    this.bus.connect(sat).connect(comp).connect(ctx.destination);
+    // Take the edge off: a gentle shelf down above 6 kHz, so nothing scratches
+    const soft = ctx.createBiquadFilter();
+    soft.type = 'highshelf';
+    soft.frequency.value = 6000;
+    soft.gain.value = -6;
+    this.bus.connect(soft).connect(sat).connect(comp).connect(ctx.destination);
 
     this.room = ctx.createGain();
-    this.room.gain.value = 0.16;
+    this.room.gain.value = 0.2;
     const verb = ctx.createConvolver();
     const len = Math.round(ctx.sampleRate * 0.42);
     const ir = ctx.createBuffer(2, len, ctx.sampleRate);
@@ -222,28 +227,28 @@ class SoundEngine {
 
   /* ---------- The sounds ---------- */
 
-  /** Any plain button: a tiny, soft click */
+  /** Any plain button: a small, soft glass ping (no knock, no thump) */
   tap() {
     this.haptic('light');
     const ctx = this.ready(); if (!ctx) return;
-    const t = ctx.currentTime, v = vary(0.05);
-    this.noise(t, { f: 3400 * v, q: 1.6, dur: 0.022, gain: 0.16, wet: 0.25 });
-    this.tone(t, { f: 1250 * v, fEnd: 820 * v, dur: 0.03, gain: 0.05, wet: 0.2 });
-    this.tone(t, { f: 210 * v, dur: 0.035, gain: 0.06, wet: 0 });
+    const t = ctx.currentTime, v = vary(0.03);
+    this.noise(t, { f: 5200 * v, q: 6, dur: 0.01, gain: 0.025, wet: 0.3 });
+    this.tone(t, { f: 2093 * v, dur: 0.07, gain: 0.03, attack: 0.003, wet: 0.55 });
+    this.tone(t, { f: 2093 * 2.76 * v, dur: 0.035, gain: 0.008, attack: 0.002, wet: 0.6 });
   }
 
-  /** One detent: a crisp, small metal notch with a little body under it */
+  /** One detent: a fine, quiet metal notch with a glassy ring, like a good safe dial */
   tick(level = 1, at = 0) {
     const ctx = this.ready();
     if (!at) this.haptic('tick');
     if (!ctx) return;
     const t = at || ctx.currentTime;
-    if (!at && t - this.lastTick < 0.022) return; // fast swipes would buzz
+    if (!at && t - this.lastTick < 0.04) return; // fast swipes would buzz: at most 25 a second
     this.lastTick = t;
     const v = vary(0.04), l = Math.max(0.1, Math.min(1.4, level));
-    this.noise(t, { f: 5600 * v, q: 7, dur: 0.016, gain: 0.32 * l, wet: 0.2 });
-    this.tone(t, { f: 3300 * v, type: 'triangle', dur: 0.018, gain: 0.03 * l, wet: 0.15 });
-    this.tone(t, { f: 165 * v, fEnd: 120, dur: 0.03, gain: 0.07 * l, wet: 0 });
+    this.noise(t, { f: 4400 * v, q: 12, dur: 0.012, gain: 0.07 * l, wet: 0.3 });
+    this.tone(t, { f: 3136 * v, dur: 0.03, gain: 0.014 * l, attack: 0.001, wet: 0.45 });
+    this.tone(t, { f: 180 * v, fEnd: 140, dur: 0.02, gain: 0.018 * l, wet: 0 });
   }
 
   /** Detents spread over an eased move: `progress` gives the eased position (0…1) for a time fraction (0…1) */
@@ -259,7 +264,7 @@ class SoundEngine {
       const at = t0 + inverse(i / steps) * duration;
       const last = i === steps;
       this.tick(last ? 1.25 : 0.55 + 0.3 * Math.sin((Math.PI * i) / steps), at);
-      if (last) this.tone(at, { f: 95, fEnd: 70, dur: 0.09, gain: 0.12, wet: 0 }); // it seats
+      if (last) this.tone(at, { f: 95, fEnd: 70, dur: 0.09, gain: 0.07, wet: 0 }); // it seats
     }
   }
 
@@ -268,8 +273,8 @@ class SoundEngine {
     this.haptic('light');
     const ctx = this.ready(); if (!ctx) return;
     const t = ctx.currentTime;
-    this.tone(t, { f: 110, fEnd: 70, dur: 0.1, gain: 0.14, wet: 0 });
-    this.noise(t, { type: 'lowpass', f: 600, dur: 0.05, gain: 0.08, wet: 0.1 });
+    this.tone(t, { f: 110, fEnd: 70, dur: 0.1, gain: 0.07, wet: 0 });
+    this.tone(t, { f: 1568 * vary(0.02), dur: 0.12, gain: 0.008, wet: 0.7 });
   }
 
   /** A final button: a heavier key of glass and metal, with a short bell and the key coming back up */
@@ -277,12 +282,12 @@ class SoundEngine {
     this.haptic('heavy');
     const ctx = this.ready(); if (!ctx) return;
     const t = ctx.currentTime, v = vary(0.02);
-    this.noise(t, { f: 2900 * v, q: 3, dur: 0.014, gain: 0.34, wet: 0.3 });
-    this.tone(t, { f: 170, fEnd: 105, dur: 0.11, gain: 0.2, wet: 0.1 });
+    this.noise(t, { f: 3600 * v, q: 5, dur: 0.012, gain: 0.12, wet: 0.35 });
+    this.tone(t, { f: 170, fEnd: 105, dur: 0.11, gain: 0.11, wet: 0.1 });
     const base = 1320 * v;
     [[1, 0.06, 0.75], [2.76, 0.035, 0.5], [5.4, 0.018, 0.32], [8.93, 0.009, 0.2]].forEach(([r, g, d], i) =>
       this.tone(t + 0.004 * i, { f: base * r, dur: d, gain: g, wet: 0.7, pan: (i % 2 ? 0.15 : -0.15) }));
-    this.noise(t + 0.11, { f: 4200 * v, q: 4, dur: 0.012, gain: 0.12, wet: 0.2 });
+    this.noise(t + 0.11, { f: 4800 * v, q: 8, dur: 0.01, gain: 0.05, wet: 0.3 });
   }
 
   /** The cut: a light blade. A short charge while the cutter goes down, then a bright snap, a falling beam,
@@ -295,7 +300,7 @@ class SoundEngine {
     this.tone(t, { f: 420 * v, fEnd: 1900 * v, dur: delay + 0.02, gain: 0.035, attack: delay * 0.9, wet: 0.3 });
     this.noise(t, { f: 1500, fEnd: 6500, q: 2, dur: delay + 0.02, gain: 0.06, attack: delay * 0.9, wet: 0.3 });
     // snap
-    this.noise(s, { f: 2600 * v, q: 0.9, dur: 0.035, gain: 0.5, wet: 0.4 });
+    this.noise(s, { f: 2600 * v, q: 0.9, dur: 0.035, gain: 0.34, wet: 0.4 });
     this.noise(s, { type: 'highpass', f: 7000, dur: 0.06, gain: 0.12, wet: 0.5 });
     // beam
     this.fm(s, { f: 2100 * v, fEnd: 140, ratio: 1.99, index: 1.6, dur: 0.24, gain: 0.11, wet: 0.5 });
@@ -414,7 +419,7 @@ export function detents(input: HTMLInputElement, { major = 10 }: { major?: numbe
     if ((v <= min || v >= max) && last > min && last < max) sound.bump();
     // The notch sits on the multiple itself, whichever way the thumb moves
     else if (major > 0 && (v > last ? Math.floor(v / major) > Math.floor(last / major) : Math.ceil(v / major) < Math.ceil(last / major))) sound.tick(0.95);
-    else sound.tick(0.45);
+    else sound.tick(0.35);
     last = v;
   };
   // Values set from code (presets) move the thumb without an input event: start counting from there
