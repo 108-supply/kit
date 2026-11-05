@@ -6,7 +6,8 @@
   "private": true,
   "exports": {
     "./sound": "./src/sound.ts",
-    "./account": "./src/account.ts"
+    "./account": "./src/account.ts",
+    "./avatar": "./src/avatar.ts"
   },
   "files": [
     "src"

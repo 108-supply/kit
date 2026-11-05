@@ -13,6 +13,8 @@ export interface Account {
   signedIn: boolean;
   email?: string;
   name?: string;
+  /** Seed of the generated avatar (empty = use the email): avatarSvg(me.avatar || me.email) from @108-supply/kit/avatar */
+  avatar?: string;
   allAccess?: boolean;
   /** Polar checkout link secrets (polar_cl_…) of the site's products this person owns */
   owned?: string[];
