@@ -7,7 +7,8 @@
   "exports": {
     "./sound": "./src/sound.ts",
     "./account": "./src/account.ts",
-    "./avatar": "./src/avatar.ts"
+    "./avatar": "./src/avatar.ts",
+    "./account-pill": "./src/account-pill.ts"
   },
   "files": [
     "src"
