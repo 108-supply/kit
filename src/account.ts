@@ -75,9 +75,10 @@ export const account = {
   signIn(returnTo = location.href) {
     location.href = `${ACCOUNT_ORIGIN}/account?return=${encodeURIComponent(returnTo)}`;
   },
-  /** The account window on the site (library, account, orders). */
-  open(tab: 'library' | 'account' | 'billing' = 'library') {
-    window.open(`${ACCOUNT_ORIGIN}/?account=${tab}`, '_blank', 'noopener');
+  /** Your account page on the site (/account: Library, Tools, Account), in a new tab. */
+  open(tab: 'library' | 'tools' | 'account' | 'billing' = 'library') {
+    const t = tab === 'billing' ? 'account' : tab;
+    window.open(`${ACCOUNT_ORIGIN}/account${t === 'library' ? '' : `?tab=${t}`}`, '_blank', 'noopener');
   },
   async signOut(): Promise<Account> {
     try { await fetch(`${ACCOUNT_ORIGIN}/api/auth/logout`, { method: 'POST', credentials: 'include' }); } catch { /* offline */ }
