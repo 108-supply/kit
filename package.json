@@ -1,11 +1,14 @@
 {
   "name": "@108-supply/kit",
   "version": "1.0.0",
-  "description": "Shared pieces for the 108 Supply tools: interface sounds and haptics.",
+  "description": "Shared pieces for the 108 Supply tools: interface sounds and haptics, the 108 account.",
   "type": "module",
   "private": true,
   "exports": {
-    "./sound": "./src/sound.ts"
+    "./sound": "./src/sound.ts",
+    "./account": "./src/account.ts"
   },
-  "files": ["src"]
+  "files": [
+    "src"
+  ]
 }
