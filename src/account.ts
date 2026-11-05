@@ -1,0 +1,92 @@
+/* 108 account in the tools. One login for 108.supply and every *.108.supply tool: the session cookie lives on
+   .108.supply, so a tool only asks the site who is signed in. Signing in happens on the site (code by email),
+   which sends the person back to the tool. Backend: 108-supply/108-supply → worker/account.ts.
+
+   import { account } from '@108-supply/kit/account';
+   const me = await account.get();          // { signedIn, email, name, allAccess, owned, products }
+   if (!me.signedIn) account.signIn();       // → 108.supply sign-in, then back to this page
+   account.onChange((me) => render(me));     // after get() / refresh() / signOut()
+   me.allAccess                              // everything unlocked
+   account.owns('polar product id')          // bought this one product (or All Access) */
+
+export interface Account {
+  signedIn: boolean;
+  email?: string;
+  name?: string;
+  allAccess?: boolean;
+  /** Polar checkout link secrets (polar_cl_…) of the site's products this person owns */
+  owned?: string[];
+  /** Polar product ids this person owns */
+  products?: string[];
+}
+
+/** Where the account lives. new.108.supply until the site launches on 108.supply (then change it here, once). */
+export const ACCOUNT_ORIGIN = 'https://new.108.supply';
+
+const SIGNED_OUT: Account = { signedIn: false };
+const listeners = new Set<(a: Account) => void>();
+let current: Account = SIGNED_OUT;
+let pending: Promise<Account> | null = null;
+
+/** The site sets this readable cookie next to the session: without it nobody is signed in, so no request is made. */
+const hint = () => typeof document !== 'undefined' && document.cookie.split(';').some((c) => c.trim().startsWith('108_signed_in='));
+
+function emit(next: Account) {
+  current = next;
+  listeners.forEach((fn) => fn(current));
+  return current;
+}
+
+async function load(): Promise<Account> {
+  // Local dev (localhost) has no .108.supply cookie: always signed out unless the API answers
+  if (!hint() && location.hostname.endsWith('108.supply')) return emit(SIGNED_OUT);
+  try {
+    const res = await fetch(`${ACCOUNT_ORIGIN}/api/me`, { credentials: 'include' });
+    if (!res.ok) return emit(current);
+    return emit((await res.json()) as Account);
+  } catch {
+    return emit(current); // offline or the site is down: keep what we knew
+  }
+}
+
+export const account = {
+  /** The current account, asked once per page (call refresh() to ask again). */
+  get(): Promise<Account> {
+    return (pending ??= load());
+  },
+  refresh(): Promise<Account> {
+    pending = load();
+    return pending;
+  },
+  /** What we know right now, without waiting. */
+  get now(): Account {
+    return current;
+  },
+  owns(productId: string): boolean {
+    return !!current.allAccess || !!current.products?.includes(productId);
+  },
+  onChange(fn: (a: Account) => void): () => void {
+    listeners.add(fn);
+    return () => listeners.delete(fn);
+  },
+  /** Opens the 108 sign-in and comes back to `returnTo` (this page by default). */
+  signIn(returnTo = location.href) {
+    location.href = `${ACCOUNT_ORIGIN}/account?return=${encodeURIComponent(returnTo)}`;
+  },
+  /** The account window on the site (library, account, orders). */
+  open(tab: 'library' | 'account' | 'billing' = 'library') {
+    window.open(`${ACCOUNT_ORIGIN}/?account=${tab}`, '_blank', 'noopener');
+  },
+  async signOut(): Promise<Account> {
+    try { await fetch(`${ACCOUNT_ORIGIN}/api/auth/logout`, { method: 'POST', credentials: 'include' }); } catch { /* offline */ }
+    pending = Promise.resolve(SIGNED_OUT);
+    return emit(SIGNED_OUT);
+  },
+};
+
+// Signed in or out in another tab (or on the site): ask again when the tool comes back into view
+if (typeof document !== 'undefined') {
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible' && pending) account.refresh();
+  });
+}
