@@ -379,7 +379,8 @@ export function detents(input: HTMLInputElement, { major = 10 }: { major?: numbe
     if (v === last) return;
     const min = Number(input.min || 0), max = Number(input.max || 100);
     if ((v <= min || v >= max) && last > min && last < max) sound.bump();
-    else if (major > 0 && Math.floor(v / major) !== Math.floor(last / major)) sound.tick(0.95);
+    // The notch sits on the multiple itself, whichever way the thumb moves
+    else if (major > 0 && (v > last ? Math.floor(v / major) > Math.floor(last / major) : Math.ceil(v / major) < Math.ceil(last / major))) sound.tick(0.95);
     else sound.tick(0.45);
     last = v;
   };
