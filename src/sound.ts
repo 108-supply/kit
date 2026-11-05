@@ -352,6 +352,8 @@ class SoundEngine {
       input.tabIndex = -1;
       label.append(input);
       label.setAttribute('aria-hidden', 'true');
+      // Its clicks must not reach the page: they would close menus that listen for a click elsewhere
+      label.addEventListener('click', (e) => e.stopPropagation());
       label.style.cssText = 'position:fixed;left:-100px;top:0;width:1px;height:1px;overflow:hidden;opacity:0;pointer-events:none';
       document.body.append(label);
       this.switchEl = label;
