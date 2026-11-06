@@ -106,8 +106,8 @@ const CSS = `
 .kit-signin-hint { display: flex; justify-content: center; gap: var(--gap-05); margin: var(--gap-05) 0 0; }
 .kit-signin-hint button { padding: 0; border: 0; background: none; color: var(--ink-3); font: inherit; cursor: pointer; transition: color 0.3s var(--ease-smooth); }
 @media (hover: hover) { .kit-signin-hint button:hover { color: var(--ink-1); } }
-.kit-signin-creature { display: block; width: 3.5rem; height: 3.5rem; margin-bottom: var(--gap-06); border-radius: var(--radius-full); overflow: hidden; background: var(--surface-3); }
-.kit-signin-creature svg { display: block; width: 100%; height: 100%; }
+.kit-signin-creature { display: block; width: 4rem; height: 4rem; margin-bottom: var(--gap-06); }
+.kit-signin-creature img { display: block; width: 100%; height: 100%; }
 @media (max-width: 767px) {
   .kit-signin { padding: var(--gap-02); align-items: end; }
   .kit-signin-panel { width: 100%; max-height: calc(100dvh - 2 * var(--gap-02)); padding: var(--gap-03) var(--gap-04) var(--gap-04); }

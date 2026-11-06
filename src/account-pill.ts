@@ -14,7 +14,7 @@ export function mountAccountPill(el: HTMLElement) {
   const render = (me: Account) => {
     el.classList.toggle('is-signed-in', me.signedIn);
     el.innerHTML = me.signedIn
-      ? `<span class="account-pill-avatar" style="display:block;width:100%;height:100%;border-radius:50%;overflow:hidden">${avatarHtml(me.avatar || me.email || '108', 64)}</span>`
+      ? `<span class="account-pill-avatar" style="display:block;width:100%;height:100%">${avatarHtml(me.avatar || me.email || '108', 64)}</span>`
       : PERSON;
     const label = me.signedIn ? `Your 108 account${me.allAccess ? ' (All Access)' : ''}` : 'Sign in to 108';
     el.setAttribute('aria-label', label);
