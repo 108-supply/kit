@@ -26,11 +26,11 @@ export interface BuyOptions {
   then?: (me: Account) => void;
   /** Runs when the payment could not be confirmed within about two minutes */
   failed?: () => void;
-  /** The thank-you line (kit/celebrate), default "Thank you / for your purchase" */
+  /** The thank-you line (kit/celebrate), default "Thank you / You're in" */
   thanks?: { title?: string; muted?: string };
 }
 
-const THANKS = { title: 'Thank you', muted: 'for your purchase' };
+const THANKS = { title: 'Thank you', muted: 'You\u2019re in' };
 
 const POLAR = ['https://polar.sh', 'https://sandbox.polar.sh'];
 const FADE = 400;
