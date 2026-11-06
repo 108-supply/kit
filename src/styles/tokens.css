@@ -1,0 +1,163 @@
+/* 108™ System tokens: the one copy for 108.supply and every tool (Grainwash, Snip Snap, Tadaa).
+   Same names as the Figma variables (WEB code syntax). Sizes are in rem: 1rem = 16px at the design width,
+   see base.css (fluid scale). Fonts are loaded separately: fonts.css (tools) or the site's own files. */
+
+:root {
+  /* 👉 Your Brand */
+  --light-1: #ffffff;
+  --light-2: #eff1f0;
+  --light-3: #e3e7e5;
+  --dark-1: #000000;
+  --dark-2: #232323;
+  --dark-3: #333333;
+  --accent: #dcff02;
+
+  --font-heading: "Diatype", Arial, sans-serif;
+  --font-body: "Diatype", Arial, sans-serif;
+  --font-label: "Diatype Mono", ui-monospace, monospace;
+  --font-alt: "Season Sans", "Diatype", sans-serif;
+  --weight-default: 500;
+  --weight-strong: 600;
+
+  /* 🅰 Typography (Desktop 1440) */
+  /* Display: the big titles (All Access, Tools, numbers, About). Browse: listing titles (Motion, Web, Account…) */
+  --text-display: clamp(3.25rem, 9vw, 10rem);  --leading-display: 0.9;  --tracking-display: -0.045em;
+  --text-display-sm: clamp(2.75rem, 6vw, 6.5rem);
+  --text-browse: 5rem;     --leading-browse: 0.92;
+  --text-h1: 3.5rem;       --leading-h1: 0.92;      --tracking-h1: -0.048em;
+  --text-h2: 3rem;         --leading-h2: 1;         --tracking-h2: -0.04em;
+  --text-h3: 2.16rem;      --leading-h3: 1.08;      --tracking-h3: -0.032em;
+  --text-h6: 1.5rem;       --leading-h6: 1;         --tracking-h6: 0.03125em;
+  --text-lg: 1.25rem;      --leading-lg: 1.36;      --tracking-lg: 0.012em;
+  --text-md: 1rem;         --leading-md: 1.5;       --tracking-md: -0.008em;
+  --text-sm: 0.875rem;     --leading-sm: 1.5;       --tracking-sm: -0.008em;
+  --label-lg: 0.875rem;    --tracking-label-lg: 0.04em;
+  --label-md: 0.6875rem;   --tracking-label-md: 0.08em;  /* counts, dates, menu labels */
+  --label-sm: 0.64rem;     --tracking-label-sm: 0.064em;
+  --text-input: max(16px, 1rem); /* form fields: never under 16px, or iOS zooms in */
+
+  /* ↔️ Spacing */
+  --gap-00: 0rem;
+  --gap-01: 0.25rem;
+  --gap-02: 0.5rem;
+  --gap-03: 0.75rem;
+  --gap-04: 1rem;
+  --gap-05: 1.25rem;
+  --gap-06: 1.5rem;
+  --gap-07: 2rem;
+  --gap-08: 3rem;
+  --gap-09: 4rem;
+  --gap-10: 5rem;
+  --gap-11: 7.5rem;
+  --gap-12: 10rem;
+  --gap-13: 15rem;
+  --section-xs: 1.5rem;
+  --section-sm: 5rem;
+  --section-md: 7.5rem;
+  --section-lg: 10rem;
+  --section-xl: 15rem;
+
+  /* 🖥️ Layout */
+  --page-padding: 1.5rem;
+  /* Content stops growing here on very wide screens; backgrounds stay full width */
+  --container-max: 2944px; /* full width up to a 3008px wide screen (32in Pro Display XDR at its default scaling) */
+  --frame-padding: 0.5rem; /* inset of the hero and light sections (Osmo "contained") */
+  --content-md: 42.75rem;
+  --content-narrow: 28rem;
+
+  /* ⭕ Radius */
+  --radius-sm: 0.5rem;
+  --radius-md: 0.75rem;
+  --radius-lg: 1.25rem;
+  --radius-full: 100vw;
+  --radius-app: 22.5%;    /* app icons (Tools) */
+
+  /* 🌀 Motion: calm, never a bounce */
+  --ease-smooth: cubic-bezier(0.32, 0.72, 0, 1);
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+
+  /* 🌫️ Overlays that look the same in both modes */
+  --overlay-scrim: #0000008f;      /* behind modals and the phone menu */
+  --shade-1: #00000066;            /* light shade over photos and videos (40%) */
+  --shade-2: #00000099;            /* strong shade over photos and videos (60%) */
+  --dot-color: #eff1f02e;          /* dot backgrounds and the dot logo */
+  --dot-accent: var(--accent);
+
+  /* 🚦 Status */
+  --status-error: #ff4a33;
+  --status-error-fill: #ff4a3324;
+}
+
+/* 🖍️ Theme: Base Mode (light). The default, every light section on the dark page (.section-light, .base) and the
+   nav while it sits over a light section. Ink 2–4 are Ink 1 at the same opacity in both modes: 64%, 52%, 16%, 8%. */
+:root, .base, .section-light, .navigation:has(.navigation-bar.is-light) {
+  --surface-1: var(--light-1);
+  --surface-2: var(--light-2);
+  --surface-3: var(--light-3);
+  --ink-1: var(--dark-1);
+  --ink-2: #0a0a0ca3;
+  --ink-3: #0a0a0c85;
+  --ink-hover: #0a0a0c29;
+  --ink-4: #0a0a0c14;
+  --overlay-glass: #eff1f0a3;      /* nav pills, chips */
+  --overlay-panel: #eff1f0d9;      /* dropdowns, phone menu, sheets */
+  --overlay-glass-hover: #e3e7e5d9;
+  --button-primary-fill: var(--accent);
+  --button-primary-ink: var(--dark-1);
+  --button-primary-hover-fill: var(--ink-1);
+  --button-primary-hover-ink: var(--surface-1);
+  --button-secondary-fill: var(--ink-4);
+  --button-secondary-hover-fill: var(--surface-3);
+  --focus-ring: var(--dark-1); /* the yellow ring is too faint on white (WCAG 2.4.11) */
+}
+
+/* 🖍️ Theme: Inverted Mode (dark). Body, hero, intro, nav and footer use it. */
+.inverted {
+  --surface-1: var(--dark-1);
+  --surface-2: var(--dark-2);
+  --surface-3: var(--dark-3);
+  --ink-1: var(--light-2);
+  --ink-2: #eff1f0a3;
+  --ink-3: #eff1f085;
+  --ink-hover: #eff1f029;
+  --ink-4: #eff1f014;
+  --overlay-glass: #282828cc;
+  --overlay-panel: #282828cc;
+  --overlay-glass-hover: #3a3a3acc;
+  --button-primary-fill: var(--accent);
+  --button-primary-ink: var(--dark-1);
+  --button-primary-hover-fill: var(--light-3);
+  --button-primary-hover-ink: var(--dark-1);
+  --button-secondary-fill: var(--ink-4);
+  --button-secondary-hover-fill: var(--surface-3);
+  --focus-ring: var(--accent);
+}
+
+/* Tablet 834: only spacing changes. Phones get their own, calmer type scale (Ariel: everything read too big). */
+@media (max-width: 991px) {
+  :root { --section-xl: 12.5rem; }
+}
+@media (max-width: 767px) {
+  :root {
+    --page-padding: 1rem;
+    --frame-padding: 0.25rem;
+    --section-xs: 1rem;
+    --section-sm: 3rem;
+    --section-md: 4rem;
+    --section-lg: 7.5rem;
+    --section-xl: 10rem;
+
+    /* Phone type scale (1rem = 16px at 390): headings step down so a screen holds a heading, a line of copy and the work */
+    --text-h1: 2.5rem;       --leading-h1: 0.95;
+    --text-h2: 2rem;         --leading-h2: 1.02;
+    --text-h3: 1.625rem;     --leading-h3: 1.1;   --tracking-h3: -0.028em;
+    --text-h6: 1.25rem;      --leading-h6: 1.1;   --tracking-h6: 0;
+    --text-lg: 1.0625rem;    --leading-lg: 1.42;  --tracking-lg: 0;
+    --text-md: 0.9375rem;
+    --text-sm: 0.8125rem;
+    --text-browse: 2.75rem;
+    --text-display: clamp(2.75rem, 14vw, 4rem);
+    --dot-color: #eff1f047; /* dots read too faint on small screens */
+  }
+}

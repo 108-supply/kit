@@ -1,14 +1,18 @@
 {
   "name": "@108-supply/kit",
   "version": "1.0.0",
-  "description": "Shared pieces for the 108 Supply tools: interface sounds and haptics, the 108 account.",
+  "description": "Shared pieces for 108.supply and the 108 Supply tools: the 108 System styles (tokens, base, fonts), interface sounds and haptics, the 108 account.",
   "type": "module",
   "private": true,
   "exports": {
     "./sound": "./src/sound.ts",
     "./account": "./src/account.ts",
     "./avatar": "./src/avatar.ts",
-    "./account-pill": "./src/account-pill.ts"
+    "./account-pill": "./src/account-pill.ts",
+    "./system.css": "./src/styles/system.css",
+    "./tokens.css": "./src/styles/tokens.css",
+    "./base.css": "./src/styles/base.css",
+    "./fonts.css": "./src/styles/fonts.css"
   },
   "files": [
     "src"
