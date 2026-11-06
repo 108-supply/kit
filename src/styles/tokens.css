@@ -66,6 +66,7 @@
   --content-narrow: 28rem;
 
   /* ⭕ Radius */
+  --radius-xs: 0.25rem;   /* thumbnails, small frames */
   --radius-sm: 0.5rem;
   --radius-md: 0.75rem;
   --radius-lg: 1.25rem;
