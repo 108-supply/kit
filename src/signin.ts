@@ -25,24 +25,26 @@ const X = '<svg viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><pa
 const button = (label: string) =>
   `<button class="button-animated kit-signin-submit" type="submit" data-text="${label}"><span class="button-animated-inner"><span>${label}</span></span></button>`;
 
+/** Google's own "G" (their brand rules: the logo stays in its colours, on white) */
+export const GOOGLE_G = '<svg class="kit-signin-g" viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>';
 const HTML = `
 <div class="kit-signin-overlay" data-close></div>
 <div class="kit-signin-panel" tabindex="-1">
   <div class="kit-signin-bar">
-    <span>108 Account</span>
     <button class="kit-signin-close" type="button" aria-label="Close" data-close>${X}</button>
   </div>
   <form class="kit-signin-step" data-step="email" novalidate>
     <h2 class="kit-signin-title" id="kit-signin-title" data-title></h2>
     <p class="kit-signin-lead" data-lead></p>
-    <button class="button-animated kit-signin-google" type="button" data-google data-text="Continue with Google" hidden><span class="button-animated-inner"><svg viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M224,128a96,96,0,1,1-21.95-61.09,8,8,0,1,1-12.33,10.18A80,80,0,1,0,207.6,136H128a8,8,0,0,1,0-16h88A8,8,0,0,1,224,128Z"/></svg><span>Continue with Google</span></span></button>
-    <p class="kit-signin-or" data-google-or hidden>or with a code by email</p>
+    <button class="button-animated kit-signin-google" type="button" data-google data-text="Yes, we know you love Google" hidden><span class="button-animated-inner">${GOOGLE_G}<span>Continue with Google</span></span></button>
+    <p class="kit-signin-or" data-google-or hidden>or</p>
     <input class="kit-signin-input" type="email" name="email" aria-label="Email" required autocomplete="username" inputmode="email" autocapitalize="off" spellcheck="false" placeholder="you@studio.com" />
     <p class="kit-signin-error" data-error role="alert"></p>
     ${button('Send me a code')}
+    <button class="kit-signin-plain" type="submit" data-plain hidden>Send me a code</button>
   </form>
   <form class="kit-signin-step" data-step="code" novalidate>
-    <h2 class="kit-signin-title">Check<br /><span>your inbox</span></h2>
+    <h2 class="kit-signin-title">Check your inbox</h2>
     <p class="kit-signin-lead">We sent a 6-digit code to <span class="kit-signin-email" data-email></span>.</p>
     <label class="kit-signin-code">
       <input name="code" aria-label="Code" inputmode="numeric" pattern="[0-9]*" autocomplete="one-time-code" maxlength="6" required />
@@ -54,7 +56,7 @@ const HTML = `
   </form>
   <form class="kit-signin-step" data-step="name" novalidate>
     <span class="kit-signin-creature" data-creature aria-hidden="true"></span>
-    <h2 class="kit-signin-title">You’re in<br /><span>what’s your name?</span></h2>
+    <h2 class="kit-signin-title">You’re in. What’s your name?</h2>
     <p class="kit-signin-lead">So we know what to call you. You can change it any time in your account.</p>
     <input class="kit-signin-input" type="text" name="name" aria-label="Name" maxlength="80" autocomplete="given-name" autocapitalize="words" placeholder="Your name" required />
     <p class="kit-signin-error" data-error role="alert"></p>
@@ -66,35 +68,33 @@ const HTML = `
 const CSS = `
 .kit-signin { position: fixed; inset: 0; z-index: 10000; display: grid; place-items: center; padding: var(--page-padding);
   color: var(--ink-1); font-family: var(--font-body); font-size: var(--text-sm); line-height: var(--leading-sm); letter-spacing: var(--tracking-sm); }
-.kit-signin[hidden] { display: none; }
+.kit-signin[hidden], .kit-signin [hidden] { display: none; }
 .kit-signin-overlay { position: absolute; inset: 0; background: var(--overlay-scrim); opacity: 0; transition: opacity 0.45s var(--ease-smooth); }
-.kit-signin-panel { position: relative; width: min(27rem, 100%); max-height: calc(100dvh - 2 * var(--page-padding)); overflow-y: auto; overscroll-behavior: contain;
-  padding: var(--gap-04) var(--gap-06) var(--gap-06); border-radius: var(--radius-lg);
+.kit-signin-panel { position: relative; width: min(25rem, 100%); max-height: calc(100dvh - 2 * var(--page-padding)); overflow-y: auto; overscroll-behavior: contain;
+  padding: var(--gap-08) var(--gap-06) var(--gap-06); border-radius: var(--radius-lg);
   background: var(--overlay-glass); -webkit-backdrop-filter: blur(64px); backdrop-filter: blur(64px);
   opacity: 0; translate: 0 1rem; transition: opacity 0.35s var(--ease-smooth), translate 0.6s var(--ease-smooth); }
 .kit-signin-panel:focus { outline: none; }
 .kit-signin.is-open .kit-signin-overlay { opacity: 1; }
 .kit-signin.is-open .kit-signin-panel { opacity: 1; translate: 0 0; }
-.kit-signin-bar { display: flex; justify-content: space-between; align-items: center; min-height: 2.25rem; margin: 0 calc(-1 * var(--gap-02)) var(--gap-08) 0;
-  color: var(--ink-3); font-family: var(--font-label); font-size: var(--label-sm); letter-spacing: var(--tracking-label-sm); text-transform: uppercase; }
+.kit-signin-bar { position: absolute; top: var(--gap-04); right: var(--gap-04); }
 .kit-signin-close { display: grid; place-items: center; width: 2.25rem; height: 2.25rem; padding: 0; border: 0; border-radius: var(--radius-full);
   background: var(--ink-4); color: var(--ink-1); cursor: pointer; transition: background-color 0.3s var(--ease-smooth), color 0.3s var(--ease-smooth); }
 .kit-signin-close svg { width: 0.875rem; height: 0.875rem; }
 @media (hover: hover) { .kit-signin-close:hover { background: var(--ink-1); color: var(--surface-1); } }
-.kit-signin-step { display: none; flex-direction: column; margin: 0; }
+.kit-signin-step { display: none; flex-direction: column; margin: 0; text-align: center; }
 .kit-signin-step.is-active { display: flex; animation: kit-signin-step 0.6s var(--ease-smooth); }
 @keyframes kit-signin-step { from { opacity: 0; translate: 0 0.5rem; } }
 .kit-signin-title { margin: 0; font-family: var(--font-heading); font-weight: var(--weight-default);
-  font-size: var(--text-h2); line-height: var(--leading-h2); letter-spacing: var(--tracking-h2); }
-.kit-signin-title span { color: var(--ink-2); }
-.kit-signin-lead { margin: var(--gap-04) 0 var(--gap-07); color: var(--ink-2); }
+  font-size: var(--text-h6); line-height: var(--leading-h6); letter-spacing: var(--tracking-h6); text-wrap: balance; }
+.kit-signin-lead { margin: var(--gap-03) auto var(--gap-07); max-width: 20rem; color: var(--ink-2); text-wrap: pretty; }
 .kit-signin-email { color: var(--ink-1); word-break: break-all; }
-.kit-signin-input { width: 100%; margin-bottom: var(--gap-02); padding: var(--gap-04) var(--gap-05); border: 0; border-radius: var(--radius-full);
+.kit-signin-input { width: 100%; text-align: left; margin-bottom: var(--gap-02); padding: var(--gap-04) var(--gap-05); border: 0; border-radius: var(--radius-full);
   background: var(--ink-4); color: var(--ink-1); font: inherit; font-size: var(--text-input); transition: background-color 0.3s var(--ease-smooth); }
 .kit-signin-input::placeholder { color: var(--ink-3); }
 .kit-signin-input:hover { background: var(--ink-hover); }
 .kit-signin-input:focus { outline: none; background: var(--ink-hover); box-shadow: inset 0 0 0 1.5px var(--ink-1); }
-.kit-signin-error { margin: var(--gap-02) 0; padding-inline: var(--gap-05); color: var(--status-error); }
+.kit-signin-error { margin: var(--gap-02) 0; padding-inline: var(--gap-05); color: var(--status-error); text-align: left; }
 .kit-signin-error:empty { display: none; }
 .kit-signin-code { position: relative; display: block; margin-bottom: var(--gap-02); }
 .kit-signin-code input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; border: 0; font-size: var(--text-input); color: transparent; caret-color: transparent; cursor: text; }
@@ -103,25 +103,30 @@ const CSS = `
   font-size: var(--text-h6); line-height: 1; font-variant-numeric: tabular-nums; transition: background-color 0.3s var(--ease-smooth), color 0.3s var(--ease-smooth); }
 .kit-signin-cells span.is-current { background: var(--ink-hover); box-shadow: inset 0 0 0 1.5px var(--ink-1); }
 .kit-signin-cells span.is-filled { background: var(--ink-1); color: var(--surface-1); }
-.kit-signin-google { width: 100%; margin-bottom: var(--gap-05); border: 0; padding: 0; background: none; font: inherit; cursor: pointer; }
+/* Google: white with their colour G (their brand rules); our swap on hover, with a wink */
+.kit-signin-google { width: 100%; border: 0; padding: 0; background: none; font: inherit; cursor: pointer;
+  --button-primary-fill: var(--light-1); --button-primary-ink: var(--dark-1); --button-primary-hover-fill: var(--dark-1); --button-primary-hover-ink: var(--light-1); }
 .kit-signin-google .button-animated-inner { justify-content: center; gap: 0.5em; }
-.kit-signin-google svg { width: 1.1em; height: 1.1em; flex: none; }
+.kit-signin-g { width: 1.1em; height: 1.1em; flex: none; }
 .kit-signin-google[aria-busy="true"] { opacity: 0.6; pointer-events: none; }
-.kit-signin-or { margin: 0 0 var(--gap-03); padding-inline: var(--gap-05); color: var(--ink-3); }
-/* With Google on top, the code is the quieter way: a grey pill */
-.kit-signin.has-google [data-step="email"] .kit-signin-submit { --button-primary-fill: var(--ink-4); --button-primary-ink: var(--ink-1); color: var(--ink-1); }
+.kit-signin-or { margin: var(--gap-04) 0; color: var(--ink-3); }
+/* With Google on top, the code is the quieter way: a plain secondary button (only one swap per window) */
+.kit-signin-plain { width: 100%; margin-top: var(--gap-02); padding: 0.75em 1em; border: 0; border-radius: var(--radius-sm);
+  background: var(--button-secondary-fill); color: var(--ink-1); font: inherit; cursor: pointer; transition: background-color 0.3s var(--ease-smooth); -webkit-tap-highlight-color: transparent; }
+@media (hover: hover) { .kit-signin-plain:hover { background: var(--ink-hover); } }
+.kit-signin-plain[aria-busy="true"] { opacity: 0.6; pointer-events: none; }
 .kit-signin-submit { width: 100%; margin-top: var(--gap-02); border: 0; padding: 0; background: none; font: inherit; cursor: pointer; }
 .kit-signin-submit .button-animated-inner { justify-content: center; }
 .kit-signin-submit[aria-busy="true"] { opacity: 0.6; pointer-events: none; }
 .kit-signin-hint { display: flex; justify-content: center; gap: var(--gap-05); margin: var(--gap-05) 0 0; }
 .kit-signin-hint button { padding: 0; border: 0; background: none; color: var(--ink-3); font: inherit; cursor: pointer; transition: color 0.3s var(--ease-smooth); }
 @media (hover: hover) { .kit-signin-hint button:hover { color: var(--ink-1); } }
-.kit-signin-creature { display: block; width: 4rem; height: 4rem; margin-bottom: var(--gap-06); }
+.kit-signin-creature { display: block; width: 4rem; height: 4rem; margin: 0 auto var(--gap-05); }
 .kit-signin-creature img { display: block; width: 100%; height: 100%; }
 @media (max-width: 767px) {
   .kit-signin { padding: var(--gap-02); align-items: end; }
-  .kit-signin-panel { width: 100%; max-height: calc(100dvh - 2 * var(--gap-02)); padding: var(--gap-03) var(--gap-04) var(--gap-04); }
-  .kit-signin-bar { margin-bottom: var(--gap-07); }
+  .kit-signin-panel { width: 100%; max-height: calc(100dvh - 2 * var(--gap-02)); padding: var(--gap-08) var(--gap-04) var(--gap-04); }
+  .kit-signin-bar { top: var(--gap-03); right: var(--gap-03); }
   .kit-signin-cells span { height: 3.25rem; }
 }
 @media (prefers-reduced-motion: reduce) {
@@ -190,6 +195,8 @@ function build() {
     root!.classList.toggle('has-google', on);
     $('[data-google]').hidden = !on;
     $('[data-google-or]').hidden = !on;
+    $('[data-step="email"] .kit-signin-submit').hidden = on;
+    $('[data-plain]').hidden = !on;
   });
   $('[data-google]').addEventListener('click', async () => {
     sound.tap();
@@ -238,7 +245,7 @@ function paintCode() {
 async function sendCode(form: HTMLFormElement) {
   const email = String(new FormData(form).get('email') || pendingEmail).trim().toLowerCase();
   const err = form.querySelector<HTMLElement>('[data-error]')!;
-  const submit = form.querySelector<HTMLElement>('[type=submit]')!;
+  const submit = form.querySelector<HTMLElement>('[type=submit]:not([hidden])')!;
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { err.textContent = ERRORS.invalid_email; return; }
   submit.setAttribute('aria-busy', 'true');
   try {
@@ -254,7 +261,7 @@ async function sendCode(form: HTMLFormElement) {
 async function verify(form: HTMLFormElement) {
   const code = String(new FormData(form).get('code') || '').replace(/\D/g, '');
   const err = form.querySelector<HTMLElement>('[data-error]')!;
-  const submit = form.querySelector<HTMLElement>('[type=submit]')!;
+  const submit = form.querySelector<HTMLElement>('[type=submit]:not([hidden])')!;
   if (code.length !== 6) { err.textContent = 'Enter the 6 digits from the email.'; return; }
   if (verifying) return; // the six digits submit on their own: a second press must not send the code twice
   verifying = true;
@@ -287,7 +294,7 @@ async function verify(form: HTMLFormElement) {
 async function saveName(form: HTMLFormElement) {
   const name = String(new FormData(form).get('name') || '').trim();
   const err = form.querySelector<HTMLElement>('[data-error]')!;
-  const submit = form.querySelector<HTMLElement>('[type=submit]')!;
+  const submit = form.querySelector<HTMLElement>('[type=submit]:not([hidden])')!;
   if (!name) { err.textContent = 'Type your name, or skip for now.'; return; }
   submit.setAttribute('aria-busy', 'true');
   try {
@@ -320,10 +327,10 @@ export function openSignIn(opts: SignInOptions = {}) {
   if (!root) build();
   afterSignIn = opts.then ?? null;
   const signup = opts.mode === 'signup';
-  $('[data-title]').innerHTML = signup ? 'Sign up<br /><span>to 108</span>' : 'Sign in<br /><span>to 108</span>';
+  $('[data-title]').textContent = signup ? 'Join 108' : 'Welcome to 108';
   $('[data-lead]').textContent = signup
-    ? 'One account for everything 108: your templates, visuals and tools. No password, we email you a code.'
-    : 'Use the email you bought with and everything you own is there. New here? This makes your account.';
+    ? 'One account for your templates, visuals and tools. No password needed.'
+    : 'Your templates, visuals and tools in one place. Bought before? Use that email.';
   root!.querySelectorAll('form').forEach((f) => f.reset());
   paintCode();
   showStep('email');
