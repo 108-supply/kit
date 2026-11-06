@@ -54,7 +54,7 @@ p { text-wrap: pretty; }
 .text-small { font-size: var(--text-sm); line-height: var(--leading-sm); letter-spacing: var(--tracking-sm); }
 .label-small { font-family: var(--font-label); font-size: var(--label-sm); line-height: 1; letter-spacing: var(--tracking-label-sm); text-transform: uppercase; }
 .muted { color: var(--ink-2); }
-.subtle { color: var(--ink-3); }
+.subtle { color: var(--ink-2); } /* same as .muted since Ink 3 became the fill colour */
 
 /* ---------- Layout ---------- */
 .container { width: 100%; max-width: calc(var(--container-max) + var(--page-padding) * 2); padding-inline: var(--page-padding); margin-inline: auto; }
