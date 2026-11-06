@@ -33,13 +33,13 @@ const CSS = `
 .kit-help.is-open .kit-help-backdrop { background: rgba(0, 0, 0, 0.45); -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px); }
 .kit-help-card { position: relative; box-sizing: border-box; width: min(100%, 30rem); padding: var(--gap-07); display: flex; flex-direction: column; gap: var(--gap-04);
   border-radius: var(--radius-lg); background: var(--dark-2); color: var(--light-2); font-family: var(--font-body); }
-.kit-help-eyebrow { color: var(--ink-3); }
+.kit-help-eyebrow { color: var(--ink-2); }
 .kit-help-title { margin: 0 0 var(--gap-02); font-family: var(--font-heading); font-weight: var(--weight-default);
   font-size: var(--text-h3); line-height: var(--leading-h3); letter-spacing: var(--tracking-h3); }
 .kit-help-rows { display: grid; grid-template-columns: max-content 1fr; gap: var(--gap-03) var(--gap-05); margin: 0; }
-.kit-help-rows dt { padding-top: 0.2em; color: var(--ink-3); }
+.kit-help-rows dt { padding-top: 0.2em; color: var(--ink-2); }
 .kit-help-rows dd { margin: 0; color: var(--ink-2); font-size: var(--text-md); line-height: var(--leading-md); text-wrap: pretty; }
-.kit-help-note { margin: var(--gap-02) 0 0; color: var(--ink-3); font-size: var(--text-sm); }
+.kit-help-note { margin: var(--gap-02) 0 0; color: var(--ink-2); font-size: var(--text-sm); }
 .kit-help-close { position: absolute; top: var(--gap-04); right: var(--gap-04); display: grid; place-items: center;
   width: 2.5rem; height: 2.5rem; border: 0; padding: 0; border-radius: var(--radius-full); background: var(--dark-3); color: var(--light-2); cursor: pointer;
   transition: background-color 0.3s var(--ease-smooth); }
