@@ -79,7 +79,7 @@ const CSS = `
 .kit-signin.is-open .kit-signin-panel { opacity: 1; translate: 0 0; }
 .kit-signin-bar { position: absolute; top: var(--gap-04); right: var(--gap-04); }
 .kit-signin-close { display: grid; place-items: center; width: 2.25rem; height: 2.25rem; padding: 0; border: 0; border-radius: var(--radius-full);
-  background: var(--ink-3); color: var(--ink-1); cursor: pointer; transition: background-color 0.3s var(--ease-smooth), color 0.3s var(--ease-smooth); }
+  background: var(--surface-3); color: var(--ink-1); cursor: pointer; transition: background-color 0.3s var(--ease-smooth), color 0.3s var(--ease-smooth); }
 .kit-signin-close svg { width: 0.875rem; height: 0.875rem; }
 @media (hover: hover) { .kit-signin-close:hover { background: var(--ink-1); color: var(--surface-1); } }
 .kit-signin-step { display: none; flex-direction: column; margin: 0; text-align: center; }
@@ -90,8 +90,8 @@ const CSS = `
 .kit-signin-lead { margin: var(--gap-03) auto var(--gap-07); max-width: 20rem; color: var(--ink-2); text-wrap: pretty; }
 .kit-signin-email { color: var(--ink-1); word-break: break-all; }
 .kit-signin-input { width: 100%; text-align: left; margin-bottom: var(--gap-02); padding: var(--gap-04) var(--gap-05); border: 0; border-radius: var(--radius-full);
-  background: var(--ink-3); color: var(--ink-1); font: inherit; font-size: var(--text-input); transition: background-color 0.3s var(--ease-smooth); }
-.kit-signin-input::placeholder { color: var(--ink-2); }
+  background: var(--surface-3); color: var(--ink-1); font: inherit; font-size: var(--text-input); transition: background-color 0.3s var(--ease-smooth); }
+.kit-signin-input::placeholder { color: var(--ink-3); }
 .kit-signin-input:hover { background: var(--ink-hover); }
 .kit-signin-input:focus { outline: none; background: var(--ink-hover); box-shadow: inset 0 0 0 1.5px var(--ink-1); }
 .kit-signin-error { margin: var(--gap-02) 0; padding-inline: var(--gap-05); color: var(--status-error); text-align: left; }
@@ -99,7 +99,7 @@ const CSS = `
 .kit-signin-code { position: relative; display: block; margin-bottom: var(--gap-02); }
 .kit-signin-code input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; border: 0; font-size: var(--text-input); color: transparent; caret-color: transparent; cursor: text; }
 .kit-signin-cells { display: grid; grid-template-columns: repeat(6, 1fr); gap: var(--gap-02); pointer-events: none; }
-.kit-signin-cells span { display: grid; place-items: center; height: 3.5rem; border-radius: var(--radius-md); background: var(--ink-3);
+.kit-signin-cells span { display: grid; place-items: center; height: 3.5rem; border-radius: var(--radius-md); background: var(--surface-3);
   font-size: var(--text-h6); line-height: 1; font-variant-numeric: tabular-nums; transition: background-color 0.3s var(--ease-smooth), color 0.3s var(--ease-smooth); }
 .kit-signin-cells span.is-current { background: var(--ink-hover); box-shadow: inset 0 0 0 1.5px var(--ink-1); }
 .kit-signin-cells span.is-filled { background: var(--ink-1); color: var(--surface-1); }
@@ -112,7 +112,7 @@ const CSS = `
 .kit-signin-or { margin: var(--gap-04) 0; color: var(--ink-2); }
 /* With Google on top, the code is the quieter way: a plain secondary button (only one swap per window) */
 .kit-signin-plain { width: 100%; margin-top: var(--gap-02); padding: 0.75em 1em; border: 0; border-radius: var(--radius-sm);
-  background: var(--button-secondary-fill); color: var(--ink-1); font: inherit; cursor: pointer; transition: background-color 0.3s var(--ease-smooth); -webkit-tap-highlight-color: transparent; }
+  background: var(--surface-3); color: var(--ink-1); font: inherit; cursor: pointer; transition: background-color 0.3s var(--ease-smooth); -webkit-tap-highlight-color: transparent; }
 @media (hover: hover) { .kit-signin-plain:hover { background: var(--ink-hover); } }
 .kit-signin-plain[aria-busy="true"] { opacity: 0.6; pointer-events: none; }
 .kit-signin-submit { width: 100%; margin-top: var(--gap-02); border: 0; padding: 0; background: none; font: inherit; cursor: pointer; }

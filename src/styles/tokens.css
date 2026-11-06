@@ -97,12 +97,13 @@
   --surface-2: var(--light-2);
   --surface-3: var(--light-3);
   --ink-1: var(--dark-1);
-  /* Ink ladder (Ariel, 2026-11-06): 1 = text, 2 = secondary text (58%: still 4.5:1 on the grey cards), 3 = fills.
-     The old in-between grey (60%) is gone; --ink-4 stays as an alias of --ink-3 until every tool has moved over. */
+  /* Ink = only icons, text, lines, borders and the logo. Flat fills and backgrounds always use --surface-*.
+     1 = text, 2 = secondary text (58%: 4.5:1 on the grey cards), 3 = barely visible tertiary text, placeholders (48%),
+     4 = lines, borders, input borders, dividers (8%). */
   --ink-2: #0a0a0c94;
   --ink-hover: #0a0a0c29;
-  --ink-3: #0a0a0c14;
-  --ink-4: var(--ink-3);
+  --ink-3: #0a0a0c7a;
+  --ink-4: #0a0a0c14;
   --overlay-glass: #eff1f0a3;      /* nav pills, chips */
   --overlay-panel: #eff1f0d9;      /* dropdowns, phone menu, sheets */
   --overlay-glass-hover: #e3e7e5d9;
@@ -110,7 +111,7 @@
   --button-primary-ink: var(--dark-1);
   --button-primary-hover-fill: var(--ink-1);
   --button-primary-hover-ink: var(--surface-1);
-  --button-secondary-fill: var(--ink-3);
+  --button-secondary-fill: var(--surface-2);
   --button-secondary-hover-fill: var(--surface-3);
   --focus-ring: var(--dark-1); /* the yellow ring is too faint on white (WCAG 2.4.11) */
 }
@@ -123,8 +124,8 @@
   --ink-1: var(--light-2);
   --ink-2: #eff1f094;
   --ink-hover: #eff1f029;
-  --ink-3: #eff1f014;
-  --ink-4: var(--ink-3);
+  --ink-3: #eff1f07a;
+  --ink-4: #eff1f014;
   --overlay-glass: #282828cc;
   --overlay-panel: #282828cc;
   --overlay-glass-hover: #3a3a3acc;
@@ -132,7 +133,7 @@
   --button-primary-ink: var(--dark-1);
   --button-primary-hover-fill: var(--light-3);
   --button-primary-hover-ink: var(--dark-1);
-  --button-secondary-fill: var(--ink-3);
+  --button-secondary-fill: var(--surface-2);
   --button-secondary-hover-fill: var(--surface-3);
   --focus-ring: var(--accent);
 }
