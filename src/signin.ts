@@ -12,6 +12,7 @@
 import { ACCOUNT_ORIGIN, account, setAccount, type Account } from './account';
 import { avatarHtml } from './avatar';
 import { sound } from './sound';
+import { googleAvailable, signInWithGoogle } from './google';
 
 export interface SignInOptions {
   /** "signup" only changes the words: the same code signs you in or makes your account */
@@ -34,6 +35,8 @@ const HTML = `
   <form class="kit-signin-step" data-step="email" novalidate>
     <h2 class="kit-signin-title" id="kit-signin-title" data-title></h2>
     <p class="kit-signin-lead" data-lead></p>
+    <button class="button-animated kit-signin-google" type="button" data-google data-text="Continue with Google" hidden><span class="button-animated-inner"><svg viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M224,128a96,96,0,1,1-21.95-61.09,8,8,0,1,1-12.33,10.18A80,80,0,1,0,207.6,136H128a8,8,0,0,1,0-16h88A8,8,0,0,1,224,128Z"/></svg><span>Continue with Google</span></span></button>
+    <p class="kit-signin-or" data-google-or hidden>or with a code by email</p>
     <input class="kit-signin-input" type="email" name="email" aria-label="Email" required autocomplete="username" inputmode="email" autocapitalize="off" spellcheck="false" placeholder="you@studio.com" />
     <p class="kit-signin-error" data-error role="alert"></p>
     ${button('Send me a code')}
@@ -100,6 +103,13 @@ const CSS = `
   font-size: var(--text-h6); line-height: 1; font-variant-numeric: tabular-nums; transition: background-color 0.3s var(--ease-smooth), color 0.3s var(--ease-smooth); }
 .kit-signin-cells span.is-current { background: var(--ink-hover); box-shadow: inset 0 0 0 1.5px var(--ink-1); }
 .kit-signin-cells span.is-filled { background: var(--ink-1); color: var(--surface-1); }
+.kit-signin-google { width: 100%; margin-bottom: var(--gap-05); border: 0; padding: 0; background: none; font: inherit; cursor: pointer; }
+.kit-signin-google .button-animated-inner { justify-content: center; gap: 0.5em; }
+.kit-signin-google svg { width: 1.1em; height: 1.1em; flex: none; }
+.kit-signin-google[aria-busy="true"] { opacity: 0.6; pointer-events: none; }
+.kit-signin-or { margin: 0 0 var(--gap-03); padding-inline: var(--gap-05); color: var(--ink-3); }
+/* With Google on top, the code is the quieter way: a grey pill */
+.kit-signin.has-google [data-step="email"] .kit-signin-submit { --button-primary-fill: var(--ink-4); --button-primary-ink: var(--ink-1); color: var(--ink-1); }
 .kit-signin-submit { width: 100%; margin-top: var(--gap-02); border: 0; padding: 0; background: none; font: inherit; cursor: pointer; }
 .kit-signin-submit .button-animated-inner { justify-content: center; }
 .kit-signin-submit[aria-busy="true"] { opacity: 0.6; pointer-events: none; }
@@ -175,6 +185,22 @@ function build() {
     if (code.value.length === 6) codeForm.requestSubmit();
   });
   ['focus', 'blur'].forEach((ev) => code.addEventListener(ev, paintCode));
+  // Google: a small window, then you're in (no code to copy)
+  googleAvailable().then((on) => {
+    root!.classList.toggle('has-google', on);
+    $('[data-google]').hidden = !on;
+    $('[data-google-or]').hidden = !on;
+  });
+  $('[data-google]').addEventListener('click', async () => {
+    sound.tap();
+    const b = $('[data-google]');
+    b.setAttribute('aria-busy', 'true');
+    const ok = await signInWithGoogle();
+    b.removeAttribute('aria-busy');
+    if (!ok) return;
+    me = await account.refresh();
+    if (me.signedIn) { sound.success(); finish(); }
+  });
   $('[data-back]').addEventListener('click', () => { sound.tap(); showStep('email'); });
   $('[data-resend]').addEventListener('click', () => { sound.tap(); sendCode(emailForm); });
   $('[data-skip]').addEventListener('click', () => { sound.tap(); finish(); });
@@ -297,7 +323,7 @@ export function openSignIn(opts: SignInOptions = {}) {
   $('[data-title]').innerHTML = signup ? 'Sign up<br /><span>to 108</span>' : 'Sign in<br /><span>to 108</span>';
   $('[data-lead]').textContent = signup
     ? 'One account for everything 108: your templates, visuals and tools. No password, we email you a code.'
-    : 'Use the email you bought with and everything you own is there. New here? The same code makes your account.';
+    : 'Use the email you bought with and everything you own is there. New here? This makes your account.';
   root!.querySelectorAll('form').forEach((f) => f.reset());
   paintCode();
   showStep('email');
