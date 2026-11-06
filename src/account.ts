@@ -4,7 +4,7 @@
 
    import { account } from '@108-supply/kit/account';
    const me = await account.get();          // { signedIn, email, name, allAccess, owned, products }
-   if (!me.signedIn) account.signIn();       // → 108.supply sign-in, then back to this page
+   if (!me.signedIn) account.signIn();       // the 108 sign-in window, right here
    account.onChange((me) => render(me));     // after get() / refresh() / signOut()
    me.allAccess                              // everything unlocked
    account.owns('polar product id')          // bought this one product (or All Access) */
@@ -51,6 +51,15 @@ async function load(): Promise<Account> {
   }
 }
 
+/** Used by ./signin after the code: the new account, without asking the site again. */
+export function setAccount(next: Account) {
+  pending = Promise.resolve(next);
+  emit(next);
+}
+
+/** The session cookie is shared only between pages on *.108.supply */
+const onOurDomain = () => location.hostname === '108.supply' || location.hostname.endsWith('.108.supply');
+
 export const account = {
   /** The current account, asked once per page (call refresh() to ask again). */
   get(): Promise<Account> {
@@ -71,9 +80,14 @@ export const account = {
     listeners.add(fn);
     return () => listeners.delete(fn);
   },
-  /** Opens the 108 sign-in and comes back to `returnTo` (this page by default). */
-  signIn(returnTo = location.href) {
-    location.href = `${ACCOUNT_ORIGIN}/account?return=${encodeURIComponent(returnTo)}`;
+  /** Opens the 108 sign-in window on this page (`then` runs once you're in). Off *.108.supply: the site's
+      sign-in, which comes back to this page. */
+  signIn(opts: { mode?: 'signin' | 'signup'; then?: (me: Account) => void } = {}) {
+    if (!onOurDomain()) {
+      location.href = `${ACCOUNT_ORIGIN}/account?return=${encodeURIComponent(location.href)}`;
+      return;
+    }
+    import('./signin').then((m) => m.openSignIn(opts));
   },
   /** Your account page on the site (/account: Library, Tools, Account), in a new tab. */
   open(tab: 'library' | 'tools' | 'account' | 'billing' = 'library') {
