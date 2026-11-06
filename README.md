@@ -10,6 +10,7 @@ so a change made here reaches all of them.
 | `@108-supply/kit/system.css` | The 108™ System styles: fonts, tokens (colours, type, spacing, radius, motion; same names as the Figma variables) and the base (fluid scale, reset, text styles, focus ring, `.button-animated`). One copy for 108.supply and every tool. `tokens.css`, `base.css` and `fonts.css` can be imported on their own. |
 | `@108-supply/kit/sound`     | Interface sounds and haptics (Web Audio, no files). `sound.tap()`, `sound.tick()`, `detents(rangeInput)`, `sound.press()`, and for big moments `sound.success()` / `sound.celebrate()` … see the top of `src/sound.ts`. |
 | `@108-supply/kit/account`   | The 108 account (one login for 108.supply and every tool). `await account.get()` → `{ signedIn, email, allAccess, … }`, `account.signIn()`, `account.owns(polarProductId)` … see the top of `src/account.ts`. |
+| `@108-supply/kit/confirm`   | "Discard your work?" on a tool's × button: the × unfolds (like our dropdowns) into Cancel and a red Discard. `confirmClose(button, { onConfirm })` … see the top of `src/confirm.ts`. |
 
 The files are TypeScript and are compiled by each tool's own build (Astro/Vite), so there is no build step here.
 

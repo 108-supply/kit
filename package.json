@@ -9,6 +9,7 @@
     "./account": "./src/account.ts",
     "./avatar": "./src/avatar.ts",
     "./account-pill": "./src/account-pill.ts",
+    "./confirm": "./src/confirm.ts",
     "./system.css": "./src/styles/system.css",
     "./tokens.css": "./src/styles/tokens.css",
     "./base.css": "./src/styles/base.css",
