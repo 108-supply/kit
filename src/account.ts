@@ -1,10 +1,11 @@
 /* 108 account in the tools. One login for 108.supply and every *.108.supply tool: the session cookie lives on
-   .108.supply, so a tool only asks the site who is signed in. Signing in happens on the site (code by email),
-   which sends the person back to the tool. Backend: 108-supply/108-supply → worker/account.ts.
+   .108.supply, so a tool only asks the site who is signed in. Signing in (./signin) and your account
+   (./account-window) open as windows right in the tool; off *.108.supply (localhost) they go to the site. Backend: 108-supply/108-supply → worker/account.ts.
 
    import { account } from '@108-supply/kit/account';
    const me = await account.get();          // { signedIn, email, name, allAccess, owned, products }
    if (!me.signedIn) account.signIn();       // the 108 sign-in window, right here
+   account.open('tools');                    // your account window, right here
    account.onChange((me) => render(me));     // after get() / refresh() / signOut()
    me.allAccess                              // everything unlocked
    account.owns('polar product id')          // bought this one product (or All Access) */
@@ -84,15 +85,19 @@ export const account = {
       sign-in, which comes back to this page. */
   signIn(opts: { mode?: 'signin' | 'signup'; then?: (me: Account) => void } = {}) {
     if (!onOurDomain()) {
-      location.href = `${ACCOUNT_ORIGIN}/account?return=${encodeURIComponent(location.href)}`;
+      location.href = `${ACCOUNT_ORIGIN}/?return=${encodeURIComponent(location.href)}`;
       return;
     }
     import('./signin').then((m) => m.openSignIn(opts));
   },
-  /** Your account page on the site (/account: Library, Tools, Account), in a new tab. */
+  /** Your account window (Library, Tools, Account) right on this page. Off *.108.supply: the site, in a new tab. */
   open(tab: 'library' | 'tools' | 'account' | 'billing' = 'library') {
     const t = tab === 'billing' ? 'account' : tab;
-    window.open(`${ACCOUNT_ORIGIN}/account${t === 'library' ? '' : `?tab=${t}`}`, '_blank', 'noopener');
+    if (!onOurDomain()) {
+      window.open(`${ACCOUNT_ORIGIN}/?account=${t}`, '_blank', 'noopener');
+      return;
+    }
+    import('./account-window').then((m) => m.openAccountWindow(t));
   },
   async signOut(): Promise<Account> {
     try { await fetch(`${ACCOUNT_ORIGIN}/api/auth/logout`, { method: 'POST', credentials: 'include' }); } catch { /* offline */ }
