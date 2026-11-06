@@ -11,6 +11,7 @@
     "./dots": "./src/dots.ts",
     "./account-pill": "./src/account-pill.ts",
     "./signin": "./src/signin.ts",
+    "./google": "./src/google.ts",
     "./account-window": "./src/account-window.ts",
     "./checkout": "./src/checkout.ts",
     "./celebrate": "./src/celebrate.ts",
