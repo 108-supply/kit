@@ -11,14 +11,16 @@
    not load within 10 s the hosted checkout opens in a new tab instead, and the tool asks the account again when it
    comes back into view.
    After "success": the site's /api/checkout?id=… signs the buyer in (a fresh checkout only, see 108-supply
-   worker/account.ts), then the account is asked again until `paid(me)` says yes (Polar grants a moment later).
+   worker/account.ts) and says what was bought, which unlocks at once (`pending` runs meanwhile, `then` after).
    The checkout link's success URL should end in ?checkout_id={CHECKOUT_ID} (the id comes from there). */
-import { ACCOUNT_ORIGIN, account, type Account } from './account';
+import { ACCOUNT_ORIGIN, account, setAccount, type Account } from './account';
 import { sound } from './sound';
 
 export interface BuyOptions {
   /** Whether this account now has what was bought (default: anything at all owned) */
   paid?: (me: Account) => boolean;
+  /** Runs right after paying, while the account catches up (a few seconds): say it is unlocking */
+  pending?: () => void;
   /** Runs once it is unlocked */
   then?: (me: Account) => void;
 }
@@ -67,14 +69,32 @@ export function checkoutUrl(link: string) {
 
 const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-/** Signs the buyer in from a fresh checkout id, then asks the account until it has what was bought (about 30 s) */
+type Bought = { signedIn?: boolean; status?: string; products?: { id?: string; allAccess?: boolean }[] };
+
+/** Signs the buyer in from a fresh checkout id and unlocks what it bought. The checkout itself says what was paid for,
+    so that counts at once: Polar grants the benefit (which the account reads) a little later, sometimes a minute.
+    Keeps asking for about two minutes: right after "success" Polar may not have the order or the customer yet. */
 async function settle(id: string, opts: BuyOptions) {
   const paid = opts.paid ?? ((me: Account) => !!me.allAccess || !!me.products?.length);
-  try { await fetch(`${ACCOUNT_ORIGIN}/api/checkout?id=${encodeURIComponent(id)}`, { credentials: 'include' }); } catch { /* offline: the refreshes below still try */ }
-  for (let i = 0; i < 12; i++) {
-    const me = await account.refresh();
-    if (paid(me)) { opts.then?.(me); return true; }
-    await wait(i < 4 ? 1500 : 3000);
+  for (let i = 0; i < 30; i++) {
+    let bought: Bought | null = null;
+    try {
+      const res = await fetch(`${ACCOUNT_ORIGIN}/api/checkout?id=${encodeURIComponent(id)}`, { credentials: 'include' });
+      if (res.ok) bought = (await res.json()) as Bought;
+    } catch { /* offline: try again */ }
+    if (bought?.signedIn) {
+      const me = await account.refresh();
+      const ids = (bought.products ?? []).map((p) => p.id).filter((x): x is string => !!x);
+      const next: Account = me.signedIn
+        ? { ...me, allAccess: !!me.allAccess || !!bought.products?.some((p) => p.allAccess), products: [...new Set([...(me.products ?? []), ...ids])] }
+        : me;
+      if (paid(next)) {
+        if (next !== me) setAccount(next);
+        opts.then?.(next);
+        return true;
+      }
+    }
+    await wait(i < 10 ? 1500 : 5000);
   }
   return false;
 }
@@ -137,6 +157,7 @@ export function buy(link: string, opts: BuyOptions = {}): Promise<boolean> {
         const id = idFrom(data.successURL);
         // Close a moment after Polar's own "thank you", then unlock (the tool shows it)
         setTimeout(finish, 1200);
+        opts.pending?.();
         if (id) settle(id, opts).then((ok) => { result = ok; });
         else account.refresh();
       }
@@ -159,5 +180,6 @@ export function resumeCheckout(opts: BuyOptions = {}) {
   const u = new URL(location.href);
   u.searchParams.delete('checkout_id');
   history.replaceState(history.state, '', u.toString());
+  opts.pending?.();
   settle(id, opts);
 }
