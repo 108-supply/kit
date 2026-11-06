@@ -9,7 +9,7 @@
 
    Looks: centred glass window on desktop, a bottom sheet on phones, no outlines; the site's copy and steps
    (108-supply/108-supply → components/Account.astro, scripts/account.ts). Styled here from the 108 tokens. */
-import { ACCOUNT_ORIGIN, setAccount, type Account } from './account';
+import { ACCOUNT_ORIGIN, account, setAccount, type Account } from './account';
 import { avatarSvg } from './avatar';
 import { sound } from './sound';
 
@@ -135,10 +135,14 @@ let lastFocus: HTMLElement | null = null;
 let afterSignIn: ((me: Account) => void) | null = null;
 let me: Account = { signedIn: false };
 let pendingEmail = '';
+let verifying = false;
+let ownUpdate = false; // setAccount from this window: its own steps decide what comes next
 
 async function api<T>(path: string, body: unknown, method = 'POST'): Promise<{ status: number; body: T }> {
+  // Never wait forever: after 20 s the window says so and you can try again
   const res = await fetch(`${ACCOUNT_ORIGIN}${path}`, {
     method, credentials: 'include', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body),
+    signal: AbortSignal.timeout(20_000),
   });
   return { status: res.status, body: (await res.json().catch(() => ({}))) as T };
 }
@@ -178,6 +182,13 @@ function build() {
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' && root && !root.hidden) { e.stopPropagation(); close(); }
   }, true);
+  // Signed in some other way while the window is open (another tab, a checkout): nothing left to do here
+  account.onChange((a) => {
+    if (!a.signedIn || ownUpdate || !root || root.hidden) return;
+    if ($('[data-step="name"]').classList.contains('is-active')) return;
+    me = a;
+    finish();
+  });
 }
 
 function showStep(name: 'email' | 'code' | 'name') {
@@ -219,13 +230,17 @@ async function verify(form: HTMLFormElement) {
   const err = form.querySelector<HTMLElement>('[data-error]')!;
   const submit = form.querySelector<HTMLElement>('[type=submit]')!;
   if (code.length !== 6) { err.textContent = 'Enter the 6 digits from the email.'; return; }
+  if (verifying) return; // the six digits submit on their own: a second press must not send the code twice
+  verifying = true;
   submit.setAttribute('aria-busy', 'true');
   try {
     const { status, body } = await api<Account & { ok?: boolean; error?: string }>('/api/auth/verify', { code });
     if (status !== 200 || !body.ok) { err.textContent = errorText(body.error); return; }
     const { ok: _ok, error: _e, ...next } = body;
     me = next;
+    ownUpdate = true;
     setAccount(me); // the tool's account pill turns into your creature right away
+    ownUpdate = false;
     form.reset();
     paintCode();
     sound.success();
@@ -235,8 +250,12 @@ async function verify(form: HTMLFormElement) {
       return showStep('name');
     }
     finish();
-  } catch { err.textContent = errorText(); }
-  finally { submit.removeAttribute('aria-busy'); }
+  } catch {
+    // The answer got lost but the session may be set: then you're in, otherwise say so
+    const now = await account.refresh().catch(() => account.now);
+    if (now.signedIn) { me = now; finish(); } else err.textContent = errorText();
+  }
+  finally { verifying = false; submit.removeAttribute('aria-busy'); }
 }
 
 async function saveName(form: HTMLFormElement) {
