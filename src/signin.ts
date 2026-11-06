@@ -10,7 +10,7 @@
    Looks: centred glass window on desktop, a bottom sheet on phones, no outlines; the site's copy and steps
    (108-supply/108-supply → components/Account.astro, scripts/account.ts). Styled here from the 108 tokens. */
 import { ACCOUNT_ORIGIN, account, setAccount, type Account } from './account';
-import { avatarSvg } from './avatar';
+import { avatarHtml } from './avatar';
 import { sound } from './sound';
 
 export interface SignInOptions {
@@ -246,7 +246,7 @@ async function verify(form: HTMLFormElement) {
     sound.success();
     // First sign in: no name yet, ask for it before anything else
     if (!me.name) {
-      $('[data-creature]').innerHTML = avatarSvg(me.avatar || me.email || '108', 112);
+      $('[data-creature]').innerHTML = avatarHtml(me.avatar || me.email || '108', 112);
       return showStep('name');
     }
     finish();

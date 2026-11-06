@@ -9,7 +9,7 @@
    Data: ACCOUNT_ORIGIN/api/me (./account), /account-catalog.json (names, pictures and pages of the site's products),
    /api/access?link=… (a product's files). Signed out it opens the sign-in first (./signin). Styled from the 108 tokens. */
 import { ACCOUNT_ORIGIN, account, setAccount, type Account } from './account';
-import { avatarSvg, newAvatarSeed } from './avatar';
+import { avatarHtml, newAvatarSeed } from './avatar';
 import { sound } from './sound';
 
 export type AccountTab = 'library' | 'tools' | 'account';
@@ -128,7 +128,7 @@ const CSS = `
 .kaw-head { display: flex; align-items: center; gap: var(--gap-04); padding: var(--gap-04) var(--gap-04) var(--gap-03) var(--gap-05); }
 .kaw-creature { flex: none; width: 2.75rem; height: 2.75rem; padding: 0; border: 0; border-radius: var(--radius-full); overflow: hidden;
   background: var(--surface-3); cursor: pointer; transition: scale 0.5s var(--ease-smooth); }
-.kaw-creature svg, .kaw-me-avatar svg { display: block; width: 100%; height: 100%; }
+.kaw-creature img, .kaw-me-avatar img { display: block; width: 100%; height: 100%; }
 @media (hover: hover) { .kaw-creature:hover { scale: 1.06; } }
 .kaw-creature:active, .kaw-creature:disabled { scale: 0.92; }
 .kaw-who { flex: 1; min-width: 0; display: flex; flex-direction: column; }
@@ -325,7 +325,7 @@ function build() {
     sound.tap();
     const me = account.now;
     const previous = me.avatar || '';
-    const avatar = newAvatarSeed();
+    const avatar = newAvatarSeed(previous || me.email);
     setAccount({ ...me, avatar });
     root!.querySelectorAll<HTMLButtonElement>('[data-shuffle]').forEach((b) => (b.disabled = true));
     const { status } = await api('/api/me', { method: 'PATCH', body: JSON.stringify({ avatar }) }).catch(() => ({ status: 0 }));
@@ -380,7 +380,7 @@ function selectTab(next: AccountTab, animate = true) {
 function render(me: Account) {
   if (!root) return;
   if (!me.signedIn) { if (!root.hidden) close(); shown = ''; return; }
-  const creature = avatarSvg(me.avatar || me.email || '108', 112);
+  const creature = avatarHtml(me.avatar || me.email || '108', 112);
   $('.kaw-creature').innerHTML = creature;
   $('[data-avatar]').innerHTML = creature;
   $('[data-name]').textContent = nameOf(me) || 'Your account';
