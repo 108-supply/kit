@@ -12,6 +12,7 @@
     "./signin": "./src/signin.ts",
     "./account-window": "./src/account-window.ts",
     "./checkout": "./src/checkout.ts",
+    "./celebrate": "./src/celebrate.ts",
     "./confirm": "./src/confirm.ts",
     "./notice": "./src/notice.ts",
     "./help": "./src/help.ts",

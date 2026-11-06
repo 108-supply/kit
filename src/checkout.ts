@@ -12,18 +12,25 @@
    comes back into view.
    After "success": the site's /api/checkout?id=… signs the buyer in (a fresh checkout only, see 108-supply
    worker/account.ts) and says what was bought, which unlocks at once (`pending` runs meanwhile, `then` after).
+   The checkout's blur stays on screen the whole time and turns into the thank-you (kit/celebrate), as on 108.supply.
    The checkout link's success URL should end in ?checkout_id={CHECKOUT_ID} (the id comes from there). */
 import { ACCOUNT_ORIGIN, account, setAccount, type Account } from './account';
-import { sound } from './sound';
+import { celebrate } from './celebrate';
 
 export interface BuyOptions {
   /** Whether this account now has what was bought (default: anything at all owned) */
   paid?: (me: Account) => boolean;
   /** Runs right after paying, while the account catches up (a few seconds): say it is unlocking */
   pending?: () => void;
-  /** Runs once it is unlocked */
+  /** Runs once it is unlocked (under the thank-you) */
   then?: (me: Account) => void;
+  /** Runs when the payment could not be confirmed within about two minutes */
+  failed?: () => void;
+  /** The thank-you line (kit/celebrate), default "Thank you / for your purchase" */
+  thanks?: { title?: string; muted?: string };
 }
+
+const THANKS = { title: 'Thank you', muted: 'for your purchase' };
 
 const POLAR = ['https://polar.sh', 'https://sandbox.polar.sh'];
 const FADE = 400;
@@ -74,7 +81,7 @@ type Bought = { signedIn?: boolean; status?: string; products?: { id?: string; a
 /** Signs the buyer in from a fresh checkout id and unlocks what it bought. The checkout itself says what was paid for,
     so that counts at once: Polar grants the benefit (which the account reads) a little later, sometimes a minute.
     Keeps asking for about two minutes: right after "success" Polar may not have the order or the customer yet. */
-async function settle(id: string, opts: BuyOptions) {
+async function settle(id: string, opts: BuyOptions): Promise<Account | null> {
   const paid = opts.paid ?? ((me: Account) => !!me.allAccess || !!me.products?.length);
   for (let i = 0; i < 30; i++) {
     let bought: Bought | null = null;
@@ -90,13 +97,12 @@ async function settle(id: string, opts: BuyOptions) {
         : me;
       if (paid(next)) {
         if (next !== me) setAccount(next);
-        opts.then?.(next);
-        return true;
+        return next;
       }
     }
     await wait(i < 10 ? 1500 : 5000);
   }
-  return false;
+  return null;
 }
 
 const idFrom = (url: string | undefined) => {
@@ -152,14 +158,25 @@ export function buy(link: string, opts: BuyOptions = {}): Promise<boolean> {
       } else if (data.event === 'confirmed') {
         closable = false;
       } else if (data.event === 'success') {
-        closable = true;
-        sound.celebrate();
-        const id = idFrom(data.successURL);
-        // Close a moment after Polar's own "thank you", then unlock (the tool shows it)
-        setTimeout(finish, 1200);
+        // Polar's frame goes, the blur stays with the small loader while the account catches up (a few seconds),
+        // then the thank-you takes over that same blur (kit/celebrate) and it is unlocked underneath
+        closable = false;
+        window.removeEventListener('message', onMessage);
+        frame.classList.remove('is-in');
+        layer.classList.remove('is-loaded');
+        setTimeout(() => frame.remove(), FADE);
         opts.pending?.();
-        if (id) settle(id, opts).then((ok) => { result = ok; });
-        else account.refresh();
+        const id = idFrom(data.successURL);
+        (id ? settle(id, opts) : account.refresh().then((me) => ((opts.paid ?? (() => false))(me) ? me : null))).then((me) => {
+          if (!me) { closable = true; finish(); opts.failed?.(); return; }
+          done = true;
+          result = true;
+          document.documentElement.style.overflow = overflow;
+          open = false;
+          opts.then?.(me);
+          celebrate({ ...THANKS, ...opts.thanks, layer });
+          resolve(true);
+        });
       }
     };
     window.addEventListener('message', onMessage);
@@ -181,5 +198,9 @@ export function resumeCheckout(opts: BuyOptions = {}) {
   u.searchParams.delete('checkout_id');
   history.replaceState(history.state, '', u.toString());
   opts.pending?.();
-  settle(id, opts);
+  settle(id, opts).then((me) => {
+    if (!me) { opts.failed?.(); return; }
+    opts.then?.(me);
+    celebrate({ ...THANKS, ...opts.thanks });
+  });
 }
