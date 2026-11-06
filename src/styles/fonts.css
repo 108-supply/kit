@@ -1,0 +1,7 @@
+/* The licensed Diatype fonts for the tools on *.108.supply. They are not in this public repo: they load from the
+   108 Supply site, whose worker allows the tool origins (CORS). Switch to https://108.supply/fonts/ at go-live. */
+@font-face { font-family: "Diatype"; src: url("https://new.108.supply/fonts/Diatype-Regular.woff2") format("woff2"); font-weight: 400 500; font-display: swap; }
+@font-face { font-family: "Diatype"; src: url("https://new.108.supply/fonts/Diatype-Medium.woff2") format("woff2"); font-weight: 600; font-display: swap; }
+@font-face { font-family: "Diatype Mono"; src: url("https://new.108.supply/fonts/DiatypeMono-Regular.woff2") format("woff2"); font-weight: 400 500; font-display: swap; }
+@font-face { font-family: "Season Sans"; src: url("https://new.108.supply/fonts/SeasonSans-Medium.woff2") format("woff2"); font-weight: 500; font-display: swap; }
+
