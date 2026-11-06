@@ -8,6 +8,7 @@
     "./sound": "./src/sound.ts",
     "./account": "./src/account.ts",
     "./avatar": "./src/avatar.ts",
+    "./dots": "./src/dots.ts",
     "./account-pill": "./src/account-pill.ts",
     "./signin": "./src/signin.ts",
     "./account-window": "./src/account-window.ts",

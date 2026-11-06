@@ -1,7 +1,7 @@
 /* Your 108 account as one window over the page you're on: centred on computers, a sheet from the bottom on phones.
    The same window as on 108.supply, so a tool never sends you to the site for it. Head: your creature, name and
    email. Pill tabs with the white slice: Library (what you own, with its files right here; with All Access every
-   category), Tools, Account (your creature and its name, name, orders, sign out). Two cards a row.
+   category in one quiet card with the 108 dots), Tools (other tools open in a new tab), Account (your creature and its name, name, orders, sign out). Two cards a row.
 
    import { openAccountWindow } from '@108-supply/kit/account-window';
    openAccountWindow('library' | 'tools' | 'account');   // usually via account.open() from @108-supply/kit/account
@@ -11,9 +11,10 @@
 import { ACCOUNT_ORIGIN, account, setAccount, type Account } from './account';
 import { avatarHtml, creatureOf, newAvatarSeed } from './avatar';
 import { sound } from './sound';
+import { mountDots } from './dots';
 
 export type AccountTab = 'library' | 'tools' | 'account';
-interface CatalogItem { link: string; title: string; kind: string; href: string; thumb: string | null }
+interface CatalogItem { link: string; title: string; kind: string; href: string; thumb: string | null; date?: string | null }
 interface FileItem { title: string; type: string; url?: string; note?: string; files?: { name: string; size: string; url: string }[] }
 
 const ICON = {
@@ -60,7 +61,7 @@ const HTML = `
   <div class="kaw-body">
     <div class="kaw-pane" data-pane="library" role="tabpanel">
       <div data-library-list>
-        <div class="kaw-grid" data-everything hidden></div>
+        <div class="kaw-aacard" data-everything hidden><div class="kaw-aacard-copy" data-dot-copy><span class="kaw-aacard-title">All Access</span><span class="kaw-aacard-note">Every template, visual and tool, and everything we make next. Open any product to get its files.</span></div></div>
         <h3 class="kaw-sub" data-bought-title hidden>Bought one by one</h3>
         <div class="kaw-grid" data-library></div>
         <div class="kaw-empty" data-empty hidden>
@@ -81,7 +82,7 @@ const HTML = `
     </div>
     <div class="kaw-pane" data-pane="tools" role="tabpanel" hidden>
       <div class="kaw-grid">
-        ${TOOLS.map((t) => `<a href="${t.href}" class="kaw-card"${location.hostname === new URL(t.href).hostname ? ' data-close' : ''}>
+        ${TOOLS.map((t) => `<a href="${t.href}" class="kaw-card"${location.hostname === new URL(t.href).hostname ? ' data-close' : ' target="_blank" rel="noopener"'}>
           <span class="kaw-media"><span class="kaw-frame kaw-frame--web"><img src="${site(t.image)}" alt="" loading="lazy" decoding="async" /></span>${t.pro ? `<span class="kaw-tag kaw-tag--pro" data-pro="${t.pro}" hidden>Pro</span>` : ''}</span>
           <span class="kaw-caption"><span><span class="kaw-caption-title">${t.title}</span><span class="kaw-caption-sub">${t.line}</span></span></span>
         </a>`).join('')}
@@ -179,12 +180,14 @@ const CSS = `
 .kaw-caption-sub { color: var(--ink-3); }
 .kaw-caption button { flex: none; padding: 0; border: 0; background: none; font: inherit; color: var(--ink-1); cursor: pointer; }
 @media (hover: hover) { .kaw-caption button:hover { text-decoration: underline; } }
-.kaw-pass { display: flex; flex-direction: column; gap: var(--gap-02); aspect-ratio: 4 / 3; padding: var(--gap-04); border-radius: var(--radius-md);
-  background: var(--accent); color: var(--dark-1) !important; transition: transform 0.2s; }
-.kaw-pass:active { transform: scale(0.99); }
-.kaw-pass-label { opacity: 0.64; font-family: var(--font-label); font-size: var(--label-sm); letter-spacing: var(--tracking-label-sm); text-transform: uppercase; }
-.kaw-pass-title { margin-top: auto; font-size: var(--text-h3); line-height: var(--leading-h3); letter-spacing: var(--tracking-h3); }
-.kaw-pass-note { opacity: 0.72; }
+/* All Access: one quiet card on Surface 3 with the 108 dots (./dots), same as on the site */
+.kaw-aacard { position: relative; display: grid; place-items: center; aspect-ratio: 16 / 9; padding: var(--gap-06); border-radius: var(--radius-md);
+  overflow: hidden; background: var(--surface-3); text-align: center; }
+.kaw-aacard[hidden] { display: none; }
+.kaw-aacard-copy { position: relative; z-index: 1; display: flex; flex-direction: column; gap: var(--gap-03); max-width: 24rem; }
+.kaw-aacard-title { font-size: var(--text-lg); line-height: var(--leading-lg); color: var(--ink-1); }
+.kaw-aacard-note { color: var(--ink-2); }
+.kaw-aacard + .kaw-sub { margin-top: var(--gap-07); }
 
 .kaw-empty { padding: var(--gap-04) 0; }
 .kaw-empty p { margin: 0 0 var(--gap-05); font-size: var(--text-md); line-height: var(--leading-md); }
@@ -251,7 +254,7 @@ const CSS = `
   .kaw-pill { flex: 1; justify-content: center; padding-inline: var(--gap-03); }
   .kaw-body { padding: var(--gap-01) var(--gap-03) calc(var(--gap-07) + env(safe-area-inset-bottom)); }
   .kaw-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--gap-04) var(--gap-02); }
-  .kaw-pass { aspect-ratio: auto; min-height: 9rem; }
+  .kaw-aacard { aspect-ratio: 4 / 3; }
   .kaw-plan { display: none; }
   .kaw-tag { margin: var(--gap-02); scale: 0.85; transform-origin: top left; }
   .kaw-row, .kaw-file { flex-direction: column; align-items: stretch; padding: var(--gap-04); }
@@ -399,23 +402,13 @@ async function renderLibrary(me: Account) {
   const owned = new Set(me.owned ?? []);
   const seen = new Set<string>();
   const products = items.filter((i) => i.kind !== 'Collection');
-  const mine = products.filter((i) => owned.has(i.link) && !seen.has(i.href) && seen.add(i.href));
+  // Newest first: with an odd count the newest takes the whole first row
+  const mine = products.filter((i) => owned.has(i.link) && !seen.has(i.href) && seen.add(i.href))
+    .sort((a, b) => (b.date ?? '').localeCompare(a.date ?? ''));
 
   const everything = $('[data-everything]');
   everything.hidden = !me.allAccess;
-  if (me.allAccess) {
-    const groups = [
-      { title: 'Motion templates', kind: 'Motion', href: '/motion', frame: 'motion' },
-      { title: 'Website templates', kind: 'Website', href: '/web', frame: 'web' },
-      { title: 'Visuals', kind: 'Visual', href: '/visuals', frame: 'visual' },
-    ].map((g) => ({ ...g, list: products.filter((i) => i.kind.startsWith(g.kind)) }));
-    everything.innerHTML = `<a href="${site('/all-access')}" target="_blank" rel="noopener" class="kaw-pass"><span class="kaw-pass-label">Lifetime</span><span class="kaw-pass-title">All Access</span><span class="kaw-pass-note">Every template, visual and tool, and everything we make next. Open any product to get its files.</span></a>`
-      + groups.map((g) => {
-        const img = g.list.find((i) => i.thumb)?.thumb;
-        return `<a href="${site(g.href)}" target="_blank" rel="noopener" class="kaw-card"><span class="kaw-media"><span class="kaw-frame kaw-frame--${g.frame}">${img ? `<img src="${esc(sized(img, 480))}" alt="" loading="lazy" decoding="async" />` : ''}</span></span>
-          <span class="kaw-caption"><span><span class="kaw-caption-title">${g.title}</span><span class="kaw-caption-sub">${g.list.length} items</span></span></span></a>`;
-      }).join('');
-  }
+  if (me.allAccess) requestAnimationFrame(() => mountDots(everything));
   $('[data-library]').innerHTML = mine.map((i) => `<article class="kaw-card">
       <a href="${esc(site(i.href))}" target="_blank" rel="noopener" class="kaw-media" aria-label="${esc(i.title)}">
         <span class="kaw-frame kaw-frame--${frameOf(i.kind)}">${i.thumb ? `<img src="${esc(sized(i.thumb, 480))}" alt="" loading="lazy" decoding="async" />` : ''}</span>
