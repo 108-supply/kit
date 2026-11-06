@@ -49,6 +49,30 @@ class SoundEngine {
   }
 
   private stale = false;
+  /* The browser tab shows a speaker while an AudioContext is running, even when it only plays silence. So after the
+     last sound has rung out the context is put to sleep (suspended) and woken again by the next sound. */
+  private busyUntil = 0; // context time at which the last scheduled sound has fully rung out (reverb tail included)
+  private napTimer = 0;
+  private napping = false; // suspended by us when idle: a plain click elsewhere on the page must not wake it
+
+  /** A sound will play until context time `end`: keep the context awake until then, then let it sleep */
+  private hold(end: number) {
+    if (end > this.busyUntil) this.busyUntil = end;
+    this.napSoon();
+  }
+  private napSoon() {
+    const ctx = this.ctx;
+    if (!ctx || typeof window === 'undefined') return;
+    clearTimeout(this.napTimer);
+    // room tail (0.42 s) + a little air, so nothing is cut off
+    const left = Math.max(0, this.busyUntil - ctx.currentTime) + 0.6;
+    this.napTimer = window.setTimeout(() => {
+      if (ctx !== this.ctx || ctx.state !== 'running') return;
+      if (ctx.currentTime < this.busyUntil + 0.5) return this.napSoon(); // the clock started late (woken up)
+      this.napping = true;
+      ctx.suspend().catch(() => {});
+    }, left * 1000 + 400);
+  }
 
   /** Create or wake the audio context. Browsers only allow it inside a user gesture. */
   unlock() {
@@ -59,12 +83,15 @@ class SoundEngine {
       this.ctx = null;
     }
     this.stale = false;
+    if (this.ctx && this.napping) return; // asleep on purpose; the next sound wakes it (inside its own gesture)
     if (!this.ctx) {
       const AC = window.AudioContext || (window as any).webkitAudioContext;
       if (!AC) return;
       const ctx: AudioContext = new AC({ latencyHint: 'interactive' });
       this.ctx = ctx;
       this.lastTick = 0; // a new context's clock starts at 0 again
+      this.busyUntil = 0;
+      this.napping = false;
       this.build(ctx);
       // iOS reports "interrupted" (not in the spec) when another app or a call takes the audio
       ctx.addEventListener('statechange', () => { if ((ctx.state as string) === 'interrupted' && ctx === this.ctx) this.stale = true; });
@@ -77,13 +104,15 @@ class SoundEngine {
       ping.connect(this.ctx.destination);
       ping.start();
     }
+    this.napSoon(); // a context opened by a gesture with no sound goes back to sleep too
   }
 
   /** Try to start the audio without a gesture. Resolves true only if it is really playing within `ms`
       (browsers allow it after earlier visits or a click on the page before); otherwise stays silent, nothing queues. */
   async whenReady(ms = 400): Promise<boolean> {
     if (this.muted || typeof window === 'undefined') return false;
-    if (!this.ctx || this.stale || this.ctx.state !== 'running') this.unlock();
+    if (this.ctx && this.napping && !this.stale) this.wake();
+    else if (!this.ctx || this.stale || this.ctx.state !== 'running') this.unlock();
     const end = performance.now() + ms;
     while (this.ctx && this.ctx.state !== 'running' && performance.now() < end) await new Promise((r) => setTimeout(r, 40));
     return !!this.ctx && this.ctx.state === 'running' && !this.stale;
@@ -93,6 +122,7 @@ class SoundEngine {
     this.muted = m;
     try { localStorage.setItem(STORE, m ? 'off' : 'on'); } catch { /* private mode */ }
     if (!m) this.unlock();
+    else if (this.ctx && this.ctx.state === 'running') { this.napping = true; this.ctx.suspend().catch(() => {}); }
     this.listeners.forEach((f) => f(m));
   }
   onChange(f: (muted: boolean) => void) { this.listeners.add(f); }
@@ -155,8 +185,15 @@ class SoundEngine {
     if (this.muted || !this.ctx || this.stale) return null;
     const state = this.ctx.state as string;
     if (state === 'closed' || state === 'interrupted') return null;
-    if (state !== 'running') this.ctx.resume().catch(() => {});
+    if (state !== 'running') this.wake();
+    this.napSoon();
     return this.ctx;
+  }
+
+  private wake() {
+    if (!this.ctx) return;
+    this.napping = false;
+    this.ctx.resume().catch(() => {});
   }
 
   /* ---------- Building blocks ---------- */
@@ -192,6 +229,7 @@ class SoundEngine {
     g.gain.exponentialRampToValueAtTime(0.0001, t + o.dur);
     src.connect(f).connect(g);
     src.start(t, Math.random() * 1.5, o.dur + 0.05);
+    this.hold(t + o.dur + 0.05);
   }
 
   /** An oscillator with a pitch glide and a fast-attack, exponential-decay envelope */
@@ -209,6 +247,7 @@ class SoundEngine {
     osc.connect(g);
     osc.start(t);
     osc.stop(t + o.dur + 0.05);
+    this.hold(t + o.dur + 0.05);
   }
 
   /** FM pair: a carrier swept by a modulator whose depth falls away; glassy, a little synthetic */
@@ -231,6 +270,7 @@ class SoundEngine {
     car.connect(g);
     car.start(t); mod.start(t);
     car.stop(t + o.dur + 0.05); mod.stop(t + o.dur + 0.05);
+    this.hold(t + o.dur + 0.05);
   }
 
   /** Film grain: a few specks of dust */
@@ -358,6 +398,7 @@ class SoundEngine {
     n.connect(f).connect(g).connect(p).connect(this.bus);
     p.connect(s).connect(this.room);
     n.start(t, Math.random(), dur + 0.05);
+    this.hold(t + dur + 0.05);
   }
 
   /** The piece comes to rest: a low, soft landing */
