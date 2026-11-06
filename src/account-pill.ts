@@ -1,5 +1,5 @@
 /* The 108 account in a tool's bar: one round button. Signed out it shows a person icon and opens the 108 sign-in
-   (which comes back to the tool); signed in it shows your creature (./avatar) and opens your library on the site.
+   window right in the tool (./signin); signed in it shows your creature (./avatar) and opens your library on the site.
    The tool styles the button (its own round pill class); this only fills it and wires the click.
 
    import { mountAccountPill } from '@108-supply/kit/account-pill';
