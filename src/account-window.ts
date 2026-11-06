@@ -208,7 +208,7 @@ const CSS = `
 .kaw-back svg { width: 1rem; height: 1rem; }
 @media (hover: hover) { .kaw-back:hover { color: var(--ink-1); } }
 .kaw-files-title { margin: var(--gap-05) 0 var(--gap-05); font-family: var(--font-heading); font-weight: var(--weight-default); font-size: var(--text-h3); line-height: var(--leading-h3); letter-spacing: var(--tracking-h3); }
-.kaw-files { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--gap-01); max-width: 40rem; }
+.kaw-files { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--gap-01); }
 .kaw-file { display: flex; align-items: center; justify-content: space-between; gap: var(--gap-04); padding: var(--gap-03) var(--gap-03) var(--gap-03) var(--gap-05); border-radius: var(--radius-lg); background: var(--ink-4); }
 .kaw-file > span { min-width: 0; display: flex; flex-direction: column; }
 .kaw-file-sub { color: var(--ink-3); overflow-wrap: anywhere; }
@@ -216,7 +216,7 @@ const CSS = `
 .kaw-file-size { opacity: 0.56; }
 .kaw-loading { color: var(--ink-3); padding: var(--gap-04) 0; }
 
-.kaw-profile { display: flex; flex-direction: column; max-width: 30rem; }
+.kaw-profile { display: flex; flex-direction: column; }
 .kaw-me { display: flex; align-items: center; gap: var(--gap-04); margin-bottom: var(--gap-05); }
 .kaw-me-avatar { width: 6rem; height: 6rem; flex: none; }
 .kaw-me-who { display: flex; flex-direction: column; align-items: flex-start; gap: var(--gap-03); }
@@ -232,7 +232,7 @@ const CSS = `
 .kaw-note { display: block; margin: 0; color: var(--ink-3); }
 .kaw-note--field { padding-inline: var(--gap-05); margin-top: calc(-1 * var(--gap-02)); }
 .kaw-actions { display: flex; align-items: center; gap: var(--gap-04); margin-top: var(--gap-05); }
-.kaw-rows { display: flex; flex-direction: column; gap: var(--gap-01); max-width: 30rem; margin-top: var(--gap-08); }
+.kaw-rows { display: flex; flex-direction: column; gap: var(--gap-01); margin-top: var(--gap-08); }
 .kaw-row { display: flex; align-items: center; justify-content: space-between; gap: var(--gap-04); padding: var(--gap-04) var(--gap-04) var(--gap-04) var(--gap-05); border-radius: var(--radius-lg); background: var(--ink-4); }
 .kaw-row > span { min-width: 0; display: flex; flex-direction: column; }
 .kaw-row-title { color: var(--ink-1); }
