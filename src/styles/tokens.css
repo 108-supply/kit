@@ -98,7 +98,7 @@
   --surface-3: var(--light-3);
   --ink-1: var(--dark-1);
   --ink-2: #0a0a0ca3;
-  --ink-3: #0a0a0c85;
+  --ink-3: #0a0a0c99;
   --ink-hover: #0a0a0c29;
   --ink-4: #0a0a0c14;
   --overlay-glass: #eff1f0a3;      /* nav pills, chips */
@@ -120,7 +120,7 @@
   --surface-3: var(--dark-3);
   --ink-1: var(--light-2);
   --ink-2: #eff1f0a3;
-  --ink-3: #eff1f085;
+  --ink-3: #eff1f099;
   --ink-hover: #eff1f029;
   --ink-4: #eff1f014;
   --overlay-glass: #282828cc;
