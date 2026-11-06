@@ -9,7 +9,7 @@
    confetti({ x, y })        // just the confetti; returns { stop() }
 
    Confetti here is always round dots of nearly one size (Ariel: neat, no paper scraps). Nothing moves with
-   reduced motion (the line still shows). Colours from the tokens: accent and the light inks. */
+   reduced motion (the line still shows). Colour: only the accent (our green). */
 import { sound } from './sound';
 
 const TAU = Math.PI * 2;
@@ -25,7 +25,7 @@ export function confetti(from: { x: number; y: number }, { count = 70 }: { count
   if (reduced()) return none;
   const css = getComputedStyle(document.documentElement);
   const token = (name: string, fallback: string) => css.getPropertyValue(name).trim() || fallback;
-  const colors = [token('--accent', '#dcff02'), token('--accent', '#dcff02'), token('--light-1', '#ffffff'), token('--light-3', '#e3e7e5')];
+  const color = token('--accent', '#dcff02'); // only our green (Ariel)
 
   const canvas = document.createElement('canvas');
   canvas.setAttribute('aria-hidden', 'true');
@@ -46,7 +46,7 @@ export function confetti(from: { x: number; y: number }, { count = 70 }: { count
     return {
       x: from.x, y: from.y, vx: Math.cos(a) * sp * 1.4, vy: Math.sin(a) * sp,
       r: (4 + Math.random() * 0.8) * scale, // round, nearly one size
-      color: colors[(Math.random() * colors.length) | 0], rest: false,
+      color, rest: false,
     };
   });
 
@@ -105,6 +105,7 @@ const CSS = `
   opacity: 0; translate: 0 16px; transition: opacity 0.8s var(--ease-smooth, ease), translate 0.8s var(--ease-smooth, ease);
 }
 .kit-cheer-title span { opacity: 0.56; }
+.kit-cheer-title, .kit-cheer-title span { white-space: nowrap; } /* two short lines, never three */
 .kit-cheer.is-in .kit-cheer-title { opacity: 1; translate: 0 0; }
 .kit-cheer.is-out .kit-cheer-title { opacity: 0; translate: 0 -8px; transition-duration: 0.4s; }
 @media (prefers-reduced-motion: reduce) { .kit-cheer-blur, .kit-cheer-title { transition: none; } }
