@@ -4,6 +4,9 @@
 
    import { confirmClose } from '@108-supply/kit/confirm';
    confirmClose(closeButton, { onConfirm: () => closeTheFile() });
+   // A × on the right edge that only asks while something is being made (e.g. an export):
+   const ask = confirmClose(previewClose, { when: () => exporting, title: 'Stop the export?', confirm: 'Stop', align: 'end', onConfirm: closePreview });
+   ask.open(); // from another way out (a tap on the backdrop, Escape)
 
    The panel sits next to the button (in its parent, which becomes position: relative) and is styled here from the
    108 tokens, so every tool looks the same. Sounds: a tap when it opens, on Cancel and on Discard. */
@@ -16,6 +19,8 @@ export interface ConfirmCloseOptions {
   title?: string;
   confirm?: string;
   cancel?: string;
+  /** 'end' for a × at the right edge (e.g. a preview's close): the panel unfolds to the left. Default 'start'. */
+  align?: 'start' | 'end';
 }
 
 const X = '<svg viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M205.66,194.34a8,8,0,0,1-11.32,11.32L128,139.31,61.66,205.66a8,8,0,0,1-11.32-11.32L116.69,128,50.34,61.66A8,8,0,0,1,61.66,50.34L128,116.69l66.34-66.35a8,8,0,0,1,11.32,11.32L139.31,128Z"/></svg>';
@@ -23,7 +28,10 @@ const X = '<svg viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><pa
 const CSS = `
 .kit-confirm { position: absolute; z-index: 20; display: grid; gap: var(--gap-03); width: max-content; max-width: calc(100vw - 2 * var(--gap-04));
   padding: 0 var(--gap-03) var(--gap-03) 0; border-radius: var(--radius-lg); background: var(--surface-2); color: var(--ink-1);
-  font-family: var(--font-body); font-size: var(--text-sm); line-height: 1.2; letter-spacing: var(--tracking-sm); }
+  font-family: var(--font-body); font-size: var(--text-sm); line-height: 1.2; letter-spacing: var(--tracking-sm); pointer-events: auto; }
+.kit-confirm--end { padding: 0 0 var(--gap-03) var(--gap-03); }
+.kit-confirm--end .kit-confirm-head { flex-direction: row-reverse; padding-right: 0; padding-left: var(--gap-02); }
+.kit-confirm--end .kit-confirm-actions { padding-left: 0; padding-right: var(--gap-03); }
 .kit-confirm[hidden] { display: none; }
 .kit-confirm-head { display: flex; align-items: center; gap: var(--gap-01); height: 2.25rem; padding-right: var(--gap-02); white-space: nowrap; }
 .kit-confirm-x { display: grid; place-items: center; flex: none; width: 2.25rem; height: 2.25rem; }
@@ -46,7 +54,8 @@ const EASE_OUT = 'cubic-bezier(0.16, 1, 0.3, 1)'; // expo.out, as the dropdowns
 const EASE_IN_OUT = 'cubic-bezier(0.65, 0, 0.35, 1)'; // power3.inOut
 
 export function confirmClose(button: HTMLElement, opts: ConfirmCloseOptions) {
-  const { onConfirm, when = () => true, title = 'Discard your work?', confirm = 'Discard', cancel = 'Cancel' } = opts;
+  const { onConfirm, when = () => true, title = 'Discard your work?', confirm = 'Discard', cancel = 'Cancel', align = 'start' } = opts;
+  const end = align === 'end';
   if (!styled) {
     styled = true;
     const s = document.createElement('style');
@@ -58,7 +67,7 @@ export function confirmClose(button: HTMLElement, opts: ConfirmCloseOptions) {
 
   const id = `kit-confirm-${Math.random().toString(36).slice(2, 8)}`;
   const panel = document.createElement('div');
-  panel.className = 'kit-confirm';
+  panel.className = end ? 'kit-confirm kit-confirm--end' : 'kit-confirm';
   panel.id = id;
   panel.hidden = true;
   panel.setAttribute('role', 'alertdialog');
@@ -78,11 +87,12 @@ export function confirmClose(button: HTMLElement, opts: ConfirmCloseOptions) {
   const buttonClip = () => {
     const p = panel.getBoundingClientRect();
     const b = button.getBoundingClientRect();
-    return `inset(0px ${Math.max(0, p.width - b.width)}px ${Math.max(0, p.height - b.height)}px 0px round ${b.height / 2}px)`;
+    const dx = Math.max(0, p.width - b.width), dy = Math.max(0, p.height - b.height);
+    return end ? `inset(0px 0px ${dy}px ${dx}px round ${b.height / 2}px)` : `inset(0px ${dx}px ${dy}px 0px round ${b.height / 2}px)`;
   };
   const fullClip = () => `inset(0px 0px 0px 0px round ${getComputedStyle(panel).borderTopLeftRadius})`;
   const place = () => {
-    panel.style.left = `${button.offsetLeft}px`;
+    panel.style.left = `${end ? button.offsetLeft + button.offsetWidth - panel.offsetWidth : button.offsetLeft}px`;
     panel.style.top = `${button.offsetTop}px`;
   };
   const isOpen = () => !panel.hidden;
@@ -91,8 +101,8 @@ export function confirmClose(button: HTMLElement, opts: ConfirmCloseOptions) {
     anim?.cancel();
     fades.forEach((a) => a.cancel());
     fades = [];
-    place();
     panel.hidden = false;
+    place();
     button.setAttribute('aria-expanded', 'true');
     cancelBtn.focus({ preventScroll: true });
     sound.tap();
