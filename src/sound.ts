@@ -13,6 +13,9 @@
      press()      a final button (export, download): a heavier glass and metal key
      cut()        the cut: a light blade, not scissors
      peel(), whoosh(), settle(), rewind()  bigger moments: a sheet rolling up and flying off, landing, going back
+     success()    a small win (a signup went through): a soft pop and three rising glass notes
+     celebrate()  a big win (a purchase, something unlocked): a run of glass notes blooming into a warm chord
+   For a moment that comes without a click (a page opened after a checkout): `if (await sound.whenReady()) sound.celebrate()`.
    setMuted(), muted, onChange() drive a mute button; the choice is remembered per site.
    Haptics ride along where the device allows: navigator.vibrate on Android, the switch-control tick on iOS 18+. */
 
@@ -74,6 +77,16 @@ class SoundEngine {
       ping.connect(this.ctx.destination);
       ping.start();
     }
+  }
+
+  /** Try to start the audio without a gesture. Resolves true only if it is really playing within `ms`
+      (browsers allow it after earlier visits or a click on the page before); otherwise stays silent, nothing queues. */
+  async whenReady(ms = 400): Promise<boolean> {
+    if (this.muted || typeof window === 'undefined') return false;
+    if (!this.ctx || this.stale || this.ctx.state !== 'running') this.unlock();
+    const end = performance.now() + ms;
+    while (this.ctx && this.ctx.state !== 'running' && performance.now() < end) await new Promise((r) => setTimeout(r, 40));
+    return !!this.ctx && this.ctx.state === 'running' && !this.stale;
   }
 
   setMuted(m: boolean) {
@@ -363,6 +376,46 @@ class SoundEngine {
     const t = ctx.currentTime;
     this.noise(t, { f: 900, fEnd: 3200, q: 1.2, dur: 0.32, gain: 0.07, attack: 0.28, wet: 0.5 });
     this.tone(t + 0.27, { f: 2400 * vary(0.03), dur: 0.05, gain: 0.03, wet: 0.4 });
+  }
+
+  /** A glass bell: a sine with its glassy partials, a soft attack and a long ring into the room */
+  private bell(t: number, f: number, gain: number, dur: number, pan: Pan = 0) {
+    this.tone(t, { f, dur, gain, attack: 0.004, wet: 0.85, pan });
+    this.tone(t, { f: f * 2.76, dur: dur * 0.4, gain: gain * 0.22, attack: 0.003, wet: 0.9, pan: -pan });
+    this.tone(t, { f: f * 5.4, dur: dur * 0.18, gain: gain * 0.08, attack: 0.002, wet: 0.9, pan });
+  }
+
+  /** The confetti leaves: a soft breath of air, not a bang */
+  private pop(t: number, gain = 0.1) {
+    this.noise(t, { f: 1800, fEnd: 5200, q: 0.8, dur: 0.14, gain, attack: 0.004, wet: 0.4 });
+    this.tone(t, { f: 160, fEnd: 90, dur: 0.12, gain: gain * 0.6, wet: 0 });
+  }
+
+  /** A small win, like a signup that went through: a soft pop, then three glass notes rising (a major triad) */
+  success() {
+    this.haptic('medium');
+    const ctx = this.ready(); if (!ctx) return;
+    const t = ctx.currentTime + 0.01, v = vary(0.01);
+    this.pop(t, 0.08);
+    [1047, 1319, 1568].forEach((f, i) => this.bell(t + 0.06 + i * 0.09, f * v, 0.05 - i * 0.004, 1.1 + i * 0.25, (i - 1) * 0.25));
+    this.bell(t + 0.36, 2093 * v, 0.016, 1.6, 0.3);
+    this.dust(t + 0.3, 0.9, 0.08);
+  }
+
+  /** A big win, like a purchase or something unlocked: a quick run of glass notes that blooms into a warm,
+      open chord with a shimmer on top and a breath of film dust */
+  celebrate() {
+    this.haptic('heavy');
+    setTimeout(() => this.haptic('light'), 420);
+    const ctx = this.ready(); if (!ctx) return;
+    const t = ctx.currentTime + 0.01, v = vary(0.01);
+    this.pop(t, 0.1);
+    [1047, 1175, 1319, 1568, 2093].forEach((f, i) => this.bell(t + 0.05 + i * 0.065, f * v, 0.042, 0.9 + i * 0.2, (i - 2) * 0.18));
+    const bloom = t + 0.4;
+    // warm body under it: a low fifth that swells in and fades slowly
+    [262, 392].forEach((f, i) => this.tone(bloom, { f: f * v, dur: 1.6, gain: 0.05 - i * 0.015, attack: 0.09, wet: 0.5, pan: i ? 0.2 : -0.2 }));
+    [2637, 3136, 3951].forEach((f, i) => this.bell(bloom + 0.02 + i * 0.03, f * v, 0.014, 1.8 - i * 0.3, (i - 1) * 0.5));
+    this.dust(bloom, 1.4, 0.12);
   }
 
   /* ---------- Haptics ---------- */

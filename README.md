@@ -7,7 +7,7 @@ so a change made here reaches all of them.
 
 | Import                      | What it is                                                                                  |
 | :-------------------------- | :------------------------------------------------------------------------------------------ |
-| `@108-supply/kit/sound`     | Interface sounds and haptics (Web Audio, no files). `sound.tap()`, `sound.tick()`, `detents(rangeInput)`, `sound.press()` … see the top of `src/sound.ts`. |
+| `@108-supply/kit/sound`     | Interface sounds and haptics (Web Audio, no files). `sound.tap()`, `sound.tick()`, `detents(rangeInput)`, `sound.press()`, and for big moments `sound.success()` / `sound.celebrate()` … see the top of `src/sound.ts`. |
 | `@108-supply/kit/account`   | The 108 account (one login for 108.supply and every tool). `await account.get()` → `{ signedIn, email, allAccess, … }`, `account.signIn()`, `account.owns(polarProductId)` … see the top of `src/account.ts`. |
 
 The files are TypeScript and are compiled by each tool's own build (Astro/Vite), so there is no build step here.
