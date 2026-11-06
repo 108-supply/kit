@@ -1,6 +1,7 @@
 /* Messages in a tool ("Could not open that image", "Making your video…"). One place for every tool: the middle of the
    top bar. The message replaces whatever sits there (the file name, the 108 logo): that fades out behind a mask while
-   a glass pill, the same height and round shape as the bar's buttons, opens from the centre with the text in the
+   a glass pill, the same height and round shape as the bar's buttons, drops in and opens from the centre like the
+   iPhone's Dynamic Island (and closes back into it and slips up and away) with the text in the
    label font (a bar that is not on screen, e.g. hidden on a start screen: the top centre of the page). When the
    middle is too narrow for it (phones, where the bar is full of buttons) the same pill opens
    just under the bar instead, so it never covers a button.
@@ -22,19 +23,21 @@ const CSS = `
   border-radius: 1.125rem; background: var(--overlay-glass); -webkit-backdrop-filter: blur(24px); backdrop-filter: blur(24px);
   color: var(--ink-1); font-family: var(--font-label); font-size: var(--label-sm); line-height: 1.25; letter-spacing: var(--tracking-label-sm);
   text-transform: uppercase; text-align: center; text-wrap: balance; pointer-events: none;
-  translate: -50% -50%; clip-path: inset(0 50% round 1.125rem); opacity: 0; visibility: hidden;
-  transition: clip-path 0.5s var(--ease-smooth), opacity 0.3s var(--ease-smooth), visibility 0s 0.5s; }
-.kit-notice > span { opacity: 0; transition: opacity 0.25s var(--ease-smooth); }
-.kit-notice.is-on { clip-path: inset(0 0 round 1.125rem); opacity: 1; visibility: visible; transition: clip-path 0.6s var(--ease-smooth), opacity 0.2s var(--ease-smooth), visibility 0s; }
-.kit-notice.is-on > span { opacity: 1; transition: opacity 0.4s var(--ease-smooth) 0.15s; }
+  translate: -50% -50%;
+  /* Out: a small round pill tucked up at the centre (like the iPhone's Dynamic Island before it opens) */
+  clip-path: inset(0 calc(50% - 1.125rem) round 1.125rem); transform: translateY(-1rem) scale(0.7); opacity: 0; visibility: hidden;
+  transition: clip-path 0.45s cubic-bezier(0.65, 0, 0.35, 1), transform 0.55s cubic-bezier(0.65, 0, 0.35, 1), opacity 0.3s ease-in 0.15s, visibility 0s 0.55s; }
+.kit-notice > span { opacity: 0; transition: opacity 0.15s ease-out; }
+/* In: it drops in from the top and grows out of the centre to its full width */
+.kit-notice.is-on { clip-path: inset(0 0 round 1.125rem); transform: none; opacity: 1; visibility: visible;
+  transition: clip-path 0.75s cubic-bezier(0.16, 1, 0.3, 1) 0.05s, transform 0.6s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.2s ease-out, visibility 0s; }
+.kit-notice.is-on > span { opacity: 1; transition: opacity 0.35s ease-out 0.3s; }
 .kit-notice--page { position: fixed; top: max(var(--gap-05), env(safe-area-inset-top)); max-width: calc(100vw - 2 * var(--gap-04)); }
 .kit-notice-middle { transition: opacity 0.4s var(--ease-smooth), clip-path 0.5s var(--ease-smooth); }
-.kit-notice-on > .kit-notice--page { position: fixed; top: max(var(--gap-05), env(safe-area-inset-top)); max-width: calc(100vw - 2 * var(--gap-04)); }
-.kit-notice-middle { opacity: 0; clip-path: inset(0 50%); pointer-events: none; }
-.kit-notice-under > .kit-notice--page { position: fixed; top: max(var(--gap-05), env(safe-area-inset-top)); max-width: calc(100vw - 2 * var(--gap-04)); }
-.kit-notice-middle { opacity: 1; clip-path: none; pointer-events: auto; }
+.kit-notice-on > .kit-notice-middle { opacity: 0; clip-path: inset(0 50%); pointer-events: none; }
+.kit-notice-under > .kit-notice-middle { opacity: 1; clip-path: none; pointer-events: auto; }
 @media (prefers-reduced-motion: reduce) {
-  .kit-notice, .kit-notice.is-on { clip-path: none; transition: opacity 0.3s linear, visibility 0s 0.3s; }
+  .kit-notice, .kit-notice.is-on { clip-path: none; transform: none; transition: opacity 0.3s linear, visibility 0s 0.3s; }
   .kit-notice.is-on { transition: opacity 0.3s linear, visibility 0s; }
 }
 `;
