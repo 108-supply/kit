@@ -145,6 +145,14 @@
   :root {
     --page-padding: 1rem;
     --frame-padding: 0.25rem;
+    /* Gaps from 32 up step one size down the same scale (Ariel, Figma Spacing → Mobile): 0–24 stay */
+    --gap-07: 1.5rem;
+    --gap-08: 2rem;
+    --gap-09: 3rem;
+    --gap-10: 4rem;
+    --gap-11: 5rem;
+    --gap-12: 7.5rem;
+    --gap-13: 10rem;
     --section-xs: 1rem;
     --section-sm: 3rem;
     --section-md: 4rem;

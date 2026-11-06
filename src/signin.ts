@@ -125,7 +125,7 @@ const CSS = `
 .kit-signin-creature img { display: block; width: 100%; height: 100%; }
 @media (max-width: 767px) {
   .kit-signin { padding: var(--gap-02); align-items: end; }
-  .kit-signin-panel { width: 100%; max-height: calc(100dvh - 2 * var(--gap-02)); padding: var(--gap-08) var(--gap-04) var(--gap-04); }
+  .kit-signin-panel { width: 100%; max-height: calc(100dvh - 2 * var(--gap-02)); padding: var(--gap-09) var(--gap-04) var(--gap-04); }
   .kit-signin-bar { top: var(--gap-03); right: var(--gap-03); }
   .kit-signin-cells span { height: 3.25rem; }
 }
