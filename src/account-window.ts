@@ -252,7 +252,7 @@ const CSS = `
   .kaw-tabs { padding: 0 var(--gap-03) var(--gap-03); }
   .kaw-pills { width: 100%; }
   .kaw-pill { flex: 1; justify-content: center; padding-inline: var(--gap-03); }
-  .kaw-body { padding: var(--gap-01) var(--gap-03) calc(var(--gap-07) + env(safe-area-inset-bottom)); }
+  .kaw-body { padding: var(--gap-01) var(--gap-03) calc(var(--gap-08) + env(safe-area-inset-bottom)); }
   .kaw-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--gap-04) var(--gap-02); }
   .kaw-aacard { aspect-ratio: 4 / 3; }
   .kaw-plan { display: none; }
