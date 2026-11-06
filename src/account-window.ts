@@ -235,6 +235,8 @@ const CSS = `
 .kaw-rows { display: flex; flex-direction: column; gap: var(--gap-01); margin-top: var(--gap-08); }
 .kaw-row { display: flex; align-items: center; justify-content: space-between; gap: var(--gap-04); padding: var(--gap-04) var(--gap-04) var(--gap-04) var(--gap-05); border-radius: var(--radius-lg); background: var(--surface-3); }
 .kaw-row > span { min-width: 0; display: flex; flex-direction: column; }
+/* Buttons on a Surface 3 card step back to Surface 2 so they stay visible */
+.kaw-row .kaw-button:not(.kaw-button--accent):not(:hover), .kaw-file .kaw-button:not(.kaw-button--accent):not(:hover) { background: var(--surface-2); }
 .kaw-row-title { color: var(--ink-1); }
 .kaw-row--danger .kaw-row-title { color: var(--status-error); }
 .kaw-danger { display: inline-flex; flex: none; padding: var(--gap-02) var(--gap-04); border-radius: var(--radius-full); background: var(--status-error-fill); color: var(--status-error) !important;
