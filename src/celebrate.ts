@@ -1,10 +1,10 @@
 /* Big moments (a purchase, an unlock): the same thank-you as the 108.supply newsletter. The page blurs, one line
-   appears in the middle ("Thank you / for your purchase", the second half muted), round confetti bursts out of it,
+   appears in the middle ("Thank you / You're in", the second line muted), round confetti bursts out of it,
    bounces off the edges of the screen and settles on the bottom, with the kit's celebrate sound. It closes by itself
    after 5 s; a click or Esc closes it sooner.
 
    import { celebrate, confetti } from '@108-supply/kit/celebrate';
-   celebrate({ title: 'Thank you', muted: 'for your purchase' });
+   celebrate({ title: 'Thank you', muted: 'You\u2019re in' });
    celebrate({ …, layer })   // take over a blur that is already on screen (kit/checkout's), no second blur
    confetti({ x, y })        // just the confetti; returns { stop() }
 
@@ -122,7 +122,7 @@ export interface CelebrateOptions {
   done?: () => void;
 }
 
-export function celebrate({ title = 'Thank you', muted = 'for your purchase', layer, done }: CelebrateOptions = {}) {
+export function celebrate({ title = 'Thank you', muted = 'You\u2019re in', layer, done }: CelebrateOptions = {}) {
   if (!styled) {
     styled = true;
     const s = document.createElement('style');
