@@ -36,7 +36,8 @@ const hint = () => typeof document !== 'undefined' && document.cookie.split(';')
 
 function emit(next: Account) {
   current = next;
-  listeners.forEach((fn) => fn(current));
+  // One tool's listener failing must not stop the others (or the sign-in that called this)
+  listeners.forEach((fn) => { try { fn(current); } catch (e) { console.error(e); } });
   return current;
 }
 
