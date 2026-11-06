@@ -1,7 +1,8 @@
 /* Messages in a tool ("Could not open that image", "Making your video…"). One place for every tool: the middle of the
    top bar. The message replaces whatever sits there (the file name, the 108 logo): that fades out behind a mask while
    a glass pill, the same height and round shape as the bar's buttons, opens from the centre with the text in the
-   label font. When the middle is too narrow for it (phones, where the bar is full of buttons) the same pill opens
+   label font (a bar that is not on screen, e.g. hidden on a start screen: the top centre of the page). When the
+   middle is too narrow for it (phones, where the bar is full of buttons) the same pill opens
    just under the bar instead, so it never covers a button.
 
    import { mountNotice } from '@108-supply/kit/notice';
@@ -26,9 +27,12 @@ const CSS = `
 .kit-notice > span { opacity: 0; transition: opacity 0.25s var(--ease-smooth); }
 .kit-notice.is-on { clip-path: inset(0 0 round 1.125rem); opacity: 1; visibility: visible; transition: clip-path 0.6s var(--ease-smooth), opacity 0.2s var(--ease-smooth), visibility 0s; }
 .kit-notice.is-on > span { opacity: 1; transition: opacity 0.4s var(--ease-smooth) 0.15s; }
+.kit-notice--page { position: fixed; top: max(var(--gap-05), env(safe-area-inset-top)); max-width: calc(100vw - 2 * var(--gap-04)); }
 .kit-notice-middle { transition: opacity 0.4s var(--ease-smooth), clip-path 0.5s var(--ease-smooth); }
-.kit-notice-on > .kit-notice-middle { opacity: 0; clip-path: inset(0 50%); pointer-events: none; }
-.kit-notice-under > .kit-notice-middle { opacity: 1; clip-path: none; pointer-events: auto; }
+.kit-notice-on > .kit-notice--page { position: fixed; top: max(var(--gap-05), env(safe-area-inset-top)); max-width: calc(100vw - 2 * var(--gap-04)); }
+.kit-notice-middle { opacity: 0; clip-path: inset(0 50%); pointer-events: none; }
+.kit-notice-under > .kit-notice--page { position: fixed; top: max(var(--gap-05), env(safe-area-inset-top)); max-width: calc(100vw - 2 * var(--gap-04)); }
+.kit-notice-middle { opacity: 1; clip-path: none; pointer-events: auto; }
 @media (prefers-reduced-motion: reduce) {
   .kit-notice, .kit-notice.is-on { clip-path: none; transition: opacity 0.3s linear, visibility 0s 0.3s; }
   .kit-notice.is-on { transition: opacity 0.3s linear, visibility 0s; }
@@ -73,6 +77,28 @@ export function mountNotice(bar: HTMLElement, defaults: { ms?: number } = {}): N
   };
 
   function place() {
+    // A bar that is not on screen (a tool's start screen hides its editor bar): the top of the page instead
+    const offscreen = !bar.getClientRects().length || (bar.checkVisibility ? !bar.checkVisibility({ opacityProperty: true, visibilityProperty: true }) : false);
+    if (offscreen) {
+      if (el.parentElement !== document.body) document.body.append(el);
+      el.classList.add('kit-notice--page');
+      el.style.maxWidth = '';
+      const r = bar.getBoundingClientRect();
+      if (r.width > 1) {
+        // laid out but not shown (e.g. faded out): where the bar would be
+        el.style.left = `${r.left + r.width / 2}px`;
+        el.style.top = `${r.top + Math.max(0, parseFloat(getComputedStyle(bar).paddingTop) || 0)}px`;
+        el.style.maxWidth = `${Math.min(r.width, window.innerWidth) - 32}px`;
+      } else {
+        el.style.left = '';
+        el.style.top = '';
+      }
+      el.style.translate = '-50% 0';
+      return;
+    }
+    el.style.left = '';
+    if (el.parentElement !== bar) bar.append(el);
+    el.classList.remove('kit-notice--page');
     const { left, right, middle } = sides();
     middle.forEach((m) => m.classList.add('kit-notice-middle'));
     const b = bar.getBoundingClientRect();
