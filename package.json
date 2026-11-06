@@ -10,6 +10,7 @@
     "./avatar": "./src/avatar.ts",
     "./account-pill": "./src/account-pill.ts",
     "./signin": "./src/signin.ts",
+    "./checkout": "./src/checkout.ts",
     "./confirm": "./src/confirm.ts",
     "./notice": "./src/notice.ts",
     "./help": "./src/help.ts",
