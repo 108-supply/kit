@@ -34,28 +34,39 @@ export function signInWithGoogle(origin = ACCOUNT_ORIGIN): Promise<boolean> {
     location.href = `${origin}/api/auth/google?return=${back}`;
     return new Promise(() => {});
   }
-  const before = signedInCookie();
   return new Promise((resolve) => {
-    let done = false;
+    let done = false, asking = false;
     const started = Date.now();
     const finish = (ok: boolean) => {
       if (done) return;
       done = true;
       clearInterval(timer);
       window.removeEventListener('message', onMessage);
+      window.removeEventListener('focus', check);
+      document.removeEventListener('visibilitychange', check);
       resolve(ok);
     };
     const onMessage = (e: MessageEvent) => {
       if (e.origin !== new URL(origin).origin || (e.data as { type?: string })?.type !== '108:auth') return;
       finish(!!(e.data as { ok?: boolean }).ok);
     };
+    // The site itself says whether you're in. On iPhones Google opens in a tab that can neither message this page
+    // nor close itself, and this page sleeps while you're there: so ask when you come back, and every moment after.
+    async function check() {
+      if (done || asking || document.visibilityState !== 'visible' || !signedInCookie()) return;
+      asking = true;
+      try {
+        const r = await fetch(`${origin}/api/me`, { credentials: 'include' });
+        if (r.ok && ((await r.json()) as { signedIn?: boolean }).signedIn) finish(true);
+      } catch { /* ask again on the next tick */ }
+      asking = false;
+    }
     window.addEventListener('message', onMessage);
+    window.addEventListener('focus', check);
+    document.addEventListener('visibilitychange', check);
     const timer = setInterval(() => {
-      // Signed in now (the cookie is new, or was refreshed while we waited)
-      if (signedInCookie() && (!before || Date.now() - started > 1500)) {
-        if (!before || popup.closed) return finish(true);
-      }
-      if (Date.now() - started > 5 * 60_000) finish(false);
-    }, 700);
+      if (Date.now() - started > 5 * 60_000 || (popup.closed && Date.now() - started > 60_000 && !signedInCookie())) return finish(false);
+      check();
+    }, 1000);
   });
 }
