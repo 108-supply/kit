@@ -3,8 +3,8 @@
    email; a click on the creature opens the creature picker right in the window (the creatures on a drum, the
    middle one named under it, like the shapes in Snip Snap; swipe, tap a side one, arrows or the buttons).
    Pill tabs with the white slice: Library (what you own, with its files right here; empty, or with All Access, one
-   quiet centred box), Tools (other tools open in a new tab), Account (name, email, orders; sign out and delete
-   account folded away under "More"). Two cards a row.
+   quiet centred box), Tools (other tools open in a new tab), Account (name, email, then three Surface 3 rows:
+   orders and invoices, sign out, delete account). Two cards a row.
 
    import { openAccountWindow } from '@108-supply/kit/account-window';
    openAccountWindow('library' | 'tools' | 'account');   // usually via account.open() from @108-supply/kit/account
@@ -24,7 +24,7 @@ const ICON = {
   close: 'M205.66 194.34a8 8 0 0 1-11.32 11.32L128 139.31l-66.34 66.35a8 8 0 0 1-11.32-11.32L116.69 128 50.34 61.66a8 8 0 0 1 11.32-11.32L128 116.69l66.34-66.35a8 8 0 0 1 11.32 11.32L139.31 128Z',
   back: 'M224 128a8 8 0 0 1-8 8H59.31l58.35 58.34a8 8 0 0 1-11.32 11.32l-72-72a8 8 0 0 1 0-11.32l72-72a8 8 0 0 1 11.32 11.32L59.31 120H216a8 8 0 0 1 8 8Z',
   question: 'M140,180a12,12,0,1,1-12-12A12,12,0,0,1,140,180ZM128,72c-22.06,0-40,16.15-40,36v4a8,8,0,0,0,16,0v-4c0-11,10.77-20,24-20s24,9,24,20-10.77,20-24,20a8,8,0,0,0-8,8v8a8,8,0,0,0,16,0v-.72c18.24-3.35,32-17.9,32-35.28C168,88.15,150.06,72,128,72Zm104,56A104,104,0,1,1,128,24,104.11,104.11,0,0,1,232,128Zm-16,0a88,88,0,1,0-88,88A88.1,88.1,0,0,0,216,128Z',
-  caret: 'M213.66,101.66l-80,80a8,8,0,0,1-11.32,0l-80-80A8,8,0,0,1,53.66,90.34L128,164.69l74.34-74.35a8,8,0,0,1,11.32,11.32Z',
+  signOut: 'M120,216a8,8,0,0,1-8,8H48a8,8,0,0,1-8-8V40a8,8,0,0,1,8-8h64a8,8,0,0,1,0,16H56V208h56A8,8,0,0,1,120,216Zm109.66-93.66-40-40a8,8,0,0,0-11.32,11.32L204.69,120H112a8,8,0,0,0,0,16h92.69l-26.35,26.34a8,8,0,0,0,11.32,11.32l40-40A8,8,0,0,0,229.66,122.34Z',
   left: 'M165.66,202.34a8,8,0,0,1-11.32,11.32l-80-80a8,8,0,0,1,0-11.32l80-80a8,8,0,0,1,11.32,11.32L91.31,128Z',
   right: 'M181.66,133.66l-80,80a8,8,0,0,1-11.32-11.32L164.69,128,90.34,53.66a8,8,0,0,1,11.32-11.32l80,80A8,8,0,0,1,181.66,133.66Z',
 };
@@ -117,14 +117,11 @@ const HTML = `
       <div class="kaw-rows">
         <div class="kaw-row"><span class="kaw-row-title">Orders and invoices</span>
           <a class="kaw-button" href="${ACCOUNT_ORIGIN}/api/portal" target="_blank" rel="noopener">${svg(ICON.receipt)}Open</a></div>
+        <div class="kaw-row"><span class="kaw-row-title">Sign out</span>
+          <button class="kaw-button" type="button" data-signout>${svg(ICON.signOut)}Sign out</button></div>
+        <div class="kaw-row kaw-row--danger"><span class="kaw-row-title">Delete account</span>
+          <a class="kaw-danger" href="mailto:hi@108.supply?subject=Delete%20my%20108%20account">Delete</a></div>
       </div>
-      <details class="kaw-more" data-more>
-        <summary class="kaw-more-toggle">More${svg(ICON.caret)}</summary>
-        <div class="kaw-more-links">
-          <button type="button" data-signout>Sign out</button>
-          <a href="mailto:hi@108.supply?subject=Delete%20my%20108%20account">Delete account</a>
-        </div>
-      </details>
     </div>
   </div>
 </div>`;
@@ -263,7 +260,7 @@ const CSS = `
 @media (hover: hover) { .kaw-back:hover { color: var(--ink-1); } }
 .kaw-files-title { margin: var(--gap-05) 0 var(--gap-05); font-family: var(--font-heading); font-weight: var(--weight-default); font-size: var(--text-h3); line-height: var(--leading-h3); letter-spacing: var(--tracking-h3); }
 .kaw-files { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--gap-01); }
-.kaw-file { display: flex; align-items: center; justify-content: space-between; gap: var(--gap-04); padding: var(--gap-03) var(--gap-03) var(--gap-03) var(--gap-05); border-radius: var(--radius-lg); background: var(--surface-3); }
+.kaw-file { display: flex; align-items: center; justify-content: space-between; gap: var(--gap-04); padding: var(--gap-04) var(--gap-04) var(--gap-04) var(--gap-05); border-radius: var(--radius-lg); background: var(--surface-3); }
 .kaw-file > span { min-width: 0; display: flex; flex-direction: column; }
 .kaw-file-sub { color: var(--ink-2); overflow-wrap: anywhere; }
 .kaw-file-actions { display: flex; flex-direction: column; align-items: flex-end; gap: var(--gap-02); }
@@ -290,19 +287,16 @@ const CSS = `
 .kaw-actions { display: flex; align-items: center; gap: var(--gap-04); margin-top: var(--gap-05); }
 .kaw-rows { display: flex; flex-direction: column; gap: var(--gap-01); margin-top: var(--gap-08); }
 .kaw-row { display: flex; align-items: center; justify-content: space-between; gap: var(--gap-04); padding: var(--gap-04) var(--gap-04) var(--gap-04) var(--gap-05); border-radius: var(--radius-lg); background: var(--surface-3); }
+.kaw-row-title { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 /* Buttons on a Surface 3 card step back to Surface 2 so they stay visible */
 .kaw-row .kaw-button:not(.kaw-button--accent):not(:hover), .kaw-file .kaw-button:not(.kaw-button--accent):not(:hover) { background: var(--surface-2); }
 .kaw-row-title { color: var(--ink-1); }
-/* More: sign out and delete account, folded away and quiet */
-.kaw-more { margin-top: var(--gap-06); padding-inline: var(--gap-05); }
-.kaw-more-toggle { display: inline-flex; align-items: center; gap: var(--gap-01); color: var(--ink-2); cursor: pointer; list-style: none; transition: color 0.3s var(--ease-smooth); }
-.kaw-more-toggle::-webkit-details-marker { display: none; }
-.kaw-more-toggle svg { width: 0.75rem; height: 0.75rem; transition: rotate 0.4s var(--ease-smooth); }
-.kaw-more[open] .kaw-more-toggle svg { rotate: 180deg; }
-@media (hover: hover) { .kaw-more-toggle:hover { color: var(--ink-1); } }
-.kaw-more-links { display: flex; flex-wrap: wrap; gap: var(--gap-05); padding-top: var(--gap-03); animation: kaw-in 0.5s var(--ease-smooth); }
-.kaw-more-links > * { padding: 0; border: 0; background: none; color: var(--ink-2) !important; font: inherit; cursor: pointer; transition: color 0.3s var(--ease-smooth); }
-@media (hover: hover) { .kaw-more-links > :hover { color: var(--ink-1) !important; } }
+/* Delete account: the title and its button in the error colour */
+.kaw-row--danger .kaw-row-title { color: var(--status-error); }
+.kaw-danger { display: inline-flex; align-items: center; justify-content: center; flex: none; padding: var(--gap-02) var(--gap-04); border-radius: var(--radius-full);
+  background: var(--status-error-fill); color: var(--status-error) !important; white-space: nowrap;
+  transition: background-color 0.3s var(--ease-smooth), color 0.3s var(--ease-smooth); }
+@media (hover: hover) { .kaw-danger:hover { background: var(--status-error); color: var(--dark-1) !important; } }
 
 @media (max-width: 767px) {
   .kaw { padding: 0; align-items: end; }
@@ -322,6 +316,7 @@ const CSS = `
   .kaw-box { padding: var(--gap-07) var(--gap-04); }
   .kaw-plan { display: none; }
   .kaw-tag { margin: var(--gap-02); scale: 0.85; transform-origin: top left; }
+  .kaw-row { padding: var(--gap-03) var(--gap-03) var(--gap-03) var(--gap-04); }
   .kaw-file { flex-direction: column; align-items: stretch; padding: var(--gap-04); }
   .kaw-file-actions { align-items: stretch; }
 }
@@ -330,7 +325,7 @@ const CSS = `
 }
 @media (prefers-reduced-motion: reduce) {
   .kaw-overlay, .kaw-panel, .kaw-slice { transition-duration: 0.01ms; }
-  .kaw-pane, .kaw-more-links, .kaw-pick { animation: none; }
+  .kaw-pane, .kaw-pick { animation: none; }
 }
 `;
 
@@ -718,7 +713,6 @@ function close() {
     // Next time it opens folded again
     root.querySelectorAll('.is-on').forEach((el) => el.classList.remove('is-on'));
     closePicker(false);
-    $<HTMLDetailsElement>('[data-more]').open = false;
   }, OUT);
   lastFocus?.focus({ preventScroll: true });
 }

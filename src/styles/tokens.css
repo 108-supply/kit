@@ -91,7 +91,7 @@
 }
 
 /* 🖍️ Theme: Base Mode (light). The default, every light section on the dark page (.section-light, .base) and the
-   nav while it sits over a light section. Ink 2–4 are Ink 1 at the same opacity in both modes: 64%, 52%, 16%, 8%. */
+   nav while it sits over a light section. Ink 2, 3, hover and 4 are Ink 1 at the same opacity in both modes: 58%, 48%, 16%, 16%. */
 :root, .base, .section-light, .navigation:has(.navigation-bar.is-light) {
   --surface-1: var(--light-1);
   --surface-2: var(--light-2);
@@ -99,11 +99,11 @@
   --ink-1: var(--dark-1);
   /* Ink = only icons, text, lines, borders and the logo. Flat fills and backgrounds always use --surface-*.
      1 = text, 2 = secondary text (58%: 4.5:1 on the grey cards), 3 = barely visible tertiary text, placeholders (48%),
-     4 = lines, borders, input borders, dividers (8%). */
+     4 = lines, borders, input borders, dividers (16%). */
   --ink-2: #0a0a0c94;
   --ink-hover: #0a0a0c29;
   --ink-3: #0a0a0c7a;
-  --ink-4: #0a0a0c14;
+  --ink-4: #0a0a0c29;
   --overlay-glass: #eff1f0a3;      /* nav pills, chips */
   --overlay-panel: #eff1f0d9;      /* dropdowns, phone menu, sheets */
   --overlay-glass-hover: #e3e7e5d9;
@@ -125,7 +125,7 @@
   --ink-2: #eff1f094;
   --ink-hover: #eff1f029;
   --ink-3: #eff1f07a;
-  --ink-4: #eff1f014;
+  --ink-4: #eff1f029;
   --overlay-glass: #282828cc;
   --overlay-panel: #282828cc;
   --overlay-glass-hover: #3a3a3acc;
