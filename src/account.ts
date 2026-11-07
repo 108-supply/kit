@@ -41,21 +41,43 @@ function emit(next: Account) {
   return current;
 }
 
+/** The last account this browser saw (while the sign-in cookie is there): a tool paints it at once, and keeps it
+    when the site cannot answer for a moment, instead of looking signed out. */
+const CACHE = '108-account';
+function cached(): Account | null {
+  try { const c = JSON.parse(localStorage.getItem(CACHE) || 'null'); return c?.signedIn ? c : null; } catch { return null; }
+}
+function remember(a: Account) {
+  try { if (a.signedIn) localStorage.setItem(CACHE, JSON.stringify(a)); else localStorage.removeItem(CACHE); } catch { /* private mode */ }
+}
+if (typeof document !== 'undefined' && hint()) current = cached() ?? SIGNED_OUT;
+
+const ask = async () => {
+  const res = await fetch(`${ACCOUNT_ORIGIN}/api/me`, { credentials: 'include' });
+  if (!res.ok) throw new Error(`/api/me ${res.status}`);
+  return (await res.json()) as Account & { stale?: boolean };
+};
+
 async function load(): Promise<Account> {
   // Local dev (localhost) has no .108.supply cookie: always signed out unless the API answers
-  if (!hint() && location.hostname.endsWith('108.supply')) return emit(SIGNED_OUT);
-  try {
-    const res = await fetch(`${ACCOUNT_ORIGIN}/api/me`, { credentials: 'include' });
-    if (!res.ok) return emit(current);
-    return emit((await res.json()) as Account);
-  } catch {
-    return emit(current); // offline or the site is down: keep what we knew
+  if (!hint() && location.hostname.endsWith('108.supply')) { remember(SIGNED_OUT); return emit(SIGNED_OUT); }
+  let next: (Account & { stale?: boolean }) | null = null;
+  // A hiccup (the site busy, a phone between networks) is asked again once before anything changes
+  for (let i = 0; i < 2 && !next; i++) {
+    try { next = await ask(); } catch { if (i === 0) await new Promise((r) => setTimeout(r, 800)); }
   }
+  const known = current.signedIn ? current : cached();
+  // No answer, or the shop could not say what you own: keep what we knew, while the sign-in cookie says you're in
+  if (!next) return emit(hint() && known ? known : current);
+  if (next.stale) { const { stale: _s, ...rest } = next; next = known && known.email === next.email ? known : rest; }
+  remember(next);
+  return emit(next);
 }
 
 /** Used by ./signin after the code: the new account, without asking the site again. */
 export function setAccount(next: Account) {
   pending = Promise.resolve(next);
+  remember(next);
   emit(next);
 }
 
@@ -103,6 +125,7 @@ export const account = {
   async signOut(): Promise<Account> {
     try { await fetch(`${ACCOUNT_ORIGIN}/api/auth/logout`, { method: 'POST', credentials: 'include' }); } catch { /* offline */ }
     pending = Promise.resolve(SIGNED_OUT);
+    remember(SIGNED_OUT);
     return emit(SIGNED_OUT);
   },
 };
