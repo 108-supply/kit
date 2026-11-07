@@ -1,6 +1,6 @@
 /* Quick help for a tool: the same small modal as "What is this" on 108.supply (a card over a blurred page, calm scale
-   and fade; ×, Escape or a click outside closes it; a sheet from the bottom on phones). Kept very short: a few rows,
-   what to do on the left, how on the right.
+   and fade; ×, Escape or a click outside closes it; a sheet from the bottom on phones). A few quick rows (what to do
+   on the left, how on the right), and for anyone with a question, sections to read that open one at a time.
 
    import { mountHelp } from '@108-supply/kit/help';
    mountHelp(document.querySelectorAll('[data-help]'), {
@@ -18,9 +18,14 @@ export interface HelpOptions {
   title: string;
   /** Small line above the title. Default "How it works". */
   eyebrow?: string;
-  rows: [string, string][];
-  /** A last line under the rows (e.g. where it is made). */
+  /** The quick rows, always shown */
+  rows?: [string, string][];
+  /** More to read: sections that open one at a time (the first one open), for anyone with a question */
+  sections?: { title: string; rows: [string, string][] }[];
+  /** A last line under everything (e.g. where to write) */
   note?: string;
+  /** Links under everything, e.g. [['Licence', 'https://…'], ['hi@108.supply', 'mailto:hi@108.supply']] */
+  links?: [string, string][];
 }
 
 const X = '<svg viewBox="0 0 256 256" aria-hidden="true"><path fill="currentColor" d="M205.66 194.34a8 8 0 0 1-11.32 11.32L128 139.31l-66.34 66.35a8 8 0 0 1-11.32-11.32L116.69 128 50.34 61.66a8 8 0 0 1 11.32-11.32L128 116.69l66.34-66.35a8 8 0 0 1 11.32 11.32L139.31 128Z"/></svg>';
@@ -40,6 +45,22 @@ const CSS = `
 .kit-help-rows dt { padding-top: 0.2em; color: var(--ink-2); }
 .kit-help-rows dd { margin: 0; color: var(--ink-2); font-size: var(--text-md); line-height: var(--leading-md); text-wrap: pretty; }
 .kit-help-note { margin: var(--gap-02) 0 0; color: var(--ink-2); font-size: var(--text-sm); }
+.kit-help-card { max-height: calc(100svh - 2 * var(--gap-05)); overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: var(--ink-4) transparent; }
+.kit-help-card:has(.kit-help-sections) { width: min(100%, 36rem); }
+.kit-help-sections { display: flex; flex-direction: column; gap: var(--gap-02); margin-top: var(--gap-02); }
+.kit-help-section { border-radius: var(--radius-md); background: var(--dark-3); }
+.kit-help-head { display: flex; align-items: center; justify-content: space-between; gap: var(--gap-04); width: 100%; padding: var(--gap-04) var(--gap-05);
+  border: 0; background: none; color: var(--light-2); font: inherit; font-size: var(--text-md); text-align: left; cursor: pointer; }
+.kit-help-head svg { flex: none; width: 0.875rem; height: 0.875rem; color: var(--ink-2); transition: rotate 0.5s var(--ease-smooth); }
+.kit-help-section.is-open .kit-help-head svg { rotate: 45deg; }
+.kit-help-fold { display: grid; grid-template-rows: 0fr; transition: grid-template-rows 0.5s var(--ease-smooth); }
+.kit-help-section.is-open .kit-help-fold { grid-template-rows: 1fr; }
+.kit-help-fold > div { min-height: 0; overflow: hidden; }
+.kit-help-fold .kit-help-rows { padding: 0 var(--gap-05) var(--gap-05); }
+.kit-help-links { display: flex; flex-wrap: wrap; gap: var(--gap-02) var(--gap-05); margin-top: var(--gap-02); }
+.kit-help-links a { color: var(--ink-2); text-decoration: none; transition: color 0.3s var(--ease-smooth); }
+@media (hover: hover) { .kit-help-links a:hover { color: var(--light-2); } .kit-help-head:hover svg { color: var(--light-2); } }
+@media (prefers-reduced-motion: reduce) { .kit-help-fold, .kit-help-head svg { transition: none; } }
 .kit-help-close { position: absolute; top: var(--gap-04); right: var(--gap-04); display: grid; place-items: center;
   width: 2.5rem; height: 2.5rem; border: 0; padding: 0; border-radius: var(--radius-full); background: var(--dark-3); color: var(--light-2); cursor: pointer;
   transition: background-color 0.3s var(--ease-smooth); }
@@ -50,9 +71,14 @@ const CSS = `
   .kit-help-card { padding: var(--gap-06); }
   .kit-help-rows { grid-template-columns: 1fr; gap: var(--gap-01); }
   .kit-help-rows dd + dt { margin-top: var(--gap-03); }
+  .kit-help-card { max-height: calc(100svh - 2 * var(--gap-03)); }
+  .kit-help-head { padding: var(--gap-04); }
+  .kit-help-fold .kit-help-rows { padding: 0 var(--gap-04) var(--gap-04); }
 }
 `;
 
+const PLUS = '<svg viewBox="0 0 256 256" aria-hidden="true"><path fill="currentColor" d="M224 128a8 8 0 0 1-8 8h-80v80a8 8 0 0 1-16 0v-80H40a8 8 0 0 1 0-16h80V40a8 8 0 0 1 16 0v80h80a8 8 0 0 1 8 8Z"/></svg>';
+const rowsHtml = (rows: [string, string][]) => `<dl class="kit-help-rows">${rows.map(([k, v]) => `<dt class="label-small">${esc(k)}</dt><dd>${esc(v)}</dd>`).join('')}</dl>`;
 const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!);
 let styled = false;
 
@@ -75,8 +101,12 @@ export function mountHelp(openers: Iterable<HTMLElement> | HTMLElement, opts: He
       <button type="button" class="kit-help-close" data-close aria-label="Close">${X}</button>
       <span class="label-small kit-help-eyebrow">${esc(opts.eyebrow ?? 'How it works')}</span>
       <h2 class="kit-help-title" id="${id}-t">${esc(opts.title)}</h2>
-      <dl class="kit-help-rows">${opts.rows.map(([k, v]) => `<dt class="label-small">${esc(k)}</dt><dd>${esc(v)}</dd>`).join('')}</dl>
+      ${opts.rows?.length ? rowsHtml(opts.rows) : ''}
+      ${opts.sections?.length ? `<div class="kit-help-sections">${opts.sections.map((sec, i) => `<div class="kit-help-section${i === 0 ? ' is-open' : ''}">
+        <button type="button" class="kit-help-head" aria-expanded="${i === 0}" aria-controls="${id}-s${i}">${esc(sec.title)}${PLUS}</button>
+        <div class="kit-help-fold" id="${id}-s${i}"><div>${rowsHtml(sec.rows)}</div></div></div>`).join('')}</div>` : ''}
       ${opts.note ? `<p class="kit-help-note">${esc(opts.note)}</p>` : ''}
+      ${opts.links?.length ? `<p class="kit-help-links label-small">${opts.links.map(([t, href]) => `<a href="${esc(href)}"${/^https?:/.test(href) ? ' target="_blank" rel="noopener"' : ''}>${esc(t)}</a>`).join('')}</p>` : ''}
     </div>`;
   // At the end of <body>: an ancestor with opacity or a transform would switch the backdrop blur off
   document.body.append(root);
@@ -124,10 +154,28 @@ export function mountHelp(openers: Iterable<HTMLElement> | HTMLElement, opts: He
     o.addEventListener('click', (e) => { e.preventDefault(); show(e); });
   });
   root.querySelectorAll('[data-close]').forEach((el) => el.addEventListener('click', hide));
+  // One section open at a time: opening one folds the others
+  const sections = Array.from(root.querySelectorAll<HTMLElement>('.kit-help-section'));
+  sections.forEach((sec) => sec.querySelector('.kit-help-head')!.addEventListener('click', () => {
+    const opening = !sec.classList.contains('is-open');
+    sound.tick(0.9);
+    sections.forEach((x) => {
+      const on = x === sec && opening;
+      x.classList.toggle('is-open', on);
+      x.querySelector('.kit-help-head')!.setAttribute('aria-expanded', String(on));
+    });
+  }));
   document.addEventListener('keydown', (e) => {
     if (!open) return;
     if (e.key === 'Escape') { e.stopPropagation(); hide(); }
-    if (e.key === 'Tab') { e.preventDefault(); closeBtn.focus(); }
+    if (e.key === 'Tab') {
+      // Focus stays in the window: from the last control back to the first, and the other way
+      const f = Array.from(card.querySelectorAll<HTMLElement>('button, a[href]'));
+      const i = f.indexOf(document.activeElement as HTMLElement);
+      const next = i < 0 ? 0 : (i + (e.shiftKey ? -1 : 1) + f.length) % f.length;
+      e.preventDefault();
+      f[next]?.focus();
+    }
   }, true);
   return { open: () => show(), close: hide, get isOpen() { return open; } };
 }
