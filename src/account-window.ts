@@ -107,11 +107,11 @@ const HTML = `
     </div>
     <div class="kaw-pane" data-pane="account" role="tabpanel" hidden>
       <form class="kaw-profile" data-profile>
-        <label class="kaw-field"><span>Name</span><input class="kaw-input" name="name" maxlength="80" autocomplete="name" placeholder="Your name" /></label>
-        <div class="kaw-field"><span class="kaw-label"><label for="kaw-email">Email</label><span class="kaw-info" data-info>
+        <label class="kaw-field"><span class="input-label">Name</span><input class="input" name="name" maxlength="80" autocomplete="name" placeholder="Your name" /></label>
+        <div class="kaw-field"><span class="input-label"><label for="kaw-email">Email</label><span class="kaw-info" data-info>
             <button type="button" class="kaw-info-button" aria-label="About your email" aria-describedby="kaw-email-tip" aria-expanded="false">${svg(ICON.question)}</button>
             <span class="kaw-tip kaw-tip--info" role="tooltip" id="kaw-email-tip">Your purchases are matched by this email.</span>
-          </span></span><input class="kaw-input" id="kaw-email" name="email" disabled /></div>
+          </span></span><input class="input" id="kaw-email" name="email" disabled /></div>
         <div class="kaw-actions"><button class="kaw-button kaw-button--accent" type="submit">Save changes</button><span class="kaw-note" data-saved aria-live="polite"></span></div>
       </form>
       <div class="kaw-rows">
@@ -269,7 +269,6 @@ const CSS = `
 
 .kaw-profile { display: flex; flex-direction: column; }
 .kaw-field { display: flex; flex-direction: column; margin-bottom: var(--gap-04); }
-.kaw-field > span { display: flex; align-items: center; gap: var(--gap-01); padding: 0 var(--gap-05) var(--gap-02); color: var(--ink-2); }
 /* (?) next to Email: the sentence as a tooltip on hover, focus or tap */
 .kaw-info { position: relative; display: inline-flex; }
 .kaw-info-button { display: grid; place-items: center; width: 1.25rem; height: 1.25rem; padding: 0; border: 0; border-radius: var(--radius-full);
@@ -277,12 +276,6 @@ const CSS = `
 .kaw-info-button svg { width: 1rem; height: 1rem; }
 @media (hover: hover) { .kaw-info-button:hover { color: var(--ink-1); } }
 .kaw-tip--info { bottom: calc(100% + var(--gap-01)); left: 0; }
-.kaw-input { width: 100%; padding: var(--gap-04) var(--gap-05); border: 0; border-radius: var(--radius-full); background: var(--surface-3); color: var(--ink-1);
-  font: inherit; font-size: var(--text-input); transition: background-color 0.3s var(--ease-smooth); }
-.kaw-input::placeholder { color: var(--ink-3); }
-.kaw-input:hover { background: var(--ink-hover); }
-.kaw-input:focus { outline: none; background: var(--ink-hover); box-shadow: inset 0 0 0 1.5px var(--ink-1); }
-.kaw-input:disabled { color: var(--ink-2); background: transparent; box-shadow: inset 0 0 0 1px var(--ink-4); }
 .kaw-note { display: block; margin: 0; color: var(--ink-2); }
 .kaw-actions { display: flex; align-items: center; gap: var(--gap-04); margin-top: var(--gap-05); }
 .kaw-rows { display: flex; flex-direction: column; gap: var(--gap-01); margin-top: var(--gap-08); }

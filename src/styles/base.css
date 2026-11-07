@@ -66,6 +66,21 @@ p { text-wrap: pretty; }
 .text-link:hover { text-decoration: underline; }
 
 :focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+
+/* ---------- Inputs: one style for every text field (account name, newsletter email, sign-in email and code) ----------
+   Editable = a filled Surface 3 pill, no border; hover and focus lift it to Ink hover, focus adds a thin Ink 3 ring.
+   Read-only or disabled = not a field at all: no fill, no ring, no padding, just the value in Ink 2, flush left.
+   Labels (.input-label) sit flush with the field's left edge, never indented to the text inside the pill. */
+.input { display: block; width: 100%; padding: var(--gap-04) var(--gap-05); border: 0; border-radius: var(--radius-full);
+  background: var(--surface-3); color: var(--ink-1); font: inherit; font-size: var(--text-input); text-align: left;
+  transition: background-color 0.3s var(--ease-smooth), outline-color 0.3s var(--ease-smooth);
+  outline: 1.5px solid transparent; outline-offset: -1.5px; }
+.input::placeholder { color: var(--ink-3); }
+@media (hover: hover) { .input:hover:not(:disabled, [readonly]) { background: var(--ink-hover); } }
+.input:focus, .input:focus-visible { background: var(--ink-hover); outline: 1.5px solid var(--ink-3); outline-offset: -1.5px; }
+.input:disabled, .input[readonly] { padding: 0; border-radius: 0; background: none; outline: 0; color: var(--ink-2);
+  -webkit-text-fill-color: var(--ink-2); opacity: 1; cursor: default; text-overflow: ellipsis; }
+.input-label { display: flex; align-items: center; gap: var(--gap-01); padding-bottom: var(--gap-02); color: var(--ink-2); }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
 }
