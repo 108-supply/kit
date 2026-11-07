@@ -205,8 +205,13 @@ function build() {
     const ok = await signInWithGoogle();
     b.removeAttribute('aria-busy');
     if (!ok) return;
-    me = await account.refresh();
-    if (me.signedIn) { sound.success(); finish(); }
+    // Google said yes: the site's answer can lag a moment behind the new cookie, so ask a few times
+    for (let i = 0; i < 4; i++) {
+      me = await account.refresh();
+      if (me.signedIn) { sound.success(); return finish(); }
+      await new Promise((r) => setTimeout(r, 700));
+    }
+    $('[data-step="email"] [data-error]').textContent = 'Google said yes, but the sign-in did not reach us. Try again, or use a code.';
   });
   $('[data-back]').addEventListener('click', () => { sound.tap(); showStep('email'); });
   $('[data-resend]').addEventListener('click', () => { sound.tap(); sendCode(emailForm); });
