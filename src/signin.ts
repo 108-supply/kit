@@ -208,7 +208,7 @@ function build() {
     // Google said yes: the site's answer can lag a moment behind the new cookie, so ask a few times
     for (let i = 0; i < 4; i++) {
       me = await account.refresh();
-      if (me.signedIn) { sound.success(); return finish(); }
+      if (me.signedIn) { sound.success(); return me.name ? finish() : askName(); }
       await new Promise((r) => setTimeout(r, 700));
     }
     $('[data-step="email"] [data-error]').textContent = 'Google said yes, but the sign-in did not reach us. Try again, or use a code.';
@@ -225,7 +225,8 @@ function build() {
     if (!a.signedIn || ownUpdate || !root || root.hidden) return;
     if ($('[data-step="name"]').classList.contains('is-active')) return;
     me = a;
-    finish();
+    // Google comes back this way too (the page wakes up and asks the site): no name yet, so ask for it
+    if (me.name) finish(); else askName();
   });
 }
 
@@ -283,10 +284,7 @@ async function verify(form: HTMLFormElement) {
     paintCode();
     sound.success();
     // First sign in: no name yet, ask for it before anything else
-    if (!me.name) {
-      $('[data-creature]').innerHTML = avatarHtml(me.avatar || me.email || '108', 112);
-      return showStep('name');
-    }
+    if (!me.name) return askName();
     finish();
   } catch {
     // The answer got lost but the session may be set: then you're in, otherwise say so
@@ -294,6 +292,13 @@ async function verify(form: HTMLFormElement) {
     if (now.signedIn) { me = now; finish(); } else err.textContent = errorText();
   }
   finally { verifying = false; submit.removeAttribute('aria-busy'); }
+}
+
+/** No name on the account yet (a new email, or Google gave none): ask once, skip allowed */
+function askName() {
+  if ($('[data-step="name"]').classList.contains('is-active')) return;
+  $('[data-creature]').innerHTML = avatarHtml(me.avatar || me.email || '108', 112);
+  showStep('name');
 }
 
 async function saveName(form: HTMLFormElement) {

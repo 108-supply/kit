@@ -1,7 +1,9 @@
 /* Your 108 account as one window over the page you're on: centred on computers, a sheet from the bottom on phones.
    The same window as on 108.supply, so a tool never sends you to the site for it. Head: your creature, name and
-   email. Pill tabs with the white slice: Library (what you own, with its files right here; with All Access every
-   category in one quiet card with the 108 dots), Tools (other tools open in a new tab), Account (your creature and its name, name, orders, sign out). Two cards a row.
+   email; hover the creature (tap on touch) for its name and a small round shuffle button that picks a new one.
+   Pill tabs with the white slice: Library (what you own, with its files right here; empty, or with All Access, one
+   quiet centred box), Tools (other tools open in a new tab), Account (name, email, orders; sign out and delete
+   account folded away under "More"). Two cards a row.
 
    import { openAccountWindow } from '@108-supply/kit/account-window';
    openAccountWindow('library' | 'tools' | 'account');   // usually via account.open() from @108-supply/kit/account
@@ -11,7 +13,6 @@
 import { ACCOUNT_ORIGIN, account, setAccount, type Account } from './account';
 import { avatarHtml, creatureOf, newAvatarSeed } from './avatar';
 import { sound } from './sound';
-import { mountDots } from './dots';
 
 export type AccountTab = 'library' | 'tools' | 'account';
 interface CatalogItem { link: string; title: string; kind: string; href: string; thumb: string | null; date?: string | null }
@@ -19,9 +20,10 @@ interface FileItem { title: string; type: string; url?: string; note?: string; f
 
 const ICON = {
   receipt: 'M72,104a8,8,0,0,1,8-8h96a8,8,0,0,1,0,16H80A8,8,0,0,1,72,104Zm8,40h96a8,8,0,0,0,0-16H80a8,8,0,0,0,0,16ZM232,56V208a8,8,0,0,1-11.58,7.15L192,200.94l-28.42,14.21a8,8,0,0,1-7.16,0L128,200.94,99.58,215.15a8,8,0,0,1-7.16,0L64,200.94,35.58,215.15A8,8,0,0,1,24,208V56A16,16,0,0,1,40,40H216A16,16,0,0,1,232,56Zm-16,0H40V195.06l20.42-10.22a8,8,0,0,1,7.16,0L96,199.06l28.42-14.22a8,8,0,0,1,7.16,0L160,199.06l28.42-14.22a8,8,0,0,1,7.16,0L216,195.06Z',
-  signOut: 'M120,216a8,8,0,0,1-8,8H48a8,8,0,0,1-8-8V40a8,8,0,0,1,8-8h64a8,8,0,0,1,0,16H56V208h56A8,8,0,0,1,120,216Zm109.66-93.66-40-40a8,8,0,0,0-11.32,11.32L204.69,120H112a8,8,0,0,0,0,16h92.69l-26.35,26.34a8,8,0,0,0,11.32,11.32l40-40A8,8,0,0,0,229.66,122.34Z',
   close: 'M205.66 194.34a8 8 0 0 1-11.32 11.32L128 139.31l-66.34 66.35a8 8 0 0 1-11.32-11.32L116.69 128 50.34 61.66a8 8 0 0 1 11.32-11.32L128 116.69l66.34-66.35a8 8 0 0 1 11.32 11.32L139.31 128Z',
   back: 'M224 128a8 8 0 0 1-8 8H59.31l58.35 58.34a8 8 0 0 1-11.32 11.32l-72-72a8 8 0 0 1 0-11.32l72-72a8 8 0 0 1 11.32 11.32L59.31 120H216a8 8 0 0 1 8 8Z',
+  question: 'M140,180a12,12,0,1,1-12-12A12,12,0,0,1,140,180ZM128,72c-22.06,0-40,16.15-40,36v4a8,8,0,0,0,16,0v-4c0-11,10.77-20,24-20s24,9,24,20-10.77,20-24,20a8,8,0,0,0-8,8v8a8,8,0,0,0,16,0v-.72c18.24-3.35,32-17.9,32-35.28C168,88.15,150.06,72,128,72Zm104,56A104,104,0,1,1,128,24,104.11,104.11,0,0,1,232,128Zm-16,0a88,88,0,1,0-88,88A88.1,88.1,0,0,0,216,128Z',
+  caret: 'M213.66,101.66l-80,80a8,8,0,0,1-11.32,0l-80-80A8,8,0,0,1,53.66,90.34L128,164.69l74.34-74.35a8,8,0,0,1,11.32,11.32Z',
   shuffle: 'M237.66 178.34a8 8 0 0 1 0 11.32l-24 24a8 8 0 0 1-11.32-11.32L212.69 192h-11.75a72.12 72.12 0 0 1-58.59-30.15l-41.72-58.4A56.1 56.1 0 0 0 55.06 80H32a8 8 0 0 1 0-16h23.06a72.12 72.12 0 0 1 58.59 30.15l41.72 58.4A56.1 56.1 0 0 0 200.94 176h11.75l-10.35-10.34a8 8 0 0 1 11.32-11.32ZM143 107a8 8 0 0 0 11.16-1.86l1.2-1.67A56.1 56.1 0 0 1 200.94 80h11.75l-10.35 10.34a8 8 0 0 0 11.32 11.32l24-24a8 8 0 0 0 0-11.32l-24-24a8 8 0 0 0-11.32 11.32L212.69 64h-11.75a72.12 72.12 0 0 0-58.59 30.15l-1.2 1.67A8 8 0 0 0 143 107Zm-30 42a8 8 0 0 0-11.16 1.86l-1.2 1.67A56.1 56.1 0 0 1 55.06 176H32a8 8 0 0 0 0 16h23.06a72.12 72.12 0 0 0 58.59-30.15l1.2-1.67A8 8 0 0 0 113 149Z',
 };
 const svg = (d: string) => `<svg viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="${d}"/></svg>`;
@@ -49,7 +51,11 @@ const HTML = `
 <div class="kaw-panel" tabindex="-1">
   <span class="kaw-grab" aria-hidden="true"></span>
   <div class="kaw-head">
-    <span class="kaw-creature" aria-hidden="true"></span>
+    <span class="kaw-avatar" data-avatar-wrap>
+      <span class="kaw-creature" data-avatar></span>
+      <span class="kaw-tip kaw-tip--avatar" role="tooltip" id="kaw-creature-name" data-creature-name></span>
+      <button type="button" class="kaw-shuffle" aria-label="New creature" aria-describedby="kaw-creature-name" data-shuffle>${svg(ICON.shuffle)}</button>
+    </span>
     <span class="kaw-who"><span class="kaw-name" id="kaw-name" data-name></span><span class="kaw-email" data-email></span></span>
     <span class="kaw-plan" data-plan></span>
     <button class="kaw-close" type="button" aria-label="Close" data-close>${svg(ICON.close)}</button>
@@ -61,17 +67,16 @@ const HTML = `
   <div class="kaw-body">
     <div class="kaw-pane" data-pane="library" role="tabpanel">
       <div data-library-list>
-        <div class="kaw-aacard" data-everything hidden><div class="kaw-aacard-copy" data-dot-copy><span class="kaw-aacard-title">All Access</span><span class="kaw-aacard-note">Every template, visual and tool, and everything we make next. Open any product to get its files.</span></div></div>
+        <div class="kaw-box" data-everything hidden><p class="kaw-box-title">All Access</p><p class="kaw-box-note">Every template, visual and tool, and everything we make next. Open any product to get its files.</p></div>
         <h3 class="kaw-sub" data-bought-title hidden>Bought one by one</h3>
         <div class="kaw-grid" data-library></div>
-        <div class="kaw-empty" data-empty hidden>
-          <p>Nothing here yet.<br /><span>Everything you buy with this email shows up here, with its files.</span></p>
-          <div class="kaw-links">
-            <a class="kaw-button" href="${site('/motion')}" target="_blank" rel="noopener">Motion templates</a>
-            <a class="kaw-button" href="${site('/web')}" target="_blank" rel="noopener">Website templates</a>
-            <a class="kaw-button" href="${site('/visuals')}" target="_blank" rel="noopener">Visuals</a>
+        <div class="kaw-box" data-empty hidden>
+          <p class="kaw-box-title">Nothing here yet.</p>
+          <p class="kaw-box-note">What you buy with this email shows up here.</p>
+          <div class="kaw-box-links">
+            ${[['Motion', '/motion'], ['Web', '/web'], ['Visuals', '/visuals'], ['All Access', '/all-access']]
+              .map(([label, path]) => `<a class="kaw-button kaw-button--tertiary" href="${site(path)}" target="_blank" rel="noopener">${label}</a>`).join('')}
           </div>
-          <a class="kaw-aa" href="${site('/all-access')}" target="_blank" rel="noopener"><span>Or everything with All Access</span><span>$499</span></a>
         </div>
       </div>
       <div class="kaw-files-view" data-files-view hidden>
@@ -90,20 +95,24 @@ const HTML = `
     </div>
     <div class="kaw-pane" data-pane="account" role="tabpanel" hidden>
       <form class="kaw-profile" data-profile>
-        <div class="kaw-me"><span class="kaw-me-avatar" data-avatar></span><span class="kaw-me-who"><span class="kaw-me-name" data-creature-name></span><button type="button" class="kaw-button" data-shuffle>${svg(ICON.shuffle)}New creature</button></span></div>
         <label class="kaw-field"><span>Name</span><input class="kaw-input" name="name" maxlength="80" autocomplete="name" placeholder="Your name" /></label>
-        <label class="kaw-field"><span>Email</span><input class="kaw-input" name="email" disabled /></label>
-        <p class="kaw-note kaw-note--field">Your purchases are matched by this email.</p>
+        <div class="kaw-field"><span class="kaw-label"><label for="kaw-email">Email</label><span class="kaw-info" data-info>
+            <button type="button" class="kaw-info-button" aria-label="About your email" aria-describedby="kaw-email-tip" aria-expanded="false">${svg(ICON.question)}</button>
+            <span class="kaw-tip kaw-tip--info" role="tooltip" id="kaw-email-tip">Your purchases are matched by this email.</span>
+          </span></span><input class="kaw-input" id="kaw-email" name="email" disabled /></div>
         <div class="kaw-actions"><button class="kaw-button kaw-button--accent" type="submit">Save changes</button><span class="kaw-note" data-saved aria-live="polite"></span></div>
       </form>
       <div class="kaw-rows">
-        <div class="kaw-row"><span><span class="kaw-row-title">Orders and invoices</span><span class="kaw-note">Receipts and refunds are handled by Polar, our merchant of record.</span></span>
+        <div class="kaw-row"><span class="kaw-row-title">Orders and invoices</span>
           <a class="kaw-button" href="${ACCOUNT_ORIGIN}/api/portal" target="_blank" rel="noopener">${svg(ICON.receipt)}Open</a></div>
-        <div class="kaw-row"><span><span class="kaw-row-title">Sign out</span><span class="kaw-note">On 108 Supply and in every tool on this browser.</span></span>
-          <button class="kaw-button" type="button" data-signout>${svg(ICON.signOut)}Sign out</button></div>
-        <div class="kaw-row kaw-row--danger"><span><span class="kaw-row-title">Delete account</span><span class="kaw-note">Removes your library and signs you out everywhere. Receipts stay with Polar, as tax law asks.</span></span>
-          <a class="kaw-danger" href="mailto:hi@108.supply?subject=Delete%20my%20108%20account">Delete</a></div>
       </div>
+      <details class="kaw-more" data-more>
+        <summary class="kaw-more-toggle">More${svg(ICON.caret)}</summary>
+        <div class="kaw-more-links">
+          <button type="button" data-signout>Sign out</button>
+          <a href="mailto:hi@108.supply?subject=Delete%20my%20108%20account">Delete account</a>
+        </div>
+      </details>
     </div>
   </div>
 </div>`;
@@ -123,8 +132,26 @@ const CSS = `
 .kaw.is-open .kaw-panel { opacity: 1; translate: 0 0; }
 .kaw-grab { display: none; }
 .kaw-head { display: flex; align-items: center; gap: var(--gap-04); padding: var(--gap-04) var(--gap-04) var(--gap-03) var(--gap-05); }
-.kaw-creature { flex: none; width: 2.75rem; height: 2.75rem; } /* the creatures stand on the window, no circle */
-.kaw-creature img, .kaw-me-avatar img { display: block; width: 100%; height: 100%; }
+/* Your creature (no circle, it stands on the window). Hover it, or tap it on touch: its name as a tooltip and a small
+   round shuffle button on its corner. */
+.kaw-avatar { position: relative; flex: none; width: 2.75rem; height: 2.75rem; }
+.kaw-creature { display: block; width: 100%; height: 100%; }
+.kaw-creature img { display: block; width: 100%; height: 100%; }
+.kaw-shuffle { position: absolute; right: -0.375rem; bottom: -0.375rem; display: grid; place-items: center; width: 1.5rem; height: 1.5rem; padding: 0; border: 0;
+  border-radius: var(--radius-full); background: var(--surface-1); color: var(--ink-1); cursor: pointer; opacity: 0; scale: 0.8; pointer-events: none;
+  transition: opacity 0.25s var(--ease-smooth), scale 0.35s var(--ease-smooth), background-color 0.3s var(--ease-smooth), color 0.3s var(--ease-smooth); }
+.kaw-shuffle svg { width: 0.875rem; height: 0.875rem; }
+.kaw-shuffle:disabled { cursor: progress; }
+@media (hover: hover) { .kaw-avatar:hover .kaw-shuffle { opacity: 1; scale: 1; pointer-events: auto; } .kaw-shuffle:hover { background: var(--ink-1); color: var(--surface-1); } }
+.kaw-avatar:has(:focus-visible) .kaw-shuffle, .kaw-avatar.is-on .kaw-shuffle { opacity: 1; scale: 1; pointer-events: auto; }
+/* Tooltips: small, Ink 1 on its own, no shadow; hover, keyboard focus or a tap */
+.kaw-tip { position: absolute; z-index: 2; width: max-content; max-width: min(18rem, calc(100vw - 6rem)); padding: var(--gap-01) var(--gap-02); border-radius: var(--radius-sm);
+  background: var(--ink-1); color: var(--surface-1); pointer-events: none; opacity: 0; translate: 0 0.25rem;
+  transition: opacity 0.2s var(--ease-smooth), translate 0.3s var(--ease-smooth); }
+.kaw-tip:empty { display: none; }
+.kaw-tip--avatar { top: calc(100% + var(--gap-02)); left: 0; white-space: nowrap; }
+@media (hover: hover) { .kaw-avatar:hover .kaw-tip, .kaw-info:hover .kaw-tip { opacity: 1; translate: 0 0; transition-delay: 0.15s; } }
+.kaw-avatar:has(:focus-visible) .kaw-tip, .kaw-avatar.is-on .kaw-tip, .kaw-info:has(:focus-visible) .kaw-tip, .kaw-info.is-on .kaw-tip { opacity: 1; translate: 0 0; }
 .kaw-who { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 .kaw-name { font-size: var(--text-md); line-height: var(--leading-md); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .kaw-email { color: var(--ink-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -180,21 +207,14 @@ const CSS = `
 .kaw-caption-sub { color: var(--ink-2); }
 .kaw-caption button { flex: none; padding: 0; border: 0; background: none; font: inherit; color: var(--ink-1); cursor: pointer; }
 @media (hover: hover) { .kaw-caption button:hover { text-decoration: underline; } }
-/* All Access: one quiet card on Surface 3 with the 108 dots (./dots), same as on the site */
-.kaw-aacard { position: relative; display: grid; place-items: center; aspect-ratio: 16 / 9; padding: var(--gap-06); border-radius: var(--radius-md);
-  overflow: hidden; background: var(--surface-3); text-align: center; }
-.kaw-aacard[hidden] { display: none; }
-.kaw-aacard-copy { position: relative; z-index: 1; display: flex; flex-direction: column; gap: var(--gap-03); max-width: 24rem; }
-.kaw-aacard-title { font-size: var(--text-lg); line-height: var(--leading-lg); color: var(--ink-1); }
-.kaw-aacard-note { color: var(--ink-2); }
-.kaw-aacard + .kaw-sub { margin-top: var(--gap-07); }
-
-.kaw-empty { padding: var(--gap-04) 0; }
-.kaw-empty p { margin: 0 0 var(--gap-05); font-size: var(--text-md); line-height: var(--leading-md); }
-.kaw-empty p span { color: var(--ink-2); }
-.kaw-links { display: flex; flex-wrap: wrap; gap: var(--gap-02); }
-.kaw-aa { display: inline-flex; gap: 0.5em; margin-top: var(--gap-06); }
-.kaw-aa span:last-child { color: var(--ink-2); }
+/* One quiet centred box on Surface 3: the empty library (with a row of small tertiary links) and All Access */
+.kaw-box { display: flex; flex-direction: column; align-items: center; padding: var(--gap-08) var(--gap-06); border-radius: var(--radius-md);
+  background: var(--surface-3); text-align: center; }
+.kaw-box[hidden] { display: none; }
+.kaw-box-title { margin: 0; font-size: var(--text-md); line-height: var(--leading-md); color: var(--ink-1); }
+.kaw-box-note { margin: var(--gap-01) 0 0; max-width: 24rem; color: var(--ink-2); text-wrap: pretty; }
+.kaw-box-links { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--gap-01); margin-top: var(--gap-05); }
+.kaw-box + .kaw-sub { margin-top: var(--gap-07); }
 
 .kaw-button { display: inline-flex; align-items: center; justify-content: center; gap: 0.5em; flex: none; padding: var(--gap-02) var(--gap-04); border: 0; border-radius: var(--radius-full);
   background: var(--surface-3); color: var(--ink-1) !important; font: inherit; white-space: nowrap; cursor: pointer;
@@ -203,6 +223,9 @@ const CSS = `
 @media (hover: hover) { .kaw-button:hover { background: var(--ink-1); color: var(--surface-1) !important; } }
 .kaw-button--accent { background: var(--accent); color: var(--dark-1) !important; }
 @media (hover: hover) { .kaw-button--accent:hover { background: var(--light-2); color: var(--dark-1) !important; } }
+/* Tertiary: no fill until hover (Surface 2, so it shows on a Surface 3 box) */
+.kaw-button--tertiary { padding: var(--gap-01) var(--gap-03); background: none; }
+@media (hover: hover) { .kaw-button--tertiary:hover { background: var(--surface-2); color: var(--ink-1) !important; } }
 
 .kaw-back { display: inline-flex; align-items: center; gap: 0.5em; padding: 0; border: 0; background: none; color: var(--ink-2); font: inherit; cursor: pointer; transition: color 0.3s var(--ease-smooth); }
 .kaw-back svg { width: 1rem; height: 1rem; }
@@ -217,12 +240,15 @@ const CSS = `
 .kaw-loading { color: var(--ink-2); padding: var(--gap-04) 0; }
 
 .kaw-profile { display: flex; flex-direction: column; }
-.kaw-me { display: flex; align-items: center; gap: var(--gap-04); margin-bottom: var(--gap-05); }
-.kaw-me-avatar { width: 6rem; height: 6rem; flex: none; }
-.kaw-me-who { display: flex; flex-direction: column; align-items: flex-start; gap: var(--gap-03); }
-.kaw-me-name { font-size: var(--text-h6); line-height: var(--leading-h6); letter-spacing: -0.02em; }
 .kaw-field { display: flex; flex-direction: column; margin-bottom: var(--gap-04); }
-.kaw-field > span { padding: 0 var(--gap-05) var(--gap-02); color: var(--ink-2); }
+.kaw-field > span { display: flex; align-items: center; gap: var(--gap-01); padding: 0 var(--gap-05) var(--gap-02); color: var(--ink-2); }
+/* (?) next to Email: the sentence as a tooltip on hover, focus or tap */
+.kaw-info { position: relative; display: inline-flex; }
+.kaw-info-button { display: grid; place-items: center; width: 1.25rem; height: 1.25rem; padding: 0; border: 0; border-radius: var(--radius-full);
+  background: none; color: var(--ink-3); cursor: pointer; transition: color 0.3s var(--ease-smooth); }
+.kaw-info-button svg { width: 1rem; height: 1rem; }
+@media (hover: hover) { .kaw-info-button:hover { color: var(--ink-1); } }
+.kaw-tip--info { bottom: calc(100% + var(--gap-01)); left: 0; }
 .kaw-input { width: 100%; padding: var(--gap-04) var(--gap-05); border: 0; border-radius: var(--radius-full); background: var(--surface-3); color: var(--ink-1);
   font: inherit; font-size: var(--text-input); transition: background-color 0.3s var(--ease-smooth); }
 .kaw-input::placeholder { color: var(--ink-3); }
@@ -230,18 +256,22 @@ const CSS = `
 .kaw-input:focus { outline: none; background: var(--ink-hover); box-shadow: inset 0 0 0 1.5px var(--ink-1); }
 .kaw-input:disabled { color: var(--ink-2); background: transparent; box-shadow: inset 0 0 0 1px var(--ink-4); }
 .kaw-note { display: block; margin: 0; color: var(--ink-2); }
-.kaw-note--field { padding-inline: var(--gap-05); margin-top: calc(-1 * var(--gap-02)); }
 .kaw-actions { display: flex; align-items: center; gap: var(--gap-04); margin-top: var(--gap-05); }
 .kaw-rows { display: flex; flex-direction: column; gap: var(--gap-01); margin-top: var(--gap-08); }
 .kaw-row { display: flex; align-items: center; justify-content: space-between; gap: var(--gap-04); padding: var(--gap-04) var(--gap-04) var(--gap-04) var(--gap-05); border-radius: var(--radius-lg); background: var(--surface-3); }
-.kaw-row > span { min-width: 0; display: flex; flex-direction: column; }
 /* Buttons on a Surface 3 card step back to Surface 2 so they stay visible */
 .kaw-row .kaw-button:not(.kaw-button--accent):not(:hover), .kaw-file .kaw-button:not(.kaw-button--accent):not(:hover) { background: var(--surface-2); }
 .kaw-row-title { color: var(--ink-1); }
-.kaw-row--danger .kaw-row-title { color: var(--status-error); }
-.kaw-danger { display: inline-flex; flex: none; padding: var(--gap-02) var(--gap-04); border-radius: var(--radius-full); background: var(--status-error-fill); color: var(--status-error) !important;
-  white-space: nowrap; transition: background-color 0.3s var(--ease-smooth), color 0.3s var(--ease-smooth); }
-@media (hover: hover) { .kaw-danger:hover { background: var(--status-error); color: var(--dark-1) !important; } }
+/* More: sign out and delete account, folded away and quiet */
+.kaw-more { margin-top: var(--gap-06); padding-inline: var(--gap-05); }
+.kaw-more-toggle { display: inline-flex; align-items: center; gap: var(--gap-01); color: var(--ink-2); cursor: pointer; list-style: none; transition: color 0.3s var(--ease-smooth); }
+.kaw-more-toggle::-webkit-details-marker { display: none; }
+.kaw-more-toggle svg { width: 0.75rem; height: 0.75rem; transition: rotate 0.4s var(--ease-smooth); }
+.kaw-more[open] .kaw-more-toggle svg { rotate: 180deg; }
+@media (hover: hover) { .kaw-more-toggle:hover { color: var(--ink-1); } }
+.kaw-more-links { display: flex; flex-wrap: wrap; gap: var(--gap-05); padding-top: var(--gap-03); animation: kaw-in 0.5s var(--ease-smooth); }
+.kaw-more-links > * { padding: 0; border: 0; background: none; color: var(--ink-2) !important; font: inherit; cursor: pointer; transition: color 0.3s var(--ease-smooth); }
+@media (hover: hover) { .kaw-more-links > :hover { color: var(--ink-1) !important; } }
 
 @media (max-width: 767px) {
   .kaw { padding: 0; align-items: end; }
@@ -250,17 +280,16 @@ const CSS = `
   .kaw.is-open .kaw-panel { translate: 0 0; }
   .kaw-grab { display: block; flex: none; width: 2.5rem; height: 0.25rem; margin: var(--gap-03) auto 0; border-radius: var(--radius-md); background: var(--ink-4); }
   .kaw-head { padding: var(--gap-02) var(--gap-03) var(--gap-03) var(--gap-04); gap: var(--gap-03); }
-  .kaw-creature { width: 2.375rem; height: 2.375rem; }
+  .kaw-avatar { width: 2.375rem; height: 2.375rem; }
   .kaw-tabs { padding: 0 var(--gap-03) var(--gap-03); }
   .kaw-pills { width: 100%; }
   .kaw-pill { flex: 1; justify-content: center; padding-inline: var(--gap-03); }
   .kaw-body { padding: var(--gap-01) var(--gap-03) calc(var(--gap-08) + env(safe-area-inset-bottom)); }
   .kaw-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--gap-04) var(--gap-02); }
-  .kaw-aacard { aspect-ratio: 4 / 3; }
+  .kaw-box { padding: var(--gap-07) var(--gap-04); }
   .kaw-plan { display: none; }
   .kaw-tag { margin: var(--gap-02); scale: 0.85; transform-origin: top left; }
-  .kaw-row, .kaw-file { flex-direction: column; align-items: stretch; padding: var(--gap-04); }
-  .kaw-row .kaw-button, .kaw-row .kaw-danger { align-self: flex-start; }
+  .kaw-file { flex-direction: column; align-items: stretch; padding: var(--gap-04); }
   .kaw-file-actions { align-items: stretch; }
 }
 @media (max-width: 359px) {
@@ -268,7 +297,7 @@ const CSS = `
 }
 @media (prefers-reduced-motion: reduce) {
   .kaw-overlay, .kaw-panel, .kaw-slice { transition-duration: 0.01ms; }
-  .kaw-pane { animation: none; }
+  .kaw-pane, .kaw-more-links { animation: none; }
 }
 `;
 
@@ -321,18 +350,35 @@ function build() {
   });
   $('[data-files-back]').addEventListener('click', () => { sound.tap(); hideFiles(); });
 
+  // Touch has no hover: a tap on the creature (or the (?)) shows what hover would; a tap anywhere else hides it
+  const avatarWrap = $('[data-avatar-wrap]');
+  const info = $('[data-info]');
+  const toggle = (el: HTMLElement, on: boolean) => {
+    el.classList.toggle('is-on', on);
+    el.querySelector('[aria-expanded]')?.setAttribute('aria-expanded', String(on));
+  };
+  $('[data-avatar]').addEventListener('click', () => toggle(avatarWrap, !avatarWrap.classList.contains('is-on')));
+  info.querySelector('button')!.addEventListener('click', () => toggle(info, !info.classList.contains('is-on')));
+  root.addEventListener('pointerdown', (e) => {
+    const t = e.target as Node;
+    if (!avatarWrap.contains(t)) toggle(avatarWrap, false);
+    if (!info.contains(t)) toggle(info, false);
+  });
+
   // A new creature, saved right away so it follows you to the site and every tool
-  root.querySelectorAll<HTMLButtonElement>('[data-shuffle]').forEach((btn) => btn.addEventListener('click', async () => {
+  const shuffle = $<HTMLButtonElement>('[data-shuffle]');
+  shuffle.addEventListener('click', async () => {
     sound.tap();
     const me = account.now;
     const previous = me.avatar || '';
     const avatar = newAvatarSeed(previous || me.email);
     setAccount({ ...me, avatar });
-    root!.querySelectorAll<HTMLButtonElement>('[data-shuffle]').forEach((b) => (b.disabled = true));
+    shuffle.disabled = true;
     const { status } = await api('/api/me', { method: 'PATCH', body: JSON.stringify({ avatar }) }).catch(() => ({ status: 0 }));
-    root!.querySelectorAll<HTMLButtonElement>('[data-shuffle]').forEach((b) => (b.disabled = false));
+    shuffle.disabled = false;
+    shuffle.focus({ preventScroll: true });
     if (status !== 200) setAccount({ ...account.now, avatar: previous });
-  }));
+  });
 
   $<HTMLFormElement>('[data-profile]').addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -381,16 +427,16 @@ function selectTab(next: AccountTab, animate = true) {
 function render(me: Account) {
   if (!root) return;
   if (!me.signedIn) { if (!root.hidden) close(); shown = ''; return; }
-  const creature = avatarHtml(me.avatar || me.email || '108', 112);
-  $('.kaw-creature').innerHTML = creature;
-  $('[data-avatar]').innerHTML = creature;
+  const seed = me.avatar || me.email || '108';
+  // The name shows as our own tooltip (also on touch), so the picture carries no title of its own
+  $('[data-avatar]').innerHTML = avatarHtml(seed, 112).replace(/ title="[^"]*"/, '').replace(/ alt="[^"]*"/, ' alt=""');
+  $('[data-creature-name]').textContent = creatureOf(seed).name;
   $('[data-name]').textContent = nameOf(me) || 'Your account';
   $('[data-email]').textContent = me.email || '';
   $('[data-plan]').textContent = me.allAccess ? 'All Access' : '';
   const nameInput = $<HTMLInputElement>('[data-profile] [name=name]');
   if (document.activeElement !== nameInput) nameInput.value = me.name || '';
   $<HTMLInputElement>('[data-profile] [name=email]').value = me.email || '';
-  $('[data-creature-name]').textContent = creatureOf(me.avatar || me.email || '108').name;
   root.querySelectorAll<HTMLElement>('[data-pro]').forEach((el) => {
     el.hidden = !(me.allAccess || me.products?.includes(el.dataset.pro!));
   });
@@ -410,7 +456,6 @@ async function renderLibrary(me: Account) {
 
   const everything = $('[data-everything]');
   everything.hidden = !me.allAccess;
-  if (me.allAccess) requestAnimationFrame(() => mountDots(everything));
   $('[data-library]').innerHTML = mine.map((i) => `<article class="kaw-card">
       <a href="${esc(site(i.href))}" target="_blank" rel="noopener" class="kaw-media" aria-label="${esc(i.title)}">
         <span class="kaw-frame kaw-frame--${frameOf(i.kind)}">${i.thumb ? `<img src="${esc(sized(i.thumb, 480))}" alt="" loading="lazy" decoding="async" />` : ''}</span>
@@ -466,7 +511,13 @@ function hideFiles() {
 function close() {
   if (!root || root.hidden) return;
   root.classList.remove('is-open');
-  setTimeout(() => { if (root && !root.classList.contains('is-open')) root.hidden = true; }, OUT);
+  setTimeout(() => {
+    if (!root || root.classList.contains('is-open')) return;
+    root.hidden = true;
+    // Next time it opens folded again
+    root.querySelectorAll('.is-on').forEach((el) => el.classList.remove('is-on'));
+    $<HTMLDetailsElement>('[data-more]').open = false;
+  }, OUT);
   lastFocus?.focus({ preventScroll: true });
 }
 

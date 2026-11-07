@@ -1,7 +1,7 @@
 /* 108 avatars: one of the 108 creatures, so nobody needs a photo. Each one is named after a 108 somewhere in the world.
    The pictures have no background: the circle they sit in takes the colour of the surface (light or dark mode).
    They live on the site, ACCOUNT_ORIGIN/creatures/<id>.webp (256 × 256), so every tool shows the same files.
-   The seed is the email until you press "New creature" in your account; then it is the creature's id, saved on your
+   The seed is the email until you shuffle (the round button on your creature in the account window); then it is the creature's id, saved on your
    Polar customer as metadata.avatar. Same seed → same creature everywhere: nav, account menu, account window, tools.
    Pure functions, no DOM: avatarHtml(seed) returns an <img> string that fills its box. */
 
@@ -51,7 +51,7 @@ export function avatarHtml(seed: string, size = 64): string {
 /** @deprecated The creatures are pictures now; use avatarHtml. Kept so older code keeps working. */
 export const avatarSvg = avatarHtml;
 
-/** A different creature for "New creature": its id, saved as the seed. */
+/** A different creature for the shuffle button: its id, saved as the seed. */
 export function newAvatarSeed(current = ''): string {
   const now = current ? creatureOf(current).id : '';
   const others = CREATURES.filter((c) => c.id !== now);
