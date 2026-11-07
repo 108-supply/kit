@@ -38,7 +38,7 @@ const HTML = `
     <p class="kit-signin-lead" data-lead></p>
     <button class="button-animated kit-signin-google" type="button" data-google data-text="Yes, we know you love Google" hidden><span class="button-animated-inner">${GOOGLE_G}<span>Continue with Google</span></span></button>
     <p class="kit-signin-or" data-google-or hidden>or</p>
-    <input class="kit-signin-input" type="email" name="email" aria-label="Email" required autocomplete="username" inputmode="email" autocapitalize="off" spellcheck="false" placeholder="you@studio.com" />
+    <input class="input kit-signin-input" type="email" name="email" aria-label="Email" required autocomplete="username" inputmode="email" autocapitalize="off" spellcheck="false" placeholder="you@studio.com" />
     <p class="kit-signin-error" data-error role="alert"></p>
     ${button('Send me a code')}
     <button class="kit-signin-plain" type="submit" data-plain hidden>Send me a code</button>
@@ -58,7 +58,7 @@ const HTML = `
     <span class="kit-signin-creature" data-creature aria-hidden="true"></span>
     <h2 class="kit-signin-title">You’re in. What’s your name?</h2>
     <p class="kit-signin-lead">So we know what to call you. You can change it any time in your account.</p>
-    <input class="kit-signin-input" type="text" name="name" aria-label="Name" maxlength="80" autocomplete="given-name" autocapitalize="words" placeholder="Your name" required />
+    <input class="input kit-signin-input" type="text" name="name" aria-label="Name" maxlength="80" autocomplete="given-name" autocapitalize="words" placeholder="Your name" required />
     <p class="kit-signin-error" data-error role="alert"></p>
     ${button('Continue')}
     <p class="kit-signin-hint"><button type="button" data-skip>Skip for now</button></p>
@@ -89,11 +89,7 @@ const CSS = `
   font-size: var(--text-h6); line-height: var(--leading-h6); letter-spacing: var(--tracking-h6); text-wrap: balance; }
 .kit-signin-lead { margin: var(--gap-03) auto var(--gap-07); max-width: 20rem; color: var(--ink-2); text-wrap: pretty; }
 .kit-signin-email { color: var(--ink-1); word-break: break-all; }
-.kit-signin-input { width: 100%; text-align: left; margin-bottom: var(--gap-02); padding: var(--gap-04) var(--gap-05); border: 0; border-radius: var(--radius-full);
-  background: var(--surface-3); color: var(--ink-1); font: inherit; font-size: var(--text-input); transition: background-color 0.3s var(--ease-smooth); }
-.kit-signin-input::placeholder { color: var(--ink-3); }
-.kit-signin-input:hover { background: var(--ink-hover); }
-.kit-signin-input:focus { outline: none; background: var(--ink-hover); box-shadow: inset 0 0 0 1.5px var(--ink-1); }
+.kit-signin-input { margin-bottom: var(--gap-02); }
 .kit-signin-error { margin: var(--gap-02) 0; padding-inline: var(--gap-05); color: var(--status-error); text-align: left; }
 .kit-signin-error:empty { display: none; }
 .kit-signin-code { position: relative; display: block; margin-bottom: var(--gap-02); }
@@ -101,7 +97,7 @@ const CSS = `
 .kit-signin-cells { display: grid; grid-template-columns: repeat(6, 1fr); gap: var(--gap-02); pointer-events: none; }
 .kit-signin-cells span { display: grid; place-items: center; height: 3.5rem; border-radius: var(--radius-md); background: var(--surface-3);
   font-size: var(--text-h6); line-height: 1; font-variant-numeric: tabular-nums; transition: background-color 0.3s var(--ease-smooth), color 0.3s var(--ease-smooth); }
-.kit-signin-cells span.is-current { background: var(--ink-hover); box-shadow: inset 0 0 0 1.5px var(--ink-1); }
+.kit-signin-cells span.is-current { background: var(--ink-hover); outline: 1.5px solid var(--ink-3); outline-offset: -1.5px; }
 .kit-signin-cells span.is-filled { background: var(--ink-1); color: var(--surface-1); }
 /* Google: white with their colour G (their brand rules); our swap on hover, with a wink */
 .kit-signin-google { width: 100%; border: 0; padding: 0; background: none; font: inherit; cursor: pointer;
