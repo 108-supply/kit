@@ -528,17 +528,14 @@ function render(me: Account) {
   placeSlice(false);
 }
 
+let libraryRun = 0;
 async function renderLibrary(me: Account) {
+  const run = ++libraryRun;
   const member = $('[data-member]');
   const list = $('[data-library]');
   // All Access: your member card and nothing else (you have everything)
   if (me.allAccess) {
-    const seed = me.avatar || me.email || '108';
-    member.innerHTML = memberCardHtml({
-      name: nameOf(me) || 'Member',
-      avatar: avatarHtml(seed, 112).replace(/ title="[^"]*"/, '').replace(/ alt="[^"]*"/, ' alt=""'),
-      since: me.member?.since, no: me.member?.no,
-    });
+    member.innerHTML = memberCardHtml({ since: me.member?.since, no: me.member?.no });
     member.hidden = false;
     list.innerHTML = '';
     $('[data-empty]').hidden = true;
@@ -549,6 +546,8 @@ async function renderLibrary(me: Account) {
   member.hidden = true;
   member.innerHTML = '';
   const items = await loadCatalog();
+  // A newer account state (e.g. All Access) was drawn while the catalog loaded: this one is out of date
+  if (run !== libraryRun) return;
   const owned = new Set(me.owned ?? []);
   const seen = new Set<string>();
   // Tools you pay for come first

@@ -1,19 +1,17 @@
-/* The All Access member card: a small dark card like a real one, with your creature, your name, "Member since …"
-   and your member number. Its own dots: a halftone field lit from one point. The light follows the phone's tilt
-   (gyroscope), the cursor on computers, and drifts slowly on its own when nothing moves; the card leans a little
-   with it. Dots near the words step back so the words stay readable. Still for reduced motion.
+/* The All Access member card: a quiet card on Surface 3, your member number top left, "All Access" and
+   "Member since November 2026" bottom left. Its dots are one even field that flows slowly across the card and bends
+   around a point of gravity, like space around a heavy star: near the point the spacing shrinks, the dots never grow.
+   The point follows the phone's tilt (gyroscope), the cursor on computers, and drifts slowly on its own when nothing
+   moves; the card leans a little with it. Still for reduced motion.
    On iPhone, Safari asks once for motion access: the first tap on the card asks (it can't be asked without a tap).
 
    import { memberCardHtml, mountMemberCard } from '@108-supply/kit/member-card';
-   el.innerHTML = memberCardHtml({ name, avatar: avatarHtml(seed, 112), since: '2026-11-08T…', no: 42 });
+   el.innerHTML = memberCardHtml({ since: '2026-11-08T…', no: 42 });
    mountMemberCard(el.querySelector('.kmc')!);   // once it is in the page
 
    Styled from the 108 tokens (the CSS comes with it, once per page). */
 
 export interface Member {
-  name: string;
-  /** The creature's <img> (avatarHtml from ./avatar) */
-  avatar: string;
   /** When All Access was granted (ISO date) */
   since?: string | null;
   /** The member number, from the order people joined in */
@@ -22,39 +20,30 @@ export interface Member {
 
 const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!);
 const TAU = Math.PI * 2;
-const smooth = (t: number) => t * t * (3 - 2 * t);
 const clamp = (v: number, a = -1, b = 1) => Math.max(a, Math.min(b, v));
 
-/** "Nov 2026" */
+/** "November 2026" */
 export function memberSince(iso?: string | null) {
   const d = iso ? new Date(iso) : null;
-  return d && !isNaN(d.getTime()) ? d.toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) : '';
+  return d && !isNaN(d.getTime()) ? d.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : '';
 }
 /** "No. 042" */
 export const memberNo = (n?: number | null) => (n && n > 0 ? `No. ${String(n).padStart(3, '0')}` : '');
 
 const CSS = `
-.kmc { --kmc-ink: var(--light-2, #eff1f0); position: relative; isolation: isolate; display: block; width: 100%; max-width: 28rem; margin-inline: auto;
-  aspect-ratio: 1.586; border-radius: var(--radius-lg); overflow: hidden; background: var(--dark-1, #0d0d0d); color: var(--kmc-ink);
-  --dot-color: rgba(239, 241, 240, 0.34); --dot-accent: var(--accent, #dcff02);
-  transform: perspective(60rem) rotateX(var(--kmc-rx, 0deg)) rotateY(var(--kmc-ry, 0deg)); transform-style: preserve-3d;
+.kmc { position: relative; isolation: isolate; display: block; width: 100%; max-width: 28rem; margin-inline: auto;
+  aspect-ratio: 1.586; border-radius: var(--radius-lg); overflow: hidden; background: var(--surface-3); color: var(--ink-1);
+  transform: perspective(60rem) rotateX(var(--kmc-rx, 0deg)) rotateY(var(--kmc-ry, 0deg));
   -webkit-tap-highlight-color: transparent; user-select: none; -webkit-user-select: none; }
 .kmc canvas { position: absolute; inset: 0; width: 100%; height: 100%; z-index: -1; pointer-events: none; }
-.kmc-top, .kmc-bottom { position: absolute; left: 0; right: 0; display: flex; justify-content: space-between; gap: var(--gap-03); padding: var(--gap-05); }
-.kmc-top { top: 0; align-items: flex-start; }
-.kmc-bottom { bottom: 0; align-items: flex-end; }
-.kmc-label, .kmc-no { font-family: var(--font-label); font-size: var(--label-sm); line-height: 1.2; letter-spacing: var(--tracking-label-sm); text-transform: uppercase; }
-.kmc-label { color: var(--accent, #dcff02); }
-.kmc-no { color: var(--kmc-ink); opacity: 0.56; font-variant-numeric: tabular-nums; }
-.kmc-who { display: flex; align-items: center; gap: var(--gap-03); min-width: 0; }
-.kmc-creature { flex: none; width: 2.75rem; height: 2.75rem; }
-.kmc-creature img { display: block; width: 100%; height: 100%; pointer-events: none; }
-.kmc-text { min-width: 0; display: flex; flex-direction: column; }
-.kmc-name { font-size: var(--text-md); line-height: var(--leading-md); letter-spacing: var(--tracking-md); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.kmc-since { opacity: 0.56; white-space: nowrap; }
+.kmc-no { position: absolute; top: var(--gap-07); left: var(--gap-07); color: var(--ink-2);
+  font-family: var(--font-label); font-size: var(--label-sm); line-height: 1.2; letter-spacing: var(--tracking-label-sm); text-transform: uppercase; font-variant-numeric: tabular-nums; }
+.kmc-bottom { position: absolute; left: var(--gap-07); right: var(--gap-07); bottom: var(--gap-07); display: flex; flex-direction: column; }
+.kmc-title { font-size: var(--text-lg, var(--text-md)); line-height: var(--leading-lg, var(--leading-md)); letter-spacing: var(--tracking-lg, var(--tracking-md)); color: var(--ink-1); }
+.kmc-since { color: var(--ink-2); }
 @media (max-width: 767px) {
-  .kmc-top, .kmc-bottom { padding: var(--gap-04); }
-  .kmc-creature { width: 2.375rem; height: 2.375rem; }
+  .kmc-no { top: var(--gap-06); left: var(--gap-06); }
+  .kmc-bottom { left: var(--gap-06); right: var(--gap-06); bottom: var(--gap-06); }
 }
 `;
 function ensureStyle() {
@@ -69,9 +58,9 @@ export function memberCardHtml(m: Member) {
   ensureStyle();
   const since = memberSince(m.since);
   const no = memberNo(m.no);
-  return `<div class="kmc" role="img" aria-label="${esc(['All Access', m.name, since && `member since ${since}`, no].filter(Boolean).join(', '))}" data-member-card>
-    <div class="kmc-top"><span class="kmc-label" data-dot-copy>All Access</span>${no ? `<span class="kmc-no" data-dot-copy>${no}</span>` : ''}</div>
-    <div class="kmc-bottom"><span class="kmc-who" data-dot-copy><span class="kmc-creature">${m.avatar}</span><span class="kmc-text"><span class="kmc-name">${esc(m.name)}</span>${since ? `<span class="kmc-since">Member since ${since}</span>` : ''}</span></span></div>
+  return `<div class="kmc" role="img" aria-label="${esc(['All Access', since && `member since ${since}`, no].filter(Boolean).join(', '))}" data-member-card>
+    ${no ? `<span class="kmc-no">${no}</span>` : ''}
+    <div class="kmc-bottom"><span class="kmc-title">All Access</span>${since ? `<span class="kmc-since">Member since ${since}</span>` : ''}</div>
   </div>`;
 }
 
@@ -124,71 +113,60 @@ export function mountMemberCard(card: HTMLElement) {
   const needsAsk = typeof (window as unknown as { DeviceOrientationEvent?: { requestPermission?: unknown } }).DeviceOrientationEvent?.requestPermission === 'function';
   if (!needsAsk) listenTilt();
 
-  let w = 0, h = 0, dpr = 1, gap = 12, cols = 0, rows = 0;
-  let base: Rgba = [239, 241, 240, 0.34], accent: Rgba = [220, 255, 2, 1];
-  let quiet: { x: number; y: number; w: number; h: number }[] = [];
-  const pointer = { x: 0, y: 0, at: 0, on: false };
-  const light = { x: 0, y: 0 };
+  let w = 0, h = 0, dpr = 1, gap = 20, cols = 0, rows = 0;
+  let ink: Rgba = [239, 241, 240, 1];
+  const pointer = { x: 0, y: 0, on: false };
+  const well = { x: 0.3, y: -0.1 };
   let running = false, visible = true;
 
   function resize() {
-    const r = card.getBoundingClientRect();
-    // The card leans (3D), so its own size comes from offsetWidth, not the tilted box
-    w = card.offsetWidth; h = card.offsetHeight;
+    w = card.offsetWidth; h = card.offsetHeight; // the card leans (3D): its own size, not the tilted box
     if (!w || !h) return;
     dpr = Math.min(window.devicePixelRatio || 1, 2);
     canvas.width = Math.round(w * dpr); canvas.height = Math.round(h * dpr);
-    gap = w / (w < 360 ? 26 : 30);
-    // Whole dots only: the field stops half a step inside the card's edge, so no dot is cut by it
-    cols = Math.floor(w / gap); rows = Math.floor(h / gap);
-    const cs = getComputedStyle(card);
-    base = parseColor(cs.getPropertyValue('--dot-color').trim(), 'rgba(239,241,240,0.34)');
-    accent = parseColor(cs.getPropertyValue('--dot-accent').trim(), '#dcff02');
-    const sx = w / (r.width || w), sy = h / (r.height || h);
-    quiet = Array.from(card.querySelectorAll<HTMLElement>('[data-dot-copy]')).map((el) => {
-      const b = el.getBoundingClientRect();
-      return { x: (b.left - r.left) * sx, y: (b.top - r.top) * sy, w: b.width * sx, h: b.height * sy };
-    });
+    gap = w / (w < 360 ? 16 : 19);
+    cols = Math.ceil(w / gap) + 3; rows = Math.ceil(h / gap) + 3;
+    ink = parseColor(getComputedStyle(card).getPropertyValue('--ink-1').trim(), '#eff1f0');
   }
 
   function draw(now: number) {
     if (!w || !h) return;
-    // Where the light is: the cursor, else the tilt, else a slow drift of its own
+    // The point of gravity: the cursor, else the tilt, else a slow drift of its own
     let tx: number, ty: number;
     if (pointer.on) { tx = pointer.x; ty = pointer.y; }
     else if (now - tilt.at < 2500) { tx = tilt.x; ty = tilt.y; }
-    else { tx = Math.sin(now * 0.00021) * 0.5; ty = Math.sin(now * 0.00013 + 1.2) * 0.4; }
-    const k = reduce ? 1 : 0.06;
-    light.x += (tx - light.x) * k; light.y += (ty - light.y) * k;
+    else { tx = Math.sin(now * 0.00017) * 0.45 + 0.15; ty = Math.sin(now * 0.00011 + 1.2) * 0.35 - 0.1; }
+    const k = reduce ? 1 : 0.04;
+    well.x += (tx - well.x) * k; well.y += (ty - well.y) * k;
     if (!reduce) {
-      card.style.setProperty('--kmc-ry', `${(light.x * 5).toFixed(2)}deg`);
-      card.style.setProperty('--kmc-rx', `${(-light.y * 4).toFixed(2)}deg`);
+      card.style.setProperty('--kmc-ry', `${(well.x * 4).toFixed(2)}deg`);
+      card.style.setProperty('--kmc-rx', `${(-well.y * 3).toFixed(2)}deg`);
     }
-    const lx = w * (0.5 + light.x * 0.55), ly = h * (0.5 + light.y * 0.6);
-    const reach = w * 0.55;
-    const rMax = gap * 0.38, rMin = gap * 0.07;
+    const wx = w * (0.5 + well.x * 0.5), wy = h * (0.5 + well.y * 0.5);
+    const soft = w * 0.22, pull = 0.95;
+    const radius = Math.max(1, gap * 0.1);
+    // The field flows slowly to the right and a little down, forever (wrapping by one step)
+    const flow = reduce ? 0 : now * 0.006;
+    const fx = flow % gap, fy = (flow * 0.35) % gap;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, w, h);
-    const ox = (w - (cols - 1) * gap) / 2, oy = (h - (rows - 1) * gap) / 2;
     for (let j = 0; j < rows; j++) for (let i = 0; i < cols; i++) {
-      const x = ox + i * gap, y = oy + j * gap;
-      const d = Math.hypot(x - lx, (y - ly) * 1.25);
-      const e = d < reach ? smooth(1 - d / reach) : 0;
-      // Words: dots around them shrink and fade, so the copy sits on a calm patch
-      let q = 1;
-      for (const b of quiet) {
-        const dx = Math.max(b.x - x, 0, x - (b.x + b.w)), dy = Math.max(b.y - y, 0, y - (b.y + b.h));
-        const dd = Math.hypot(dx, dy) / (gap * 2.2);
-        if (dd < 1) q = Math.min(q, smooth(dd));
-      }
-      const r = (rMin + (rMax - rMin) * e) * q;
-      if (r < 0.35) continue;
-      const g = smooth(Math.max(0, e - 0.6) / 0.4) * 0.85; // only the brightest middle takes the accent
-      const mix = (n: number) => base[n] + (accent[n] - base[n]) * g;
-      const a = Math.min(1, (base[3] + (1 - base[3]) * e * 0.6) * (0.4 + 0.6 * q));
-      ctx.fillStyle = `rgba(${mix(0) | 0},${mix(1) | 0},${mix(2) | 0},${a.toFixed(3)})`;
+      const x0 = (i - 1.5) * gap + fx, y0 = (j - 1.5) * gap + fy;
+      // Bend toward the point: the closer, the stronger (never past it), with a slight swirl around it
+      const dx = wx - x0, dy = wy - y0, r = Math.hypot(dx, dy) || 1;
+      const s = Math.min(r * 0.7, (pull * soft * soft) / (r + soft));
+      const ux = dx / r, uy = dy / r;
+      const swirl = s * 0.28;
+      const x = x0 + ux * s - uy * swirl, y = y0 + uy * s + ux * swirl;
+      // Dense near the point (more ink there), whole dots only inside the card
+      const edge = Math.min(x, y, w - x, h - y);
+      if (edge < radius + 2) continue;
+      const fade = Math.min(1, (edge - radius - 2) / gap);
+      const near = Math.max(0, 1 - r / (soft * 2.6));
+      const a = (0.08 + 0.3 * near * near) * fade;
+      ctx.fillStyle = `rgba(${ink[0] | 0},${ink[1] | 0},${ink[2] | 0},${a.toFixed(3)})`;
       ctx.beginPath();
-      ctx.arc(x, y, r, 0, TAU);
+      ctx.arc(x, y, radius, 0, TAU);
       ctx.fill();
     }
   }
