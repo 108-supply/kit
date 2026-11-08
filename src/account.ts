@@ -21,6 +21,8 @@ export interface Account {
   owned?: string[];
   /** Polar product ids this person owns */
   products?: string[];
+  /** The site knows you're signed in but could not read the rest just now (name, what you own): don't ask for a name */
+  stale?: boolean;
 }
 
 /** Where the account lives. new.108.supply until the site launches on 108.supply (then change it here, once). */
@@ -48,12 +50,14 @@ function cached(): Account | null {
   try { const c = JSON.parse(localStorage.getItem(CACHE) || 'null'); return c?.signedIn ? c : null; } catch { return null; }
 }
 function remember(a: Account) {
+  if (a.stale) return;
   try { if (a.signedIn) localStorage.setItem(CACHE, JSON.stringify(a)); else localStorage.removeItem(CACHE); } catch { /* private mode */ }
 }
 if (typeof document !== 'undefined' && hint()) current = cached() ?? SIGNED_OUT;
 
 const ask = async () => {
-  const res = await fetch(`${ACCOUNT_ORIGIN}/api/me`, { credentials: 'include' });
+  // Never hang: a slow answer counts as no answer (asked again once, then what we knew stays)
+  const res = await fetch(`${ACCOUNT_ORIGIN}/api/me`, { credentials: 'include', signal: AbortSignal.timeout(8000) });
   if (!res.ok) throw new Error(`/api/me ${res.status}`);
   return (await res.json()) as Account & { stale?: boolean };
 };
@@ -69,8 +73,11 @@ async function load(): Promise<Account> {
   const known = current.signedIn ? current : cached();
   // No answer, or the shop could not say what you own: keep what we knew, while the sign-in cookie says you're in
   if (!next) return emit(hint() && known ? known : current);
-  if (next.stale) { const { stale: _s, ...rest } = next; next = known && known.email === next.email ? known : rest; }
+  // Nothing known about this email yet (a new browser, incognito): signed in, the rest arrives on the next ask
+  if (next.stale) { const { stale: _s, ...rest } = next; next = known && known.email === next.email ? known : { ...rest, stale: true }; }
   remember(next);
+  // Read the rest (name, what you own) again in a moment
+  if (next.stale) setTimeout(() => { if (current.stale) account.refresh(); }, 4000);
   return emit(next);
 }
 

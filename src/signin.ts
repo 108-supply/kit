@@ -206,7 +206,7 @@ function build() {
     // Google said yes: the site's answer can lag a moment behind the new cookie, so ask a few times
     for (let i = 0; i < 4; i++) {
       me = await account.refresh();
-      if (me.signedIn) { sound.success(); return me.name ? finish() : askName(); }
+      if (me.signedIn) { sound.success(); return me.name || me.stale ? finish() : askName(); }
       await new Promise((r) => setTimeout(r, 700));
     }
     $('[data-step="email"] [data-error]').textContent = 'Google said yes, but the sign-in did not reach us. Try again, or use a code.';
@@ -224,7 +224,7 @@ function build() {
     if ($('[data-step="name"]').classList.contains('is-active')) return;
     me = a;
     // Google comes back this way too (the page wakes up and asks the site): no name yet, so ask for it
-    if (me.name) finish(); else askName();
+    if (me.name || me.stale) finish(); else askName();
   });
 }
 
@@ -283,7 +283,7 @@ async function verify(form: HTMLFormElement) {
     paintCode();
     sound.success();
     // First sign in: no name yet, ask for it before anything else
-    if (!me.name) return askName();
+    if (!me.name && !me.stale) return askName();
     finish();
   } catch {
     // The answer got lost but the session may be set: then you're in, otherwise say so
