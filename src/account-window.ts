@@ -3,11 +3,11 @@
    email; a click on the creature opens the edit state, where who you are is edited in one place.
    Pill tabs with the white slice: Library (what you own, with its files right here; empty, or with All Access, one
    quiet centred box), Tools (other tools open in a new tab), Account (your creature big in the middle with an Edit
-   pill, then one grouped box: Name, edited right in its row and saved on Return or when you leave it, and Email,
-   which can't be changed (a tap says so in the kit notice); then three Surface 3 rows: orders and invoices, sign out,
-   delete account). Two cards a row.
-   Edit, the big creature or the one in the head turn the whole window into its edit state: the first sign-in
-   screen itself ("Pick your creature and name", ./identity) with a round back button on the left and a round
+   pill, then one grouped box: Name, edited right in its row and saved on Return or when you leave it (the line under
+   it fades while you type), and Email, which can't be changed (a tap says so in the kit notice); then plain buttons
+   side by side, no boxes: Orders and invoices, Sign out, Delete account). Two cards a row.
+   Change creature, the big creature or the one in the head turn the whole window into its edit state: the drum of
+   ./identity without the name field ("Pick your creature") with a round back button on the left and a round
    accent check on the right that saves. Messages ("Couldn't save") use ./notice in the window's top row.
 
    import { openAccountWindow } from '@108-supply/kit/account-window';
@@ -101,20 +101,17 @@ const HTML = `
     </div>
     <div class="kaw-pane" data-pane="account" role="tabpanel" hidden>
       <div class="kaw-hero">
-        <button type="button" class="kaw-hero-creature" aria-label="Change your creature and name" data-edit data-hero></button>
-        <button type="button" class="kaw-button" data-edit>Edit</button>
+        <button type="button" class="kaw-hero-creature" aria-label="Change creature" data-edit data-hero></button>
+        <button type="button" class="kaw-button" data-edit>Change creature</button>
       </div>
       <div class="kaw-group">
         <label class="kaw-line"><span class="kaw-line-label">Name</span><input class="kaw-line-input" name="name" maxlength="80" autocomplete="name" autocapitalize="words" placeholder="Your name" enterkeyhint="done" data-name-input /></label>
         <button type="button" class="kaw-line kaw-line--static" data-email-row><span class="kaw-line-label">Email</span><span class="kaw-line-value" data-email-value></span></button>
       </div>
-      <div class="kaw-rows">
-        <div class="kaw-row"><span class="kaw-row-title">Orders and invoices</span>
-          <a class="kaw-button" href="${ACCOUNT_ORIGIN}/api/portal" target="_blank" rel="noopener">${svg(ICON.receipt)}Open</a></div>
-        <div class="kaw-row"><span class="kaw-row-title">Sign out</span>
-          <button class="kaw-button" type="button" data-signout>${svg(ICON.signOut)}Sign out</button></div>
-        <div class="kaw-row kaw-row--danger"><span class="kaw-row-title">Delete account</span>
-          <a class="kaw-danger" href="mailto:hi@108.supply?subject=Delete%20my%20108%20account">Delete</a></div>
+      <div class="kaw-actions">
+        <a class="kaw-button" href="${ACCOUNT_ORIGIN}/api/portal" target="_blank" rel="noopener">${svg(ICON.receipt)}Orders and invoices</a>
+        <button class="kaw-button" type="button" data-signout>${svg(ICON.signOut)}Sign out</button>
+        <a class="kaw-danger" href="mailto:hi@108.supply?subject=Delete%20my%20108%20account">Delete account</a>
       </div>
     </div>
   </div>
@@ -126,8 +123,8 @@ const HTML = `
     </div>
     <div class="kaw-edit-body">
       <form class="kaw-step" id="kaw-identity" data-profile novalidate>
-        <h2 class="kaw-step-title">Pick your creature and name</h2>
-        ${identityHtml()}
+        <h2 class="kaw-step-title">Pick your creature</h2>
+        ${identityHtml({ name: false })}
       </form>
     </div>
   </div>
@@ -178,6 +175,10 @@ const CSS = `
 .kaw-step-title { margin: 0 0 var(--gap-06); font-family: var(--font-heading); font-weight: var(--weight-default);
   font-size: var(--text-h6); line-height: var(--leading-h6); letter-spacing: var(--tracking-h6); text-wrap: balance; }
 .kaw-step .kid-field { margin-top: var(--gap-04); }
+/* Picking a creature: the block in the middle of the window, a small quiet title over it */
+.kaw-edit-body { display: flex; flex-direction: column; }
+.kaw-edit-body > .kaw-step { margin-block: auto; padding-bottom: var(--gap-07); }
+.kaw-edit-body .kaw-step-title { margin-bottom: var(--gap-04); font-family: inherit; font-size: var(--text-md); line-height: var(--leading-md); letter-spacing: var(--tracking-md); color: var(--ink-2); }
 
 .kaw-who { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 .kaw-name { font-size: var(--text-md); line-height: var(--leading-md); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -277,21 +278,19 @@ const CSS = `
 .kaw-group { border-radius: var(--radius-lg); background: var(--surface-3); overflow: hidden; font-size: var(--text-input); }
 .kaw-line { position: relative; display: flex; align-items: center; gap: var(--gap-04); width: 100%; min-height: 3.25rem; margin: 0; padding: var(--gap-02) var(--gap-05);
   border: 0; background: none; color: inherit; font: inherit; text-align: left; transition: background-color 0.3s var(--ease-smooth); -webkit-tap-highlight-color: transparent; }
-.kaw-line + .kaw-line::before { content: ""; position: absolute; top: 0; left: var(--gap-05); right: 0; height: 1px; background: var(--ink-4); }
+.kaw-line + .kaw-line::before { content: ""; position: absolute; top: 0; left: var(--gap-05); right: 0; height: 1px; background: var(--ink-4); transition: opacity 0.3s var(--ease-smooth); }
+/* The line between two rows fades while either of them is lit, so the highlight meets no line */
+.kaw-line:has(.kaw-line-input:focus) + .kaw-line::before, .kaw-line--static:active::before { opacity: 0; }
 .kaw-line:has(.kaw-line-input:focus), .kaw-line--static:active { background: var(--ink-hover); }
 .kaw-line--static { cursor: default; }
 .kaw-line-label { flex: none; width: 3.5rem; color: var(--ink-2); }
 .kaw-line-value { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--ink-1); }
 .kaw-line-input { flex: 1; min-width: 0; padding: 0; border: 0; background: none; color: var(--ink-1); font: inherit; font-size: var(--text-input); outline: 0; }
 .kaw-line-input::placeholder { color: var(--ink-3); }
-.kaw-rows { display: flex; flex-direction: column; gap: var(--gap-01); margin-top: var(--gap-06); }
-.kaw-row { display: flex; align-items: center; justify-content: space-between; gap: var(--gap-04); padding: var(--gap-04) var(--gap-04) var(--gap-04) var(--gap-05); border-radius: var(--radius-lg); background: var(--surface-3); }
-.kaw-row-title { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* Plain buttons side by side under the fields, no boxes; Delete account in the error colour */
+.kaw-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--gap-02); margin-top: var(--gap-06); }
 /* Buttons on a Surface 3 card step back to Surface 2 so they stay visible */
-.kaw-row .kaw-button:not(.kaw-button--accent):not(:hover), .kaw-file .kaw-button:not(.kaw-button--accent):not(:hover) { background: var(--surface-2); }
-.kaw-row-title { color: var(--ink-1); }
-/* Delete account: the title and its button in the error colour */
-.kaw-row--danger .kaw-row-title { color: var(--status-error); }
+.kaw-file .kaw-button:not(.kaw-button--accent):not(:hover) { background: var(--surface-2); }
 .kaw-danger { display: inline-flex; align-items: center; justify-content: center; flex: none; padding: var(--gap-02) var(--gap-04); border-radius: var(--radius-full);
   background: var(--status-error-fill); color: var(--status-error) !important; white-space: nowrap;
   transition: background-color 0.3s var(--ease-smooth), color 0.3s var(--ease-smooth); }
@@ -313,7 +312,6 @@ const CSS = `
   .kaw-box { padding: var(--gap-07) var(--gap-04); }
   .kaw-plan { display: none; }
   .kaw-tag { margin: var(--gap-02); scale: 0.85; transform-origin: top left; }
-  .kaw-row { padding: var(--gap-03) var(--gap-03) var(--gap-03) var(--gap-04); }
   .kaw-edit-bar { padding: var(--gap-02) var(--gap-03); }
   .kaw-edit-body { padding: var(--gap-02) var(--gap-04) calc(var(--gap-07) + env(safe-area-inset-bottom)); }
   .kaw-line { padding-inline: var(--gap-04); }
@@ -492,7 +490,7 @@ function render(me: Account) {
   const seed = me.avatar || me.email || '108';
   // The name shows as our own tooltip (also on touch), so the picture carries no title of its own
   $('[data-avatar]').innerHTML = avatarHtml(seed, 112).replace(/ title="[^"]*"/, '').replace(/ alt="[^"]*"/, ' alt=""');
-  $('[data-avatar]').setAttribute('aria-label', `${creatureOf(seed).name}, change your creature and name`);
+  $('[data-avatar]').setAttribute('aria-label', `${creatureOf(seed).name}, change creature`);
   $('[data-name]').textContent = nameOf(me) || 'Your account';
   $('[data-email]').textContent = me.email || '';
   $('[data-plan]').textContent = me.allAccess ? 'All Access' : '';

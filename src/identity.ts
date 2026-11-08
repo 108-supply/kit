@@ -10,6 +10,7 @@
    id.show();           // once the block is on screen (it measures the drum)
    id.value();          // { name, avatar }: what to PATCH to /api/me
    id.changes(me);      // only what differs from the account, {} when nothing does
+   identityHtml({ name: false });   // just the creature, bigger, with the 108 its name comes from (the account window)
 
    Same drum as Snip Snap's shapes. Pictures from ACCOUNT_ORIGIN/creatures. Styled from the 108 tokens. */
 import { ACCOUNT_ORIGIN, type Account } from './account';
@@ -22,10 +23,11 @@ const svg = (d: string) => `<svg viewBox="0 0 256 256" fill="currentColor" aria-
 const N = CREATURES.length;
 const seedOf = (me: Account) => me.avatar || me.email || '108';
 
-/** The block's markup. label: a visible "Name" label over the field (the account tab); off, the field has an aria-label. */
-export function identityHtml({ label = false } = {}) {
+/** The block's markup. label: a visible "Name" label over the field; off, the field has an aria-label.
+    name: false leaves the field out, so only the creature is picked (and saved). */
+export function identityHtml({ label = false, name = true } = {}) {
   const field = `<input class="input" name="name" maxlength="80" autocomplete="name" autocapitalize="words" placeholder="Your name"${label ? '' : ' aria-label="Name"'} />`;
-  return `<div class="kid">
+  return `<div class="kid${name ? '' : ' kid--big'}">
   <div class="kid-drum" data-kid-window>
     <div class="kid-track" role="radiogroup" aria-label="Your creature">
       ${CREATURES.map((c, i) => `<button type="button" class="kid-item" role="radio" aria-checked="false" aria-label="${c.name}" tabindex="-1" data-i="${i}"><img src="${ACCOUNT_ORIGIN}/creatures/${c.id}.webp" alt="" width="256" height="256" loading="lazy" decoding="async" draggable="false" /></button>`).join('')}
@@ -36,7 +38,8 @@ export function identityHtml({ label = false } = {}) {
     <div class="kid-names" aria-hidden="true"><span data-kid-names>${[...CREATURES, CREATURES[0]].map((c) => `<span>${c.name}</span>`).join('')}</span></div>
     <button type="button" class="kid-step" aria-label="Next creature" data-kid-step="1">${svg(RIGHT)}</button>
   </div>
-  ${label ? `<label class="kid-field"><span class="input-label">Name</span>${field}</label>` : `<div class="kid-field">${field}</div>`}
+  ${name ? '' : '<p class="kid-story" data-kid-story></p>'}
+  ${!name ? '' : label ? `<label class="kid-field"><span class="input-label">Name</span>${field}</label>` : `<div class="kid-field">${field}</div>`}
 </div>`;
 }
 
@@ -62,6 +65,18 @@ const CSS = `
 @media (hover: hover) { .kid-step:hover { background: var(--ink-1); color: var(--surface-1); } }
 .kid-field { display: flex; flex-direction: column; margin-top: var(--gap-05); text-align: left; }
 @media (max-width: 767px) { .kid-drum { --tile: 5rem; } }
+/* Just the creature: bigger heads, and the creature's name large in the heading font */
+.kid--big .kid-drum { --tile: 9rem; padding-block: var(--gap-03); }
+.kid--big .kid-turn { gap: var(--gap-04); margin-top: var(--gap-05); }
+.kid--big .kid-names { width: 16rem; max-width: calc(100% - 6rem); height: 1.2em; font-family: var(--font-heading); font-size: var(--text-h3); letter-spacing: var(--tracking-h3); }
+.kid--big .kid-names > span > span { height: 1.2em; line-height: 1.2em; font-size: inherit; letter-spacing: inherit; }
+.kid--big .kid-step { width: 2.5rem; height: 2.5rem; }
+.kid-story { max-width: 18rem; min-height: calc(2 * var(--leading-sm) * 1em); margin: var(--gap-03) auto 0; color: var(--ink-2);
+  font-size: var(--text-sm); line-height: var(--leading-sm); letter-spacing: var(--tracking-sm); text-align: center; text-wrap: balance; }
+.kid-story.is-in { animation: kid-story-in 0.45s var(--ease-smooth); }
+@keyframes kid-story-in { from { opacity: 0; } }
+@media (max-width: 767px) { .kid--big .kid-drum { --tile: 7.5rem; } }
+@media (prefers-reduced-motion: reduce) { .kid-story.is-in { animation: none; } }
 `;
 
 export interface Identity {
@@ -85,7 +100,8 @@ export function mountIdentity(el: HTMLElement): Identity {
   }
   const win = el.querySelector<HTMLElement>('[data-kid-window]')!;
   const names = el.querySelector<HTMLElement>('[data-kid-names]')!;
-  const input = el.querySelector<HTMLInputElement>('input[name=name]')!;
+  const input = el.querySelector<HTMLInputElement>('input[name=name]');
+  const story = el.querySelector<HTMLElement>('[data-kid-story]'); // only when the block is just the creature
   const items = Array.from(el.querySelectorAll<HTMLElement>('.kid-item'));
   const drum = { v: 0 };
   const mod = (i: number) => ((i % N) + N) % N;
@@ -139,6 +155,12 @@ export function mountIdentity(el: HTMLElement): Identity {
     if (now !== centred) {
       if (centred >= 0 && !quiet) sound.tick(0.9);
       centred = now;
+      if (story) {
+        story.textContent = CREATURES[now].story;
+        story.classList.remove('is-in');
+        void story.offsetWidth;
+        story.classList.add('is-in');
+      }
       items.forEach((it, j) => {
         it.setAttribute('aria-checked', String(j === now));
         it.tabIndex = j === now ? 0 : -1;
@@ -170,7 +192,7 @@ export function mountIdentity(el: HTMLElement): Identity {
     step(by);
     items[mod(Math.round(drum.v) + by)]?.focus({ preventScroll: true });
   });
-  input.addEventListener('input', () => { dirty = true; });
+  input?.addEventListener('input', () => { dirty = true; });
 
   // Swipe or drag; a flick keeps it turning for a moment, then it settles on the nearest creature
   let swipe: { x0: number; v0: number; id: number; last: { x: number; t: number }[] } | null = null;
@@ -220,15 +242,15 @@ export function mountIdentity(el: HTMLElement): Identity {
       dirty = false;
       cancelAnimationFrame(raf);
       drum.v = CREATURES.findIndex((c) => c.id === creatureOf(seedOf(me)).id);
-      input.value = me.name || '';
+      if (input) input.value = me.name || '';
       apply(true);
     },
     show() { geo.half = 0; apply(true); },
-    value() { return { name: input.value.trim(), avatar: CREATURES[mod(Math.round(drum.v))].id }; },
+    value() { return { name: input ? input.value.trim() : '', avatar: CREATURES[mod(Math.round(drum.v))].id }; },
     changes(me) {
       const { name, avatar } = this.value();
       const out: { name?: string; avatar?: string } = {};
-      if (name !== (me.name || '').trim()) out.name = name;
+      if (input && name !== (me.name || '').trim()) out.name = name;
       if (avatar !== creatureOf(seedOf(me)).id) out.avatar = avatar;
       return out;
     },
