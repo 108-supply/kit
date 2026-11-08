@@ -7,8 +7,8 @@
    it fades while you type), and Email, which can't be changed (a tap says so in the kit notice); then plain buttons
    side by side, no boxes: Orders and invoices, Sign out, Delete account). Two cards a row.
    Change creature, the big creature or the one in the head turn the whole window into its edit state: the drum of
-   ./identity without the name field ("Pick your creature") with a round back button on the left and a round
-   accent check on the right that saves. Messages ("Couldn't save") use ./notice in the window's top row.
+   ./identity without the name field; "Pick your creature" sits in the top bar between a round back button and a
+   round accent check that saves. The window takes the height of what it shows and changes it smoothly (morph()). Messages ("Couldn't save") use ./notice in the window's top row.
 
    import { openAccountWindow } from '@108-supply/kit/account-window';
    openAccountWindow('library' | 'tools' | 'account');   // usually via account.open() from @108-supply/kit/account
@@ -119,11 +119,11 @@ const HTML = `
   <div class="kaw-view kaw-view--edit" data-edit-view inert>
     <div class="kaw-edit-bar" data-edit-bar>
       <button type="button" class="kaw-round" aria-label="Back" data-edit-back>${svg(ICON.caretLeft)}</button>
+      <h2 class="kaw-bar-title" id="kaw-edit-title">Pick your creature</h2>
       <button type="submit" form="kaw-identity" class="kaw-round kaw-round--accent" aria-label="Save">${svg(ICON.check)}</button>
     </div>
     <div class="kaw-edit-body">
-      <form class="kaw-step" id="kaw-identity" data-profile novalidate>
-        <h2 class="kaw-step-title">Pick your creature</h2>
+      <form class="kaw-step" id="kaw-identity" data-profile aria-labelledby="kaw-edit-title" novalidate>
         ${identityHtml({ name: false })}
       </form>
     </div>
@@ -140,7 +140,7 @@ const CSS = `
 .kaw-panel { position: relative; display: flex; flex-direction: column; overflow: hidden;
   width: min(38rem, 100%); max-height: min(46rem, calc(100dvh - 2 * var(--page-padding))); border-radius: var(--radius-lg);
   background: var(--overlay-glass); -webkit-backdrop-filter: blur(64px); backdrop-filter: blur(64px);
-  opacity: 0; translate: 0 1rem; transition: opacity 0.35s var(--ease-smooth), translate 0.6s var(--ease-smooth); }
+  opacity: 0; translate: 0 1rem; transition: opacity 0.35s var(--ease-smooth), translate 0.6s var(--ease-smooth), height 0.5s var(--ease-smooth); }
 .kaw-panel:focus { outline: none; }
 .kaw.is-open .kaw-overlay { opacity: 1; }
 .kaw.is-open .kaw-panel { opacity: 1; translate: 0 0; }
@@ -153,15 +153,20 @@ const CSS = `
 @media (hover: hover) { .kaw-avatar:hover { scale: 1.06; } }
 .kaw-avatar:active { scale: 0.96; }
 /* Two states of one screen: the window and its edit state slide past each other */
-.kaw-stage { flex: 1; min-height: 0; display: grid; grid-template: minmax(0, 1fr) / minmax(0, 1fr); }
+.kaw-stage { position: relative; flex: 1; min-height: 0; display: grid; grid-template: minmax(0, 1fr) / minmax(0, 1fr); }
 .kaw-view { grid-area: 1 / 1; min-width: 0; min-height: 0; display: flex; flex-direction: column;
   transition: opacity 0.4s var(--ease-smooth), translate 0.6s var(--ease-smooth), visibility 0s; }
 .kaw-stage[data-state="main"] > .kaw-view--edit, .kaw-stage[data-state="edit"] > .kaw-view--main {
   opacity: 0; visibility: hidden; pointer-events: none;
   transition: opacity 0.3s var(--ease-smooth), translate 0.6s var(--ease-smooth), visibility 0s 0.6s; }
+/* The view on its way out leaves the flow, so the window takes the height of the one you're in (see morph()) */
+.kaw-stage[data-state="main"] > .kaw-view--edit, .kaw-stage[data-state="edit"] > .kaw-view--main { position: absolute; inset: 0; }
 .kaw-stage[data-state="main"] > .kaw-view--edit { translate: 2.5rem 0; }
 .kaw-stage[data-state="edit"] > .kaw-view--main { translate: -2.5rem 0; }
-.kaw-edit-bar { flex: none; display: flex; align-items: center; justify-content: space-between; padding: var(--gap-04) var(--gap-04) var(--gap-02); }
+.kaw-edit-bar { flex: none; display: flex; align-items: center; justify-content: space-between; gap: var(--gap-03); padding: var(--gap-04) var(--gap-04) var(--gap-02); }
+/* A second-level screen names itself in its top bar, between ‹ and its action */
+.kaw-bar-title { flex: 1; min-width: 0; margin: 0; text-align: center; font: inherit; font-size: var(--text-md); line-height: var(--leading-md); letter-spacing: var(--tracking-md);
+  color: var(--ink-1); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .kaw-round { display: grid; place-items: center; flex: none; width: 2.25rem; height: 2.25rem; padding: 0; border: 0; border-radius: var(--radius-full);
   background: var(--surface-3); color: var(--ink-1); cursor: pointer; transition: background-color 0.3s var(--ease-smooth), color 0.3s var(--ease-smooth), opacity 0.3s var(--ease-smooth); }
 .kaw-round svg { width: 0.875rem; height: 0.875rem; }
@@ -175,10 +180,9 @@ const CSS = `
 .kaw-step-title { margin: 0 0 var(--gap-06); font-family: var(--font-heading); font-weight: var(--weight-default);
   font-size: var(--text-h6); line-height: var(--leading-h6); letter-spacing: var(--tracking-h6); text-wrap: balance; }
 .kaw-step .kid-field { margin-top: var(--gap-04); }
-/* Picking a creature: the block in the middle of the window, a small quiet title over it */
-.kaw-edit-body { display: flex; flex-direction: column; }
-.kaw-edit-body > .kaw-step { margin-block: auto; padding-bottom: var(--gap-07); }
-.kaw-edit-body .kaw-step-title { margin-bottom: var(--gap-04); font-family: inherit; font-size: var(--text-md); line-height: var(--leading-md); letter-spacing: var(--tracking-md); color: var(--ink-2); }
+/* Picking a creature: just the block, the window as tall as it needs */
+.kaw-edit-body { display: flex; flex-direction: column; padding-top: var(--gap-05); }
+.kaw-edit-body > .kaw-step { margin-block: auto; }
 
 .kaw-who { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 .kaw-name { font-size: var(--text-md); line-height: var(--leading-md); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -299,7 +303,7 @@ const CSS = `
 @media (max-width: 767px) {
   .kaw { padding: 0; align-items: end; }
   .kaw-panel { width: 100%; max-height: calc(100dvh - 4.5rem); border-radius: var(--radius-lg) var(--radius-lg) 0 0;
-    translate: 0 100%; transition: opacity 0.2s var(--ease-smooth), translate 0.55s var(--ease-out); }
+    translate: 0 100%; transition: opacity 0.2s var(--ease-smooth), translate 0.55s var(--ease-out), height 0.5s var(--ease-smooth); }
   .kaw.is-open .kaw-panel { translate: 0 0; }
   .kaw-grab { display: block; flex: none; width: 2.5rem; height: 0.25rem; margin: var(--gap-03) auto 0; border-radius: var(--radius-md); background: var(--ink-4); }
   .kaw-head { padding: var(--gap-02) var(--gap-03) var(--gap-03) var(--gap-04); gap: var(--gap-03); }
@@ -440,22 +444,44 @@ function build() {
   account.onChange(render);
 }
 
+/** The window changes height with its content: what change() does is shown at the new height, reached smoothly */
+let morphEnd = 0;
+function morph(change: () => void) {
+  const panel = $('.kaw-panel');
+  const open = root!.classList.contains('is-open') && !matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const from = panel.getBoundingClientRect().height;
+  clearTimeout(morphEnd);
+  panel.style.height = '';
+  change();
+  if (!open) return;
+  const to = panel.getBoundingClientRect().height;
+  if (Math.abs(to - from) < 2) return;
+  panel.style.height = `${from}px`;
+  void panel.offsetHeight;
+  panel.style.height = `${to}px`;
+  morphEnd = window.setTimeout(() => { panel.style.height = ''; }, 520);
+}
+
 const editing = () => $('.kaw-stage').dataset.state === 'edit';
 function openEdit(from?: HTMLElement | null) {
   opener = from ?? null;
   identity!.set(account.now, true);
-  $('.kaw-stage').dataset.state = 'edit';
-  $('[data-main]').inert = true;
-  $('[data-edit-view]').inert = false;
+  morph(() => {
+    $('.kaw-stage').dataset.state = 'edit';
+    $('[data-main]').inert = true;
+    $('[data-edit-view]').inert = false;
+  });
   identity!.show();
   $('.kaw-edit-body').scrollTo({ top: 0 });
   setTimeout(() => identity!.focus(), matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 350);
 }
 function closeEdit(restore = true) {
   if (!root) return;
-  $('.kaw-stage').dataset.state = 'main';
-  $('[data-edit-view]').inert = true;
-  $('[data-main]').inert = false;
+  morph(() => {
+    $('.kaw-stage').dataset.state = 'main';
+    $('[data-edit-view]').inert = true;
+    $('[data-main]').inert = false;
+  });
   editNotice?.hide();
   if (restore) opener?.focus({ preventScroll: true });
   opener = null;
@@ -478,8 +504,12 @@ function selectTab(next: AccountTab, animate = true) {
     t.classList.toggle('is-active', on);
     t.setAttribute('aria-selected', String(on));
   });
-  root!.querySelectorAll<HTMLElement>('[data-pane]').forEach((p) => (p.hidden = p.dataset.pane !== tab));
-  hideFiles();
+  // Each tab has its own height: the window grows or shrinks to it
+  const show = () => {
+    root!.querySelectorAll<HTMLElement>('[data-pane]').forEach((p) => (p.hidden = p.dataset.pane !== tab));
+    hideFiles();
+  };
+  if (animate) morph(show); else show();
   $('.kaw-body').scrollTo({ top: 0 });
   placeSlice(animate);
 }
