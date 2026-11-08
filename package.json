@@ -14,6 +14,7 @@
     "./google": "./src/google.ts",
     "./account-window": "./src/account-window.ts",
     "./checkout": "./src/checkout.ts",
+    "./pay": "./src/pay.ts",
     "./celebrate": "./src/celebrate.ts",
     "./confirm": "./src/confirm.ts",
     "./notice": "./src/notice.ts",
