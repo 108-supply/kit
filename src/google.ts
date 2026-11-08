@@ -56,7 +56,7 @@ export function signInWithGoogle(origin = ACCOUNT_ORIGIN): Promise<boolean> {
       if (done || asking || document.visibilityState !== 'visible' || !signedInCookie()) return;
       asking = true;
       try {
-        const r = await fetch(`${origin}/api/me`, { credentials: 'include' });
+        const r = await fetch(`${origin}/api/me`, { credentials: 'include', signal: AbortSignal.timeout(6000) });
         if (r.ok && ((await r.json()) as { signedIn?: boolean }).signedIn) finish(true);
       } catch { /* ask again on the next tick */ }
       asking = false;
