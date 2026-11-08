@@ -16,7 +16,6 @@
    The checkout link's success URL should end in ?checkout_id={CHECKOUT_ID} (the id comes from there). */
 import { ACCOUNT_ORIGIN, account, setAccount, type Account } from './account';
 import { celebrate } from './celebrate';
-import { openPay } from './pay';
 
 export interface BuyOptions {
   /** Whether this account now has what was bought (default: anything at all owned) */
@@ -110,47 +109,8 @@ const idFrom = (url: string | undefined) => {
   try { return new URL(url || '').searchParams.get('checkout_id') || ''; } catch { return ''; }
 };
 
-/** Our own 108 checkout (kit/pay) instead of Polar's frame. While it is being tried out it is on only for those who
-    opened any 108 page with ?checkout=own once (?checkout=polar turns it off again). */
-function ownCheckout() {
-  try {
-    const q = new URLSearchParams(location.search).get('checkout');
-    if (q === 'own' || q === 'polar') localStorage.setItem('108.checkout', q);
-    return localStorage.getItem('108.checkout') === 'own';
-  } catch { return false; }
-}
-
-/** After paying in our own window: its blur stays, the account catches up, then the thank-you */
-async function afterOwn(id: string, layer: HTMLElement, opts: BuyOptions) {
-  opts.pending?.();
-  const me = await settle(id, opts);
-  if (!me) {
-    layer.classList.remove('is-in');
-    setTimeout(() => layer.remove(), FADE);
-    opts.failed?.();
-    return false;
-  }
-  opts.then?.(me);
-  celebrate({ ...THANKS, ...opts.thanks, layer });
-  return true;
-}
-
 /** Opens the checkout over the page. Resolves when it closes (true = paid). */
 export function buy(link: string, opts: BuyOptions = {}): Promise<boolean> {
-  if (open) return Promise.resolve(false);
-  if (ownCheckout()) {
-    open = true;
-    return openPay(link).then((r) => {
-      open = false;
-      if (r.status === 'paid') return afterOwn(r.id, r.layer, opts);
-      if (r.status === 'closed') return false;
-      return embed(link, opts); // could not load: Polar's own checkout
-    });
-  }
-  return embed(link, opts);
-}
-
-function embed(link: string, opts: BuyOptions): Promise<boolean> {
   if (open) return Promise.resolve(false);
   open = true;
   style();

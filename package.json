@@ -16,7 +16,6 @@
     "./account-window": "./src/account-window.ts",
     "./identity": "./src/identity.ts",
     "./checkout": "./src/checkout.ts",
-    "./pay": "./src/pay.ts",
     "./celebrate": "./src/celebrate.ts",
     "./confirm": "./src/confirm.ts",
     "./notice": "./src/notice.ts",
