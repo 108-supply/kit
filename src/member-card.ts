@@ -1,8 +1,7 @@
-/* The All Access member card (Ariel 2026-11-08): a quiet card on Surface 3. Top left the member number, top right the
-   hologram, bottom left "All Access" and "Member since November 2026" (both Text Large).
+/* The All Access member card (Ariel 2026-11-08): a quiet card on Surface 3. Top right the hologram, bottom left
+   "Lifetime All Access" and "Member since November 2026" (both Text Large), gap 06 from the edges. (memberNo stays for later.)
    One geometry runs through it all, with 13 waves (a Fibonacci number, like the sunflower's own arms):
-   - the hologram is a rosette seal: woven wavy rings, an edge cut in the same wave, ALL ACCESS in a ring between them,
-     and in the middle 1 · 0 · 8 that flips as the light moves (one, nothing, infinity), like a banknote's kinegram;
+   - the hologram is a rosette seal: woven wavy rings, an edge cut in the same wave, ALL ACCESS in a ring between them;
    - the dots are the sunflower spiral from /thank-you, starting at the hologram and turning slowly (the seal turns with it);
    - every few seconds a lime wave runs out from the hologram, shaped like the seal's edge, growing across the card.
    The light follows the cursor on computers and the phone's tilt (gyroscope), and drifts slowly on its own. Still for
@@ -61,7 +60,7 @@ const lines = () => {
 const outline = () => svgUrl(`<path d="${wave(49.5 - 49.5 * EDGE_AMP, 49.5 * EDGE_AMP, -Math.PI / 2)}"/>`);
 let LINES = '', OUTLINE = '';
 
-/** The hologram: a rosette seal (metal, rainbow bands, woven rings, a ring of text, 1 · 0 · 8, a glint) */
+/** The hologram: a rosette seal (metal, rainbow bands, woven rings, a ring of text, a glint) */
 function hologramHtml() {
   LINES ||= lines();
   OUTLINE ||= outline();
@@ -71,7 +70,6 @@ function hologramHtml() {
       <svg class="kmc-holo-art" viewBox="0 0 100 100">
         <defs><path id="kmc-ring" d="M50 50m-33.5 0a33.5 33.5 0 1 1 67 0a33.5 33.5 0 1 1-67 0"/></defs>
         <text class="kmc-holo-text" font-size="7" letter-spacing="1"><textPath href="#kmc-ring" textLength="208">ALL ACCESS · ALL ACCESS · ALL ACCESS · </textPath></text>
-        <g class="kmc-holo-num"><path class="kmc-n1" d="M50 39.5V60.5M45.5 43.5L50 39.5"/><circle class="kmc-n0" cx="50" cy="50" r="9.5"/><g class="kmc-n8"><circle cx="50" cy="44.6" r="4.9"/><circle cx="50" cy="55.2" r="5.7"/></g></g>
       </svg>
       <span class="kmc-holo-glare"></span>
     </div>`;
@@ -83,18 +81,16 @@ const RAINBOW = '#ff8fd8, #ffd27a, #dcff02, #7dffcf, #79c8ff, #b494ff, #ff8fd8';
 const CSS = `
 .kmc { position: relative; isolation: isolate; display: block; width: 100%; max-width: 28rem; margin-inline: auto;
   aspect-ratio: 1.586; border-radius: var(--radius-lg); overflow: hidden; background: var(--surface-3); color: var(--ink-1);
-  --kmc-hx: 0.3; --kmc-hy: -0.2; --kmc-rot: 0rad; --kmc-s1: 0; --kmc-s0: 1; --kmc-s8: 0;
+  --kmc-hx: 0.3; --kmc-hy: -0.2; --kmc-rot: 0rad;
   -webkit-tap-highlight-color: transparent; user-select: none; -webkit-user-select: none; }
 .kmc canvas { position: absolute; inset: 0; width: 100%; height: 100%; z-index: -1; pointer-events: none; }
-.kmc-no { position: absolute; top: var(--gap-07); left: var(--gap-07); font-family: var(--font-label); font-size: var(--label-sm);
-  letter-spacing: var(--tracking-label-sm); text-transform: uppercase; color: var(--ink-2); line-height: 1; }
-.kmc-bottom { position: absolute; left: var(--gap-07); right: var(--gap-07); bottom: var(--gap-07); display: flex; flex-direction: column;
+.kmc-bottom { position: absolute; left: var(--gap-06); right: var(--gap-06); bottom: var(--gap-06); display: flex; flex-direction: column;
   font-size: var(--text-lg, var(--text-md)); line-height: var(--leading-lg, var(--leading-md)); letter-spacing: var(--tracking-lg, var(--tracking-md)); }
 .kmc-title { color: var(--ink-1); }
 .kmc-since { color: var(--ink-2); }
 
 /* The hologram, a rosette seal: brushed metal, rainbow bands that slide as the light moves, woven rings and an edge in
-   a second rainbow, ALL ACCESS in a ring, 1 · 0 · 8 in lime that flips with the light, and a glint. It turns with the spiral. */
+   a second rainbow, ALL ACCESS in a ring, and a glint. It turns with the spiral. */
 .kmc-holo { position: absolute; top: var(--gap-06); right: var(--gap-06); width: 6rem; aspect-ratio: 1; rotate: var(--kmc-rot);
   isolation: isolate; pointer-events: none; color: #151716;
   -webkit-mask: var(--kmc-o) center / 100% 100% no-repeat; mask: var(--kmc-o) center / 100% 100% no-repeat;
@@ -111,15 +107,10 @@ const CSS = `
   -webkit-mask: var(--kmc-g) center / 100% 100% no-repeat; mask: var(--kmc-g) center / 100% 100% no-repeat; mix-blend-mode: hard-light; }
 .kmc-holo-art { overflow: visible; }
 .kmc-holo-text { fill: currentColor; opacity: 0.72; font-family: var(--font-label); text-transform: uppercase; }
-/* 1 · 0 · 8: one shows at a time, like a kinegram, and the next one takes over as the light crosses */
-.kmc-holo-num > * { fill: none; stroke: var(--accent); stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
-.kmc-n1 { opacity: var(--kmc-s1); } .kmc-n0 { opacity: var(--kmc-s0); } .kmc-n8 { opacity: var(--kmc-s8); }
 .kmc-holo-glare { background: radial-gradient(circle at var(--kmc-lx) var(--kmc-ly), rgba(255,255,255,0.55) 0%, rgba(255,255,255,0) 22%),
     linear-gradient(calc(115deg + var(--kmc-hy) * 25deg), transparent 34%, rgba(255,255,255,0.5) 49%, transparent 60%);
   background-size: 100% 100%, 260% 260%; background-position: 0 0, calc(50% - var(--kmc-hx) * 70%) 50%; mix-blend-mode: soft-light; }
 @media (max-width: 767px) {
-  .kmc-bottom { left: var(--gap-06); right: var(--gap-06); bottom: var(--gap-06); }
-  .kmc-no { top: var(--gap-06); left: var(--gap-06); }
   .kmc-holo { top: var(--gap-05); right: var(--gap-05); width: 5rem; }
 }
 `;
@@ -135,11 +126,9 @@ function ensureStyle() {
 export function memberCardHtml(m: Member) {
   ensureStyle();
   const since = memberSince(m.since);
-  const no = memberNo(m.no);
-  return `<div class="kmc" role="img" aria-label="${esc(['All Access', since && `member since ${since}`].filter(Boolean).join(', '))}" data-member-card>
-    ${no ? `<span class="kmc-no">${no}</span>` : ''}
+  return `<div class="kmc" role="img" aria-label="${esc(['Lifetime All Access', since && `member since ${since}`].filter(Boolean).join(', '))}" data-member-card>
     ${hologramHtml()}
-    <div class="kmc-bottom"><span class="kmc-title">All Access</span>${since ? `<span class="kmc-since">Member since ${since}</span>` : ''}</div>
+    <div class="kmc-bottom"><span class="kmc-title">Lifetime All Access</span>${since ? `<span class="kmc-since">Member since ${since}</span>` : ''}</div>
   </div>`;
 }
 
@@ -230,12 +219,6 @@ export function mountMemberCard(card: HTMLElement) {
     light.x += (tx - light.x) * k; light.y += (ty - light.y) * k;
     card.style.setProperty('--kmc-hx', light.x.toFixed(3));
     card.style.setProperty('--kmc-hy', light.y.toFixed(3));
-    // 1 · 0 · 8 in the seal: the light's side picks one, with a short crossfade (a kinegram flips, it doesn't blend)
-    const lx = light.x, edge = (v: number) => Math.max(0, Math.min(1, v / 0.16 + 0.5));
-    const s1 = edge(-0.22 - lx), s8 = edge(lx - 0.22);
-    card.style.setProperty('--kmc-s1', s1.toFixed(3));
-    card.style.setProperty('--kmc-s8', s8.toFixed(3));
-    card.style.setProperty('--kmc-s0', Math.max(0, 1 - s1 - s8).toFixed(3));
     // The sunflower from the hologram, turning slowly (the seal turns with it); every dot the same, right up to the edges
     if (!reduce) angle += dt * 0.00004;
     card.style.setProperty('--kmc-rot', `${angle.toFixed(4)}rad`);
