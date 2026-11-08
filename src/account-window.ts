@@ -1,10 +1,10 @@
 /* Your 108 account as one window over the page you're on: centred on computers, a sheet from the bottom on phones.
    The same window as on 108.supply, so a tool never sends you to the site for it. Head: your creature, name and
-   email; a click on the creature opens the creature picker right in the window (the creatures on a drum, the
-   middle one named under it, like the shapes in Snip Snap; swipe, tap a side one, arrows or the buttons).
+   email; a click on the creature opens the Account tab, where who you are is edited in one place.
    Pill tabs with the white slice: Library (what you own, with its files right here; empty, or with All Access, one
-   quiet centred box), Tools (other tools open in a new tab), Account (name, email, then three Surface 3 rows:
-   orders and invoices, sign out, delete account). Two cards a row.
+   quiet centred box), Tools (other tools open in a new tab), Account (your creature on a drum with your name under
+   it and one Save for both (./identity), the email as a plain line, then three Surface 3 rows: orders and
+   invoices, sign out, delete account). Two cards a row.
 
    import { openAccountWindow } from '@108-supply/kit/account-window';
    openAccountWindow('library' | 'tools' | 'account');   // usually via account.open() from @108-supply/kit/account
@@ -12,7 +12,8 @@
    Data: ACCOUNT_ORIGIN/api/me (./account), /account-catalog.json (names, pictures and pages of the site's products),
    /api/access?link=… (a product's files). Signed out it opens the sign-in first (./signin). Styled from the 108 tokens. */
 import { ACCOUNT_ORIGIN, account, setAccount, type Account } from './account';
-import { avatarHtml, creatureOf, CREATURES } from './avatar';
+import { avatarHtml, creatureOf } from './avatar';
+import { identityHtml, mountIdentity, type Identity } from './identity';
 import { sound } from './sound';
 
 export type AccountTab = 'library' | 'tools' | 'account';
@@ -25,8 +26,6 @@ const ICON = {
   back: 'M224 128a8 8 0 0 1-8 8H59.31l58.35 58.34a8 8 0 0 1-11.32 11.32l-72-72a8 8 0 0 1 0-11.32l72-72a8 8 0 0 1 11.32 11.32L59.31 120H216a8 8 0 0 1 8 8Z',
   question: 'M140,180a12,12,0,1,1-12-12A12,12,0,0,1,140,180ZM128,72c-22.06,0-40,16.15-40,36v4a8,8,0,0,0,16,0v-4c0-11,10.77-20,24-20s24,9,24,20-10.77,20-24,20a8,8,0,0,0-8,8v8a8,8,0,0,0,16,0v-.72c18.24-3.35,32-17.9,32-35.28C168,88.15,150.06,72,128,72Zm104,56A104,104,0,1,1,128,24,104.11,104.11,0,0,1,232,128Zm-16,0a88,88,0,1,0-88,88A88.1,88.1,0,0,0,216,128Z',
   signOut: 'M120,216a8,8,0,0,1-8,8H48a8,8,0,0,1-8-8V40a8,8,0,0,1,8-8h64a8,8,0,0,1,0,16H56V208h56A8,8,0,0,1,120,216Zm109.66-93.66-40-40a8,8,0,0,0-11.32,11.32L204.69,120H112a8,8,0,0,0,0,16h92.69l-26.35,26.34a8,8,0,0,0,11.32,11.32l40-40A8,8,0,0,0,229.66,122.34Z',
-  left: 'M165.66,202.34a8,8,0,0,1-11.32,11.32l-80-80a8,8,0,0,1,0-11.32l80-80a8,8,0,0,1,11.32,11.32L91.31,128Z',
-  right: 'M181.66,133.66l-80,80a8,8,0,0,1-11.32-11.32L164.69,128,90.34,53.66a8,8,0,0,1,11.32-11.32l80,80A8,8,0,0,1,181.66,133.66Z',
 };
 const svg = (d: string) => `<svg viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="${d}"/></svg>`;
 
@@ -53,7 +52,7 @@ const HTML = `
 <div class="kaw-panel" tabindex="-1">
   <span class="kaw-grab" aria-hidden="true"></span>
   <div class="kaw-head">
-    <button type="button" class="kaw-avatar" aria-expanded="false" data-avatar></button>
+    <button type="button" class="kaw-avatar" data-avatar></button>
     <span class="kaw-who"><span class="kaw-name" id="kaw-name" data-name></span><span class="kaw-email" data-email></span></span>
     <span class="kaw-plan" data-plan></span>
     <button class="kaw-close" type="button" aria-label="Close" data-close>${svg(ICON.close)}</button>
@@ -62,20 +61,6 @@ const HTML = `
     <span class="kaw-slice" aria-hidden="true"></span>
     ${TABS.map((t) => `<button type="button" class="kaw-pill" role="tab" data-tab="${t.id}">${t.label}</button>`).join('')}
   </div></div>
-  <div class="kaw-pick" data-pick hidden>
-    <button type="button" class="kaw-back" data-pick-back>${svg(ICON.back)}Back</button>
-    <div class="kaw-pick-window" data-pick-window>
-      <div class="kaw-pick-track" role="radiogroup" aria-label="Your creature" data-pick-track>
-        ${CREATURES.map((c, i) => `<button type="button" class="kaw-pick-item" role="radio" aria-checked="false" aria-label="${c.name}" tabindex="-1" data-i="${i}"><img src="${ACCOUNT_ORIGIN}/creatures/${c.id}.webp" alt="" width="256" height="256" decoding="async" draggable="false" /></button>`).join('')}
-      </div>
-    </div>
-    <div class="kaw-pick-name" aria-hidden="true"><span data-pick-names>${[...CREATURES, CREATURES[0]].map((c) => `<span>${c.name}</span>`).join('')}</span></div>
-    <div class="kaw-pick-actions">
-      <button type="button" class="kaw-pick-step" aria-label="Previous" data-pick-step="-1">${svg(ICON.left)}</button>
-      <button type="button" class="kaw-button kaw-button--accent" data-pick-use>Use this one</button>
-      <button type="button" class="kaw-pick-step" aria-label="Next" data-pick-step="1">${svg(ICON.right)}</button>
-    </div>
-  </div>
   <div class="kaw-body">
     <div class="kaw-pane" data-pane="library" role="tabpanel">
       <div data-library-list>
@@ -107,12 +92,12 @@ const HTML = `
     </div>
     <div class="kaw-pane" data-pane="account" role="tabpanel" hidden>
       <form class="kaw-profile" data-profile>
-        <label class="kaw-field"><span class="input-label">Name</span><input class="input" name="name" maxlength="80" autocomplete="name" placeholder="Your name" /></label>
+        ${identityHtml({ label: true })}
         <div class="kaw-field"><span class="input-label"><label for="kaw-email">Email</label><span class="kaw-info" data-info>
             <button type="button" class="kaw-info-button" aria-label="About your email" aria-describedby="kaw-email-tip" aria-expanded="false">${svg(ICON.question)}</button>
             <span class="kaw-tip kaw-tip--info" role="tooltip" id="kaw-email-tip">Your purchases are matched by this email.</span>
           </span></span><input class="input" id="kaw-email" name="email" disabled /></div>
-        <div class="kaw-actions"><button class="kaw-button kaw-button--accent" type="submit">Save changes</button><span class="kaw-note" data-saved aria-live="polite"></span></div>
+        <div class="kaw-actions"><button class="kaw-button kaw-button--accent" type="submit">Save</button><span class="kaw-note" data-saved aria-live="polite"></span></div>
       </form>
       <div class="kaw-rows">
         <div class="kaw-row"><span class="kaw-row-title">Orders and invoices</span>
@@ -141,7 +126,7 @@ const CSS = `
 .kaw.is-open .kaw-panel { opacity: 1; translate: 0 0; }
 .kaw-grab { display: none; }
 .kaw-head { display: flex; align-items: center; gap: var(--gap-04); padding: var(--gap-04) var(--gap-04) var(--gap-03) var(--gap-05); }
-/* Your creature (no circle, it stands on the window): a click opens the creature picker */
+/* Your creature (no circle, it stands on the window): a click opens the Account tab, where you change it */
 .kaw-avatar { flex: none; width: 2.75rem; height: 2.75rem; padding: 0; border: 0; border-radius: var(--radius-full); background: none; cursor: pointer;
   transition: scale 0.4s var(--ease-smooth); -webkit-tap-highlight-color: transparent; }
 .kaw-avatar img { display: block; width: 100%; height: 100%; pointer-events: none; }
@@ -155,31 +140,6 @@ const CSS = `
 @media (hover: hover) { .kaw-info:hover .kaw-tip { opacity: 1; translate: 0 0; transition-delay: 0.15s; } }
 .kaw-info:has(:focus-visible) .kaw-tip, .kaw-info.is-on .kaw-tip { opacity: 1; translate: 0 0; }
 
-/* The creature picker: in place of the tabs and the page, the creatures on a drum (the same drum as Snip Snap's
-   shapes): the middle one faces you, the others turn away and fade towards the edges (a mask on each one). Its name
-   is a column of every name that scrolls with the drum, one creature along = one name along. */
-.kaw-panel.is-picking .kaw-tabs, .kaw-panel.is-picking .kaw-body { display: none; }
-.kaw-pick { display: flex; flex-direction: column; align-items: center; padding: var(--gap-01) var(--gap-05) var(--gap-06); animation: kaw-in 0.5s var(--ease-smooth); }
-.kaw-pick[hidden] { display: none; }
-.kaw-pick > .kaw-back { align-self: flex-start; }
-.kaw-pick-window { --tile: 7rem; position: relative; width: 100%; margin-top: var(--gap-04); overflow: hidden; padding-block: var(--gap-02);
-  touch-action: pan-y; cursor: grab; user-select: none; -webkit-user-select: none; }
-.kaw-pick-window.is-dragging { cursor: grabbing; }
-.kaw-pick-track { position: relative; height: var(--tile); }
-.kaw-pick-item { position: absolute; top: 0; left: 50%; width: var(--tile); height: var(--tile); margin-left: calc(var(--tile) / -2); padding: 0; border: 0;
-  border-radius: var(--radius-md); background: none; cursor: pointer; backface-visibility: hidden; will-change: transform; -webkit-tap-highlight-color: transparent; }
-.kaw-pick-item img { display: block; width: 100%; height: 100%; pointer-events: none; }
-.kaw-pick-item:focus-visible { outline: none; }
-.kaw-pick-window:has(:focus-visible) .kaw-pick-item[aria-checked="true"] { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
-.kaw-pick-name { height: 2rem; margin-top: var(--gap-04); overflow: hidden; }
-.kaw-pick-name > span { display: flex; flex-direction: column; align-items: center; will-change: transform; }
-.kaw-pick-name > span > span { display: block; height: 2rem; line-height: 2rem; white-space: nowrap;
-  font-family: var(--font-heading); font-size: var(--text-h6); letter-spacing: var(--tracking-h6); }
-.kaw-pick-actions { display: flex; align-items: center; gap: var(--gap-02); margin-top: var(--gap-06); }
-.kaw-pick-step { display: grid; place-items: center; width: 2.25rem; height: 2.25rem; padding: 0; border: 0; border-radius: var(--radius-full);
-  background: var(--surface-3); color: var(--ink-1); cursor: pointer; transition: background-color 0.3s var(--ease-smooth), color 0.3s var(--ease-smooth); }
-.kaw-pick-step svg { width: 0.875rem; height: 0.875rem; }
-@media (hover: hover) { .kaw-pick-step:hover { background: var(--ink-1); color: var(--surface-1); } }
 .kaw-who { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 .kaw-name { font-size: var(--text-md); line-height: var(--leading-md); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .kaw-email { color: var(--ink-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -268,7 +228,7 @@ const CSS = `
 .kaw-loading { color: var(--ink-2); padding: var(--gap-04) 0; }
 
 .kaw-profile { display: flex; flex-direction: column; }
-.kaw-field { display: flex; flex-direction: column; margin-bottom: var(--gap-04); }
+.kaw-field { display: flex; flex-direction: column; margin-top: var(--gap-05); }
 /* (?) next to Email: the sentence as a tooltip on hover, focus or tap */
 .kaw-info { position: relative; display: inline-flex; }
 .kaw-info-button { display: grid; place-items: center; width: 1.25rem; height: 1.25rem; padding: 0; border: 0; border-radius: var(--radius-full);
@@ -299,8 +259,6 @@ const CSS = `
   .kaw-grab { display: block; flex: none; width: 2.5rem; height: 0.25rem; margin: var(--gap-03) auto 0; border-radius: var(--radius-md); background: var(--ink-4); }
   .kaw-head { padding: var(--gap-02) var(--gap-03) var(--gap-03) var(--gap-04); gap: var(--gap-03); }
   .kaw-avatar { width: 2.375rem; height: 2.375rem; }
-  .kaw-pick { padding: var(--gap-01) var(--gap-03) calc(var(--gap-07) + env(safe-area-inset-bottom)); }
-  .kaw-pick-window { --tile: 6rem; }
   .kaw-tabs { padding: 0 var(--gap-03) var(--gap-03); }
   .kaw-pills { width: 100%; }
   .kaw-pill { flex: 1; justify-content: center; padding-inline: var(--gap-03); }
@@ -318,7 +276,7 @@ const CSS = `
 }
 @media (prefers-reduced-motion: reduce) {
   .kaw-overlay, .kaw-panel, .kaw-slice { transition-duration: 0.01ms; }
-  .kaw-pane, .kaw-pick { animation: none; }
+  .kaw-pane { animation: none; }
 }
 `;
 
@@ -327,6 +285,7 @@ let tab: AccountTab = 'library';
 let lastFocus: HTMLElement | null = null;
 let catalog: Promise<CatalogItem[]> | null = null;
 let shown = '';
+let identity: Identity | null = null;
 
 const $ = <T extends HTMLElement = HTMLElement>(sel: string) => root!.querySelector<T>(sel)!;
 const loadCatalog = () =>
@@ -362,12 +321,11 @@ function build() {
   document.addEventListener('keydown', (e) => {
     if (e.key !== 'Escape' || !root || root.hidden) return;
     e.stopPropagation();
-    if (picking) closePicker(); else close();
+    close();
   }, true);
   window.addEventListener('resize', () => {
     if (!root || root.hidden) return;
     placeSlice(false);
-    if (picking) { geo.half = 0; applyDrum(); }
   });
 
   // Get files: the product's files right here in the window
@@ -389,17 +347,25 @@ function build() {
     if (!info.contains(t)) toggle(info, false);
   });
 
-  buildPicker();
+  // Your creature in the head opens the Account tab, where you change it together with your name
+  $('[data-avatar]').addEventListener('click', () => {
+    sound.tap();
+    selectTab('account');
+    identity!.focus();
+  });
 
+  // Who you are: the creature and the name in one block, one Save for both (only what changed is sent)
+  identity = mountIdentity($('[data-profile] .kid'));
   $<HTMLFormElement>('[data-profile]').addEventListener('submit', async (e) => {
     e.preventDefault();
-    const form = e.target as HTMLFormElement;
-    const name = String(new FormData(form).get('name') || '').trim();
     const saved = $('[data-saved]');
+    const before = account.now;
+    const patch = identity!.changes(before);
+    if (!Object.keys(patch).length) { saved.textContent = 'Saved'; setTimeout(() => (saved.textContent = ''), 2400); return; }
     saved.textContent = 'Saving…';
-    const { status } = await api('/api/me', { method: 'PATCH', body: JSON.stringify({ name }) }).catch(() => ({ status: 0 }));
+    const { status } = await api('/api/me', { method: 'PATCH', body: JSON.stringify(patch) }).catch(() => ({ status: 0 }));
     saved.textContent = status === 200 ? 'Saved' : 'Couldn’t save';
-    if (status === 200) { sound.tap(); setAccount({ ...account.now, name }); }
+    if (status === 200) { sound.press(); setAccount({ ...account.now, ...patch }); identity!.set(account.now, true); }
     setTimeout(() => (saved.textContent = ''), 2400);
   });
 
@@ -424,7 +390,6 @@ function placeSlice(animate = true) {
 
 function selectTab(next: AccountTab, animate = true) {
   tab = TABS.some((t) => t.id === next) ? next : 'library';
-  closePicker(false);
   root!.querySelectorAll<HTMLElement>('[data-tab]').forEach((t) => {
     const on = t.dataset.tab === tab;
     t.classList.toggle('is-active', on);
@@ -434,6 +399,7 @@ function selectTab(next: AccountTab, animate = true) {
   hideFiles();
   $('.kaw-body').scrollTo({ top: 0 });
   placeSlice(animate);
+  if (tab === 'account') identity?.show();
 }
 
 function render(me: Account) {
@@ -442,12 +408,11 @@ function render(me: Account) {
   const seed = me.avatar || me.email || '108';
   // The name shows as our own tooltip (also on touch), so the picture carries no title of its own
   $('[data-avatar]').innerHTML = avatarHtml(seed, 112).replace(/ title="[^"]*"/, '').replace(/ alt="[^"]*"/, ' alt=""');
-  $('[data-avatar]').setAttribute('aria-label', `${creatureOf(seed).name}, pick another creature`);
+  $('[data-avatar]').setAttribute('aria-label', `${creatureOf(seed).name}, change your creature and name`);
   $('[data-name]').textContent = nameOf(me) || 'Your account';
   $('[data-email]').textContent = me.email || '';
   $('[data-plan]').textContent = me.allAccess ? 'All Access' : '';
-  const nameInput = $<HTMLInputElement>('[data-profile] [name=name]');
-  if (document.activeElement !== nameInput) nameInput.value = me.name || '';
+  identity?.set(me);
   $<HTMLInputElement>('[data-profile] [name=email]').value = me.email || '';
   root.querySelectorAll<HTMLElement>('[data-pro]').forEach((el) => {
     el.hidden = !(me.allAccess || me.products?.includes(el.dataset.pro!));
@@ -520,183 +485,6 @@ function hideFiles() {
   $('[data-files-view]').hidden = true;
 }
 
-/* ---------- The creature picker ---------- */
-
-const N = CREATURES.length;
-const drum = { v: 0 };
-const mod = (i: number) => ((i % N) + N) % N;
-const fmod = (v: number) => ((v % N) + N) % N;
-/** Nearest way round from the middle to slot j: -N/2 … N/2 */
-const wrap = (d: number) => d - N * Math.round(d / N);
-const geo = { half: 0, tile: 0, step: 1, r: 1, th: 0.3, p: 600 };
-const reduced = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
-let picking = false;
-let centred = -1;
-let raf = 0;
-let items: HTMLElement[] = [];
-
-function measure() {
-  geo.half = $('[data-pick-window]').clientWidth / 2;
-  geo.tile = items[0].offsetWidth;
-  geo.step = geo.tile * 1.17;
-  // The drum is as wide as the window, so the creatures turn fully away right at its edges
-  geo.r = Math.max(geo.half * 1.02, geo.step * 2);
-  geo.th = geo.step / geo.r;
-  geo.p = geo.r * 2.6;
-}
-/** How much of a creature shows at screen x (from the middle): full in the middle half, then a soft fall to nothing */
-function fadeAt(x: number) {
-  const u = Math.min(1, Math.abs(x) / geo.half);
-  const t = Math.max(0, Math.min(1, (0.97 - u) / 0.5));
-  return t * t * (3 - 2 * t);
-}
-function applyDrum() {
-  if (!geo.half) measure();
-  const { r, th, p, tile } = geo;
-  items.forEach((el, j) => {
-    const d = wrap(j - drum.v);
-    const a = d * th;
-    if (Math.abs(a) > 1.5) { el.style.visibility = 'hidden'; return; }
-    const x = r * Math.sin(a), z = r * (Math.cos(a) - 1);
-    const e = tile / 2, cs = Math.cos(a), sn = Math.sin(a);
-    const sx = (ex: number) => { const X = x + ex * cs, Z = z - ex * sn; return (X * p) / (p - Z); };
-    const aL = fadeAt(sx(-e)), aM = fadeAt(sx(0)), aR = fadeAt(sx(e));
-    if (Math.max(aL, aM, aR) < 0.01) { el.style.visibility = 'hidden'; return; }
-    el.style.visibility = '';
-    el.style.zIndex = String(100 - Math.round(Math.abs(d) * 10));
-    el.style.transform = `perspective(${p}px) translate3d(${x.toFixed(2)}px, 0, ${z.toFixed(2)}px) rotateY(${a.toFixed(4)}rad)`;
-    const m = aL > 0.995 && aM > 0.995 && aR > 0.995 ? '' : `linear-gradient(90deg, rgba(0,0,0,${aL.toFixed(3)}), rgba(0,0,0,${aM.toFixed(3)}) 50%, rgba(0,0,0,${aR.toFixed(3)}))`;
-    el.style.webkitMaskImage = m;
-    el.style.maskImage = m;
-  });
-  $('[data-pick-names]').style.transform = `translateY(${(-fmod(drum.v) / (N + 1)) * 100}%)`;
-  // The creature under the middle is the chosen one; each one passing ticks, like a watch crown
-  const now = mod(Math.round(drum.v));
-  if (now !== centred) {
-    if (centred >= 0) sound.tick(0.9);
-    centred = now;
-    items.forEach((el, j) => {
-      el.setAttribute('aria-checked', String(j === now));
-      el.tabIndex = j === now ? 0 : -1;
-    });
-  }
-}
-/** Turns the drum to a slot: fast at first, then slowing into place (expo out, no overshoot) */
-function turnTo(slot: number, duration = 700) {
-  cancelAnimationFrame(raf);
-  if (reduced()) { drum.v = slot; applyDrum(); return; }
-  const from = drum.v, t0 = performance.now();
-  const frame = (now: number) => {
-    const t = Math.min(1, (now - t0) / duration);
-    drum.v = t >= 1 ? slot : from + (slot - from) * (1 - Math.pow(2, -10 * t));
-    applyDrum();
-    if (t < 1) raf = requestAnimationFrame(frame);
-  };
-  raf = requestAnimationFrame(frame);
-}
-/** The nearest slot that shows creature j */
-const slotOf = (j: number) => Math.round(drum.v + wrap(j - drum.v));
-const step = (by: number) => turnTo(Math.round(drum.v) + by);
-
-function buildPicker() {
-  items = Array.from(root!.querySelectorAll<HTMLElement>('.kaw-pick-item'));
-  const win = $('[data-pick-window]');
-  $('[data-avatar]').addEventListener('click', () => { sound.tap(); if (picking) closePicker(); else openPicker(); });
-  $('[data-pick-back]').addEventListener('click', () => { sound.tap(); closePicker(); });
-  root!.querySelectorAll<HTMLElement>('[data-pick-step]').forEach((b) => b.addEventListener('click', () => step(Number(b.dataset.pickStep))));
-  items.forEach((el, j) => el.addEventListener('click', () => { if (!swiped) turnTo(slotOf(j)); }));
-  $('[data-pick]').addEventListener('keydown', (e) => {
-    if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
-    e.preventDefault();
-    step(e.key === 'ArrowRight' ? 1 : -1);
-    if (win.contains(document.activeElement)) items[mod(Math.round(drum.v) + (e.key === 'ArrowRight' ? 1 : -1))]?.focus({ preventScroll: true });
-  });
-
-  // Swipe or drag; a flick keeps it turning for a moment, then it settles on the nearest creature
-  let swipe: { x0: number; v0: number; id: number; last: { x: number; t: number }[] } | null = null;
-  let swiped = false;
-  win.addEventListener('pointerdown', (e) => {
-    swipe = { x0: e.clientX, v0: drum.v, id: e.pointerId, last: [{ x: e.clientX, t: e.timeStamp }] };
-    swiped = false;
-  });
-  win.addEventListener('pointermove', (e) => {
-    if (!swipe || e.pointerId !== swipe.id) return;
-    const dx = e.clientX - swipe.x0;
-    if (!swiped && Math.abs(dx) > 6) {
-      swiped = true;
-      try { win.setPointerCapture(e.pointerId); } catch { /* gone */ }
-      win.classList.add('is-dragging');
-      cancelAnimationFrame(raf);
-    }
-    if (!swiped) return;
-    swipe.last.push({ x: e.clientX, t: e.timeStamp });
-    if (swipe.last.length > 6) swipe.last.shift();
-    drum.v = swipe.v0 - dx / geo.step;
-    applyDrum();
-  });
-  const end = (e: PointerEvent) => {
-    if (!swipe) return;
-    const s = swipe;
-    swipe = null;
-    win.classList.remove('is-dragging');
-    if (swiped) {
-      const a = s.last[0], b = s.last[s.last.length - 1] ?? { x: e.clientX, t: e.timeStamp };
-      const vel = b.t > a.t ? -(b.x - a.x) / (b.t - a.t) / geo.step : 0; // slots per ms
-      const throwBy = Math.max(-N, Math.min(N, vel * 260));
-      turnTo(Math.round(drum.v + throwBy), 600 + Math.min(800, Math.abs(throwBy) * 120));
-    }
-    setTimeout(() => { swiped = false; }, 0);
-  };
-  win.addEventListener('pointerup', end);
-  win.addEventListener('pointercancel', end);
-  win.addEventListener('scroll', () => { win.scrollLeft = 0; });
-
-  // Use this one: saved right away (and shown at once), so it follows you to the site and every tool
-  $('[data-pick-use]').addEventListener('click', async () => {
-    const me = account.now;
-    const previous = me.avatar || '';
-    const avatar = CREATURES[mod(Math.round(drum.v))].id;
-    closePicker();
-    if (avatar === creatureOf(previous || me.email || '108').id) return;
-    sound.press();
-    setAccount({ ...me, avatar });
-    const { status } = await api('/api/me', { method: 'PATCH', body: JSON.stringify({ avatar }) }).catch(() => ({ status: 0 }));
-    if (status !== 200) setAccount({ ...account.now, avatar: previous });
-  });
-}
-
-function openPicker() {
-  const panel = $('.kaw-panel');
-  // The window never shrinks while you pick (it may grow)
-  panel.style.minHeight = `${panel.offsetHeight}px`;
-  picking = true;
-  panel.classList.add('is-picking');
-  $('[data-pick]').hidden = false;
-  $('[data-avatar]').setAttribute('aria-expanded', 'true');
-  const me = account.now;
-  const now = CREATURES.findIndex((c) => c.id === creatureOf(me.avatar || me.email || '108').id);
-  cancelAnimationFrame(raf);
-  geo.half = 0;
-  centred = -1;
-  drum.v = now;
-  applyDrum();
-  centred = now;
-  items[now].focus({ preventScroll: true });
-}
-
-function closePicker(focusAvatar = true) {
-  if (!root || !picking) return;
-  picking = false;
-  cancelAnimationFrame(raf);
-  const panel = $('.kaw-panel');
-  panel.classList.remove('is-picking');
-  panel.style.minHeight = '';
-  $('[data-pick]').hidden = true;
-  $('[data-avatar]').setAttribute('aria-expanded', 'false');
-  placeSlice(false);
-  if (focusAvatar) $('[data-avatar]').focus({ preventScroll: true });
-}
-
 function close() {
   if (!root || root.hidden) return;
   root.classList.remove('is-open');
@@ -705,7 +493,6 @@ function close() {
     root.hidden = true;
     // Next time it opens folded again
     root.querySelectorAll('.is-on').forEach((el) => el.classList.remove('is-on'));
-    closePicker(false);
   }, OUT);
   lastFocus?.focus({ preventScroll: true });
 }
@@ -718,7 +505,10 @@ export async function openAccountWindow(next: AccountTab = 'library') {
     return openSignIn({ then: () => openAccountWindow(next) });
   }
   if (!root) build();
+  const opening = root!.hidden;
   render(me);
+  // Opening again starts from the account as it is (an unsaved creature or name is dropped)
+  if (opening) identity!.set(me, true);
   if (root!.hidden) {
     lastFocus = document.activeElement as HTMLElement | null;
     root!.hidden = false;

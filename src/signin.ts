@@ -1,5 +1,5 @@
 /* The 108 sign-in window, the same one as on 108.supply, opened right inside a tool: email → 6-digit code → (first
-   time) your name. Nobody leaves the tool. It talks to the site's account API (ACCOUNT_ORIGIN/api/auth/*) with
+   time) your creature and name, one block (./identity), skip allowed. Nobody leaves the tool. It talks to the site's account API (ACCOUNT_ORIGIN/api/auth/*) with
    credentials; the session cookie is set on .108.supply, so the site and every tool see the same login at once.
    Off *.108.supply (localhost, previews) the cookie can't be shared, so signIn() there still goes to the site.
 
@@ -10,7 +10,7 @@
    Looks: centred glass window on desktop, a bottom sheet on phones, no outlines; the site's copy and steps
    (108-supply/108-supply → components/Account.astro, scripts/account.ts). Styled here from the 108 tokens. */
 import { ACCOUNT_ORIGIN, account, setAccount, type Account } from './account';
-import { avatarHtml } from './avatar';
+import { identityHtml, mountIdentity, type Identity } from './identity';
 import { sound } from './sound';
 import { googleAvailable, signInWithGoogle } from './google';
 
@@ -55,10 +55,9 @@ const HTML = `
     <p class="kit-signin-hint"><button type="button" data-back>Use another email</button><button type="button" data-resend>Send again</button></p>
   </form>
   <form class="kit-signin-step" data-step="name" novalidate>
-    <span class="kit-signin-creature" data-creature aria-hidden="true"></span>
-    <h2 class="kit-signin-title">You’re in. What’s your name?</h2>
-    <p class="kit-signin-lead">So we know what to call you. You can change it any time in your account.</p>
-    <input class="input kit-signin-input" type="text" name="name" aria-label="Name" maxlength="80" autocomplete="given-name" autocapitalize="words" placeholder="Your name" required />
+    <h2 class="kit-signin-title">Pick your creature and name</h2>
+    <p class="kit-signin-lead">You can change both any time in your account.</p>
+    ${identityHtml()}
     <p class="kit-signin-error" data-error role="alert"></p>
     ${button('Continue')}
     <p class="kit-signin-hint"><button type="button" data-skip>Skip for now</button></p>
@@ -117,8 +116,9 @@ const CSS = `
 .kit-signin-hint { display: flex; justify-content: center; gap: var(--gap-05); margin: var(--gap-05) 0 0; }
 .kit-signin-hint button { padding: 0; border: 0; background: none; color: var(--ink-2); font: inherit; cursor: pointer; transition: color 0.3s var(--ease-smooth); }
 @media (hover: hover) { .kit-signin-hint button:hover { color: var(--ink-1); } }
-.kit-signin-creature { display: block; width: 4rem; height: 4rem; margin: 0 auto var(--gap-05); }
-.kit-signin-creature img { display: block; width: 100%; height: 100%; }
+/* The name step: the identity block, its field like the others */
+.kit-signin-step .kid { margin-bottom: var(--gap-02); }
+.kit-signin-step .kid-field { margin-top: var(--gap-04); }
 @media (max-width: 767px) {
   .kit-signin { padding: var(--gap-02); align-items: end; }
   .kit-signin-panel { width: 100%; max-height: calc(100dvh - 2 * var(--gap-02)); padding: var(--gap-09) var(--gap-04) var(--gap-04); }
@@ -147,6 +147,7 @@ let afterSignIn: ((me: Account) => void) | null = null;
 let me: Account = { signedIn: false };
 let pendingEmail = '';
 let verifying = false;
+let identity: Identity | null = null;
 let ownUpdate = false; // setAccount from this window: its own steps decide what comes next
 
 async function api<T>(path: string, body: unknown, method = 'POST'): Promise<{ status: number; body: T }> {
@@ -178,6 +179,7 @@ function build() {
   emailForm.addEventListener('submit', (e) => { e.preventDefault(); sendCode(emailForm); });
   codeForm.addEventListener('submit', (e) => { e.preventDefault(); verify(codeForm); });
   nameForm.addEventListener('submit', (e) => { e.preventDefault(); saveName(nameForm); });
+  identity = mountIdentity(nameForm.querySelector<HTMLElement>('.kid')!);
   // Six digits typed or pasted (or filled in by iOS from the email): sign in without pressing the button
   const code = codeForm.querySelector<HTMLInputElement>('input')!;
   code.addEventListener('input', () => {
@@ -229,6 +231,7 @@ function build() {
 function showStep(name: 'email' | 'code' | 'name') {
   root!.querySelectorAll<HTMLElement>('[data-step]').forEach((s) => s.classList.toggle('is-active', s.dataset.step === name));
   root!.querySelectorAll<HTMLElement>('[data-error]').forEach((e) => (e.textContent = ''));
+  if (name === 'name') identity!.show();
   // A keyboard pops up on phones, so only the code step focuses its field there
   if (fine() || name === 'code') setTimeout(() => $<HTMLInputElement>(`[data-step="${name}"] input`).focus({ preventScroll: true }), 50);
 }
@@ -290,23 +293,25 @@ async function verify(form: HTMLFormElement) {
   finally { verifying = false; submit.removeAttribute('aria-busy'); }
 }
 
-/** No name on the account yet (a new email, or Google gave none): ask once, skip allowed */
+/** No name on the account yet (a new email, or Google gave none): your creature and name in one go, skip allowed */
 function askName() {
   if ($('[data-step="name"]').classList.contains('is-active')) return;
-  $('[data-creature]').innerHTML = avatarHtml(me.avatar || me.email || '108', 112);
+  identity!.set(me, true);
   showStep('name');
 }
 
 async function saveName(form: HTMLFormElement) {
-  const name = String(new FormData(form).get('name') || '').trim();
   const err = form.querySelector<HTMLElement>('[data-error]')!;
   const submit = form.querySelector<HTMLElement>('[type=submit]:not([hidden])')!;
-  if (!name) { err.textContent = 'Type your name, or skip for now.'; return; }
+  // Only what you changed is saved: the creature you stopped on, the name you typed (both, one, or none)
+  const patch = identity!.changes(me);
+  if (!patch.name) delete patch.name;
+  if (!Object.keys(patch).length) return finish();
   submit.setAttribute('aria-busy', 'true');
   try {
-    const { status } = await api('/api/me', { name }, 'PATCH');
+    const { status } = await api('/api/me', patch, 'PATCH');
     if (status !== 200) { err.textContent = errorText(); return; }
-    me = { ...me, name };
+    me = { ...me, ...patch };
     setAccount(me);
     form.reset();
     finish();
