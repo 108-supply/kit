@@ -116,7 +116,7 @@ const X = '<svg viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><pa
 const LOCK = '<svg class="kit-pay-lock" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M208 80h-32V56a48 48 0 0 0-96 0v24H48a16 16 0 0 0-16 16v112a16 16 0 0 0 16 16h160a16 16 0 0 0 16-16V96a16 16 0 0 0-16-16ZM96 56a32 32 0 0 1 64 0v24H96Z"/></svg>';
 
 const field = (name: string, label: string, auto: string, extra = '') =>
-  `<input class="kit-pay-input" name="${name}" aria-label="${label}" placeholder="${label}" autocomplete="${auto}" ${extra} />`;
+  `<input class="input kit-pay-input" name="${name}" aria-label="${label}" placeholder="${label}" autocomplete="${auto}" ${extra} />`;
 
 const HTML = `
 <div class="kit-pay-scrim" data-close><span class="kit-pay-dot"></span></div>
@@ -125,9 +125,9 @@ const HTML = `
   <h2 class="kit-pay-title" id="kit-pay-title" data-name></h2>
   <div class="kit-pay-switch" role="radiogroup" data-switch hidden></div>
   <p class="kit-pay-price"><span data-price></span><span class="kit-pay-billed" data-billed></span></p>
-  <input class="kit-pay-input" type="email" name="email" aria-label="Email" placeholder="Email" required autocomplete="email" inputmode="email" autocapitalize="off" spellcheck="false" />
+  <input class="input kit-pay-input" type="email" name="email" aria-label="Email" placeholder="Email" required autocomplete="email" inputmode="email" autocapitalize="off" spellcheck="false" />
   <div class="kit-pay-card" data-card></div>
-  <select class="kit-pay-input kit-pay-select" name="country" aria-label="Country" autocomplete="country"></select>
+  <select class="input kit-pay-input kit-pay-select" name="country" aria-label="Country" autocomplete="country"></select>
   <label class="kit-pay-check"><input type="checkbox" name="business" /><span>Buying for a business</span></label>
   <div class="kit-pay-group" data-business hidden>
     ${field('billing_name', 'Company name', 'organization')}
@@ -187,11 +187,8 @@ const CSS = `
   font-family: var(--font-heading); font-size: var(--text-h3); line-height: var(--leading-h3); letter-spacing: var(--tracking-h3); }
 .kit-pay-billed { margin-top: var(--gap-02); font-family: var(--font-body); font-size: var(--text-sm); line-height: var(--leading-sm); letter-spacing: var(--tracking-sm); color: var(--ink-2); }
 .kit-pay-billed:empty { display: none; }
-.kit-pay-input { width: 100%; min-width: 0; margin: 0; padding: var(--gap-04); border: 0; border-radius: var(--radius-md);
-  background: var(--surface-3); color: var(--ink-1); font: inherit; font-size: var(--text-input); transition: background-color .3s var(--ease-smooth); }
-.kit-pay-input::placeholder { color: var(--ink-3); }
-.kit-pay-input:hover { background: var(--ink-hover); }
-.kit-pay-input:focus { outline: none; background: var(--ink-hover); box-shadow: inset 0 0 0 1.5px var(--ink-1); }
+/* Fields: the kit's one .input style (base.css); only sizes here */
+.kit-pay-input { min-width: 0; margin: 0; font-size: var(--text-input); }
 .kit-pay-select { appearance: none; -webkit-appearance: none; cursor: pointer; padding-right: var(--gap-09);
   background-image: linear-gradient(45deg, transparent 50%, currentColor 50%), linear-gradient(135deg, currentColor 50%, transparent 50%);
   background-position: calc(100% - 1.4rem) 50%, calc(100% - 1.1rem) 50%; background-size: .3rem .3rem; background-repeat: no-repeat; }
@@ -205,7 +202,7 @@ const CSS = `
 .kit-pay-link { align-self: flex-start; padding: 0; border: 0; background: none; color: var(--ink-2); font: inherit; cursor: pointer; transition: color .3s var(--ease-smooth); }
 @media (hover: hover) { .kit-pay-link:hover { color: var(--ink-1); } }
 .kit-pay-code { display: flex; flex-direction: column; }
-.kit-pay-apply { flex: none !important; padding: 0 var(--gap-05); border: 0; border-radius: var(--radius-md); background: var(--surface-3); color: var(--ink-1);
+.kit-pay-apply { flex: none !important; padding: 0 var(--gap-05); border: 0; border-radius: var(--radius-full); background: var(--surface-3); color: var(--ink-1);
   font: inherit; cursor: pointer; transition: background-color .3s var(--ease-smooth); }
 @media (hover: hover) { .kit-pay-apply:hover { background: var(--ink-hover); } }
 .kit-pay-sum { display: grid; grid-template-columns: 1fr auto; gap: var(--gap-02) var(--gap-04); margin: var(--gap-04) 0 0; color: var(--ink-2); font-variant-numeric: tabular-nums; }
@@ -248,14 +245,14 @@ function appearance(root: HTMLElement) {
   const fill = read('background-color', 'var(--surface-3)');
   const hover = read('background-color', 'var(--ink-hover)');
   const surface = read('background-color', 'var(--surface-1)');
-  const radius = read('border-top-left-radius', 'var(--radius-md)');
-  const pad = read('padding-top', 'var(--gap-04)');
+  const radius = read('border-top-left-radius', 'var(--radius-full)');
+  const pad = `${read('padding-top', 'var(--gap-04)')} ${read('padding-left', 'var(--gap-05)')}`;
   probe.remove();
   const rgb = surface.match(/\d+(\.\d+)?/g)?.map(Number) ?? [0, 0, 0];
   const dark = (rgb[0] * 0.299 + rgb[1] * 0.587 + rgb[2] * 0.114) < 128;
   return {
     theme: dark ? 'night' : 'stripe',
-    labels: 'floating',
+    labels: 'auto', // placeholders, like our own fields
     variables: {
       fontFamily: 'Diatype, system-ui, sans-serif', fontSizeBase: '16px', colorText: ink1, colorTextSecondary: ink2,
       colorTextPlaceholder: ink3, colorDanger: error, colorPrimary: ink1, colorBackground: surface, borderRadius: radius,
@@ -264,7 +261,7 @@ function appearance(root: HTMLElement) {
     rules: {
       '.Input': { backgroundColor: fill, border: 'none', boxShadow: 'none', padding: pad, transition: 'background-color .3s' },
       '.Input:hover': { backgroundColor: hover },
-      '.Input:focus': { backgroundColor: hover, boxShadow: `inset 0 0 0 1.5px ${ink1}`, border: 'none' },
+      '.Input:focus': { backgroundColor: hover, boxShadow: `inset 0 0 0 1.5px ${ink3}`, border: 'none' },
       '.Input--invalid': { boxShadow: `inset 0 0 0 1.5px ${error}`, color: ink1 },
       '.Label': { color: ink3, fontWeight: '400' },
       '.Tab': { backgroundColor: fill, border: 'none', boxShadow: 'none' },
