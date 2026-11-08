@@ -1,7 +1,7 @@
 /* Who you are, in one block: your creature on a drum (the middle one faces you and is named under it; swipe, tap a
    side one, arrows or the ‹ › buttons) with your name right under it. The host puts it in a form with one button,
-   so the creature and the name are saved together: the account window's Account tab ("Save") and the first
-   sign-in ("Pick your creature and name", "Continue").
+   so the creature and the name are saved together: the account window's edit state (its round check) and the first
+   sign-in ("Pick your creature and name", "Continue"), the same screen.
 
    import { identityHtml, mountIdentity } from '@108-supply/kit/identity';
    form.insertAdjacentHTML('afterbegin', identityHtml({ label: true }));
