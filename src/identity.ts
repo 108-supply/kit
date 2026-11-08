@@ -53,7 +53,6 @@ const CSS = `
   border-radius: var(--radius-md); background: none; cursor: pointer; backface-visibility: hidden; will-change: transform; -webkit-tap-highlight-color: transparent; }
 .kid-item img { display: block; width: 100%; height: 100%; pointer-events: none; }
 .kid-item:focus-visible { outline: none; }
-.kid-drum:has(:focus-visible) .kid-item[aria-checked="true"] { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
 .kid-turn { display: flex; align-items: center; justify-content: center; gap: var(--gap-03); margin-top: var(--gap-02); }
 .kid-names { width: 12rem; max-width: calc(100% - 5rem); height: 1.5rem; overflow: hidden; text-align: center; }
 .kid-names > span { display: flex; flex-direction: column; align-items: center; will-change: transform; }

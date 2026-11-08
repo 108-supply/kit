@@ -303,8 +303,10 @@ const CSS = `
 @media (hover: hover) { .kaw-danger:hover { background: var(--status-error); color: var(--dark-1) !important; } }
 
 @media (max-width: 767px) {
-  .kaw { padding: 0; align-items: end; }
-  .kaw-panel { width: 100%; max-height: calc(100dvh - 4.5rem); border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  /* The sheet runs on under Safari's bottom bar (6rem past the screen's edge, taken back as padding), so the page never
+     shows through below it */
+  .kaw { padding: 0; align-items: end; bottom: -6rem; }
+  .kaw-panel { width: 100%; max-height: calc(100dvh + 1.5rem); padding-bottom: 6rem; border-radius: var(--radius-lg) var(--radius-lg) 0 0;
     translate: 0 100%; transition: opacity 0.2s var(--ease-smooth), translate 0.55s var(--ease-out), height 0.5s var(--ease-smooth); }
   .kaw.is-open .kaw-panel { translate: 0 0; }
   .kaw-grab { display: block; flex: none; width: 2.5rem; height: 0.25rem; margin: var(--gap-03) auto 0; border-radius: var(--radius-md); background: var(--ink-4); }
