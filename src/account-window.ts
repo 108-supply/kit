@@ -53,19 +53,18 @@ const site = (path: string) => (/^https?:/.test(path) ? path : `${ACCOUNT_ORIGIN
 const sized = (url: string, w: number) => (url.includes('cdn.sanity.io') ? `${url}${url.includes('?') ? '&' : '?'}w=${w}&auto=format&q=80` : site(url));
 const nameOf = (m: Account) => (m.name || (m.email ? m.email.split('@')[0] : '') || '').trim();
 const frameOf = (kind: string) => (kind.startsWith('Motion') ? 'motion' : kind.startsWith('Visual') ? 'visual' : 'web');
-const OUT = 450;
+const OUT = 500;
 const EMAIL_NOTE = 'Email can’t be changed. It’s linked to your purchases.';
 
 const HTML = `
 <div class="kaw-overlay" data-close></div>
 <div class="kaw-panel" tabindex="-1">
-  <span class="kaw-grab" aria-hidden="true"></span>
   <div class="kaw-stage" data-state="main">
   <div class="kaw-view kaw-view--main" data-main>
-  <div class="kaw-head">
-    <button type="button" class="kaw-avatar" data-avatar></button>
-    <span class="kaw-who"><span class="kaw-name" id="kaw-name" data-name></span><span class="kaw-email" data-email></span></span>
-    <button class="kaw-close" type="button" aria-label="Close" data-close>${svg(ICON.close)}</button>
+  <div class="win-bar kaw-head">
+    <button type="button" class="kaw-avatar" data-avatar aria-label="Change your creature"></button>
+    <span class="win-title" id="kaw-name" data-name></span>
+    <button class="win-close" type="button" aria-label="Close" data-close>${svg(ICON.close)}</button>
   </div>
   <div class="kaw-tabs"><div class="kaw-pills" role="tablist" aria-label="Your account">
     <span class="kaw-slice" aria-hidden="true"></span>
@@ -109,10 +108,10 @@ const HTML = `
   </div>
   </div>
   <div class="kaw-view kaw-view--edit" data-edit-view inert>
-    <div class="kaw-edit-bar" data-edit-bar>
-      <button type="button" class="kaw-round" aria-label="Back" data-edit-back>${svg(ICON.caretLeft)}</button>
-      <h2 class="kaw-bar-title" id="kaw-edit-title">Pick your creature</h2>
-      <button type="submit" form="kaw-identity" class="kaw-round kaw-round--accent" aria-label="Save">${svg(ICON.check)}</button>
+    <div class="win-bar kaw-edit-bar" data-edit-bar>
+      <button type="button" class="win-round" aria-label="Back" data-edit-back>${svg(ICON.caretLeft)}</button>
+      <h2 class="win-title kaw-bar-title" id="kaw-edit-title">Pick your creature</h2>
+      <button type="submit" form="kaw-identity" class="win-round kaw-round--accent" aria-label="Save">${svg(ICON.check)}</button>
     </div>
     <div class="kaw-edit-body">
       <form class="kaw-step" id="kaw-identity" data-profile aria-labelledby="kaw-edit-title" novalidate>
@@ -136,10 +135,9 @@ const CSS = `
 .kaw-panel:focus { outline: none; }
 .kaw.is-open .kaw-overlay { opacity: 1; }
 .kaw.is-open .kaw-panel { opacity: 1; translate: 0 0; }
-.kaw-grab { display: none; }
-.kaw-head { display: flex; align-items: center; gap: var(--gap-04); padding: var(--gap-04) var(--gap-04) var(--gap-03) var(--gap-05); }
+.kaw-panel { --win-pad: 0px; }
 /* Your creature (no circle, it stands on the window): a click opens the edit state, where you change it */
-.kaw-avatar { flex: none; width: 2.75rem; height: 2.75rem; padding: 0; border: 0; border-radius: var(--radius-full); background: none; cursor: pointer;
+.kaw-avatar { flex: none; width: 2.5rem; height: 2.5rem; padding: 0; border: 0; border-radius: var(--radius-full); background: none; cursor: pointer;
   transition: scale 0.4s var(--ease-smooth); -webkit-tap-highlight-color: transparent; }
 .kaw-avatar img { display: block; width: 100%; height: 100%; pointer-events: none; }
 @media (hover: hover) { .kaw-avatar:hover { scale: 1.06; } }
@@ -155,17 +153,12 @@ const CSS = `
 .kaw-stage[data-state="main"] > .kaw-view--edit, .kaw-stage[data-state="edit"] > .kaw-view--main { position: absolute; inset: 0; }
 .kaw-stage[data-state="main"] > .kaw-view--edit { translate: 2.5rem 0; }
 .kaw-stage[data-state="edit"] > .kaw-view--main { translate: -2.5rem 0; }
-.kaw-edit-bar { flex: none; display: flex; align-items: center; justify-content: space-between; gap: var(--gap-03); padding: var(--gap-04) var(--gap-04) var(--gap-02); }
+.kaw-edit-bar { flex: none; }
 /* A second-level screen names itself in its top bar, between ‹ and its action */
-.kaw-bar-title { flex: 1; min-width: 0; margin: 0; text-align: center; font: inherit; font-size: var(--text-md); line-height: var(--leading-md); letter-spacing: var(--tracking-md);
-  color: var(--ink-1); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.kaw-round { display: grid; place-items: center; flex: none; width: 2.25rem; height: 2.25rem; padding: 0; border: 0; border-radius: var(--radius-full);
-  background: var(--surface-3); color: var(--ink-1); cursor: pointer; transition: background-color 0.3s var(--ease-smooth), color 0.3s var(--ease-smooth), opacity 0.3s var(--ease-smooth); }
-.kaw-round svg { width: 0.875rem; height: 0.875rem; }
-@media (hover: hover) { .kaw-round:hover { background: var(--ink-1); color: var(--surface-1); } }
+.kaw-bar-title { margin: 0; }
 .kaw-round--accent { background: var(--accent); color: var(--dark-1); }
 @media (hover: hover) { .kaw-round--accent:hover { background: var(--light-2); color: var(--dark-1); } }
-.kaw-round[aria-busy="true"] { opacity: 0.6; pointer-events: none; }
+.kaw-round--accent[aria-busy="true"] { opacity: 0.6; pointer-events: none; }
 .kaw-edit-body { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: var(--gap-02) var(--gap-06) var(--gap-07); }
 /* The first sign-in screen (./signin): small centred title, the identity block */
 .kaw-step { display: flex; flex-direction: column; text-align: center; }
@@ -178,13 +171,6 @@ const CSS = `
 /* The drum runs to the window's edges, so a creature is never cut by the padding */
 .kaw-edit-body .kid-drum { margin-inline: calc(var(--gap-06) * -1); }
 
-.kaw-who { flex: 1; min-width: 0; display: flex; flex-direction: column; }
-.kaw-name { font-size: var(--text-md); line-height: var(--leading-md); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.kaw-email { color: var(--ink-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.kaw-close { display: grid; place-items: center; flex: none; width: 2.25rem; height: 2.25rem; padding: 0; border: 0; border-radius: var(--radius-full);
-  background: var(--surface-3); color: var(--ink-1); cursor: pointer; transition: background-color 0.3s var(--ease-smooth), color 0.3s var(--ease-smooth); }
-.kaw-close svg { width: 0.875rem; height: 0.875rem; }
-@media (hover: hover) { .kaw-close:hover { background: var(--ink-1); color: var(--surface-1); } }
 
 .kaw-tabs { padding: 0 var(--gap-05) var(--gap-03); }
 .kaw-pills { position: relative; z-index: 0; display: flex; gap: var(--gap-01); width: fit-content; max-width: 100%; padding: var(--gap-01);
@@ -294,25 +280,20 @@ const CSS = `
 @media (hover: hover) { .kaw-danger:hover { background: var(--status-error); color: var(--dark-1) !important; } }
 
 @media (max-width: 767px) {
-  /* iOS 26 Safari cuts fixed boxes off above its bottom bar and fills the bar's area from whatever solid colour
-     touches the screen's bottom edge. So the sheet sits on the edge (bottom: 0) in a solid Surface 2, not the glass:
-     Safari carries it on under the bar and the page never shows through below it */
-  .kaw { padding: 0; align-items: end; }
-  .kaw-panel { width: 100%; max-height: calc(100dvh - 3rem); border-radius: var(--radius-lg) var(--radius-lg) 0 0;
-    background: var(--surface-2); -webkit-backdrop-filter: none; backdrop-filter: none;
-    translate: 0 100%; transition: opacity 0.2s var(--ease-smooth), translate 0.55s var(--ease-out), height 0.5s var(--ease-smooth); }
+  /* Phones: every window is the same sheet. It slides up from the bottom and floats a little above the edge, rounded on
+     all four corners (so Safari's bottom bar never has to match its colour), and slides back down when it closes (no
+     fade), 0.5 s on --ease-smooth both ways. Sign in, checkout, help, the site's windows and Mockup Gen Pro do the same. */
+  .kaw { padding: var(--gap-02); align-items: end; }
+  .kaw-panel { width: 100%; max-height: calc(100dvh - 2 * var(--gap-02)); border-radius: var(--radius-lg);
+    opacity: 1; translate: 0 calc(100% + var(--gap-02)); transition: translate 0.5s var(--ease-smooth), height 0.5s var(--ease-smooth); }
   .kaw.is-open .kaw-panel { translate: 0 0; }
-  .kaw-grab { display: block; flex: none; width: 2.5rem; height: 0.25rem; margin: var(--gap-03) auto 0; border-radius: var(--radius-md); background: var(--ink-4); }
-  .kaw-head { padding: var(--gap-02) var(--gap-03) var(--gap-03) var(--gap-04); gap: var(--gap-03); }
-  .kaw-avatar { width: 2.375rem; height: 2.375rem; }
-  .kaw-tabs { padding: 0 var(--gap-03) var(--gap-03); }
+    .kaw-tabs { padding: 0 var(--gap-03) var(--gap-03); }
   .kaw-pills { width: 100%; }
   .kaw-pill { flex: 1; justify-content: center; padding-inline: var(--gap-03); }
   .kaw-body { padding: var(--gap-01) var(--gap-03) calc(var(--gap-08) + env(safe-area-inset-bottom)); }
   .kaw-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--gap-04) var(--gap-02); }
   .kaw-box { padding: var(--gap-07) var(--gap-04); }
   .kaw-tag { margin: var(--gap-02); scale: 0.85; transform-origin: top left; }
-  .kaw-edit-bar { padding: var(--gap-02) var(--gap-03); }
   .kaw-edit-body { padding: var(--gap-02) var(--gap-04) calc(var(--gap-07) + env(safe-area-inset-bottom)); }
   .kaw-edit-body .kid-drum { margin-inline: calc(var(--gap-04) * -1); }
   .kaw-line { padding-inline: var(--gap-04); }
@@ -519,7 +500,6 @@ function render(me: Account) {
   $('[data-avatar]').innerHTML = avatarHtml(seed, 112).replace(/ title="[^"]*"/, '').replace(/ alt="[^"]*"/, ' alt=""');
   $('[data-avatar]').setAttribute('aria-label', `${creatureOf(seed).name}, change creature`);
   $('[data-name]').textContent = nameOf(me) || 'Your account';
-  $('[data-email]').textContent = me.email || '';
   identity?.set(me);
   $('[data-hero]').innerHTML = avatarHtml(seed, 256).replace(/ title="[^"]*"/, '').replace(/ alt="[^"]*"/, ' alt=""');
   const nameInput = $<HTMLInputElement>('[data-name-input]');

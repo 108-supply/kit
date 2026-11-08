@@ -144,3 +144,23 @@ p { text-wrap: pretty; }
     transition-delay: 0.08s;
   }
 }
+
+/* ---------- The top of every window ----------
+   Sign in, your account, checkout, help, Mockup Gen Pro and the site's own windows all start with this bar: the label in
+   the middle, × on the right (always this size, always this far from the corner), and an optional slot on the left
+   (‹ back, or your creature). The window sets --win-pad to its own padding, so the bar sits var(--gap-03) from the
+   window's top and right edges in every one of them. Messages (kit/notice) open in its middle.
+   <div class="win-bar"><span class="win-title">Sign in</span><button class="win-close" aria-label="Close">×</button></div> */
+.win-bar { display: grid; grid-template-columns: 2.5rem minmax(0, 1fr) 2.5rem; align-items: center; gap: var(--gap-03); position: relative;
+  margin: calc(var(--gap-03) - var(--win-pad, var(--gap-06))) calc(var(--gap-03) - var(--win-pad, var(--gap-06))) var(--gap-05); }
+.win-bar > * { grid-row: 1; }
+.win-bar > :first-child:not(.win-title):not(.win-close) { grid-column: 1; }
+.win-title { grid-column: 2; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: center; color: var(--ink-2);
+  font-family: var(--font-label); font-size: var(--label-sm); line-height: 1.2; letter-spacing: var(--tracking-label-sm); text-transform: uppercase; }
+.win-close, .win-round { display: grid; place-items: center; width: 2.5rem; height: 2.5rem; padding: 0; border: 0; border-radius: var(--radius-full);
+  background: var(--surface-3); color: var(--ink-1); cursor: pointer; -webkit-tap-highlight-color: transparent;
+  transition: background-color 0.3s var(--ease-smooth), color 0.3s var(--ease-smooth); }
+.win-close { grid-column: 3; }
+.win-close svg, .win-round svg { width: 0.875rem; height: 0.875rem; }
+@media (hover: hover) { .win-close:hover, .win-round:hover { background: var(--ink-1); color: var(--surface-1); } }
+.win-bar > :last-child:not(:first-child):not(.win-title) { grid-column: 3; }

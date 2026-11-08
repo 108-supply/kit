@@ -1,8 +1,8 @@
-/* The All Access member card: a quiet card on Surface 3, the 108 mark as a hologram top left, "All Access" and
+/* The All Access member card: a quiet card on Surface 3, a hologram with the 108 mark top left, "All Access" and
    "Member since November 2026" bottom left. Its dots are the sunflower spiral from /thank-you, turning slowly, even
    all over (no fading at the edges), nothing else.
-   The hologram is the 108 mark in foil, built like a banknote's: brushed metal, rainbow bands that slide as the light
-   changes, fine guilloche in a second rainbow and a glint. It follows the cursor on computers and the phone's tilt
+   The hologram is a foil disc built like a banknote's: brushed metal, rainbow bands that slide as the light changes, a
+   few guilloche rings in a second rainbow, the 108 mark big in the middle and a glint. It follows the cursor on computers and the phone's tilt
    (gyroscope), and shimmers slowly on its own when neither moves. Still for reduced motion.
    (The member number is left off the card for now; memberNo stays for later.)
    On iPhone, Safari asks once for motion access: the first tap on the card asks (it can't be asked without a tap).
@@ -38,18 +38,20 @@ const LOGO = [
   'M56.1379 0.00899545C44.6438 -0.294823 44.8906 7.18656 46.1807 8.93775C46.1807 8.93775 45.0835 9.12749 43.651 9.09135C43.7332 8.4792 43.7747 8.24145 43.7747 7.50054C43.7752 3.81463 40.3372 0.00899545 34.2963 0.00899545C26.3536 0.00899545 20.1317 5.70417 20.1317 12.1549C20.1317 16.9053 24.2193 20 29.3503 20H29.3526C34.2271 20 38.7022 17.6293 41.4327 13.9056C39.0301 13.6882 36.7335 13.1861 34.892 12.3283C34.1119 13.735 32.3702 14.9605 30.6262 14.9175L30.6285 14.9192C28.8323 14.8724 27.7113 13.3826 27.7113 11.5394C27.7113 8.49162 31.0438 3.50516 34.3246 3.50516C34.5073 3.50516 34.6622 3.52832 34.8193 3.55203C33.961 4.28391 33.4663 5.65504 33.4663 6.76584C33.4663 8.10309 34.0132 9.20486 34.8993 10.0915C36.8952 11.5885 39.9004 12.2001 42.9152 12.3464C43.0394 12.3537 43.1625 12.3594 43.2828 12.3622C46.8019 12.4373 50.0147 11.8771 51.8983 11.514C53.7818 11.1509 55.1337 10.8228 56.7223 10.2569C57.3146 10.5461 59.0001 13.2494 55.6778 14.5719C53.7767 15.3287 51.6901 14.625 50.851 13.4589C50.8271 13.4357 47.5446 14.2201 43.0593 14.0157C43.2902 17.4876 47.1906 19.9989 52.0917 20C57.0564 20.0011 62.7065 17.4243 62.7689 13.1472C62.8024 10.8578 61.0226 9.50303 60.1336 8.99309C60.0882 8.96711 63.6619 7.29837 63.7481 4.55893C63.8309 1.93807 61.19 0.142834 56.1379 0.00899545ZM51.8234 7.53781C49.3214 5.34614 51.5669 3.78187 53.24 3.61189C55.1797 3.41481 56.21 4.06367 56.21 4.95762C56.2304 5.79848 53.8618 7.0883 51.8234 7.53781Z',
 ];
 const f = (n: number) => n.toFixed(2);
-/** Guilloche for the logo's box (64 × 20): two families of fine waves crossing like banknote line work.
+/** Guilloche: a few woven wavy rings (two families out of phase, so they cross like banknote line work).
     White lines on nothing: used as a mask. */
 function guilloche() {
   let d = '';
-  for (let k = 0; k < 22; k++) {
-    for (const flip of [1, -1]) {
-      const y0 = -2 + k * 1.1;
-      d += 'M-1 ' + f(y0);
-      for (let x = 0; x <= 66; x += 0.5) d += `L${f(x - 1)} ${f(y0 + flip * 1.6 * Math.sin(x * 0.42 + k * 0.6))}`;
+  for (let k = 0; k < 6; k++) {
+    for (const ph of [0, Math.PI]) {
+      for (let i = 0; i <= 360; i++) {
+        const t = (i / 360) * TAU, r = 22 + k * 4.4 + 2.2 * Math.sin(14 * t + k * 0.6 + ph);
+        d += `${i ? 'L' : 'M'}${f(50 + Math.cos(t) * r)} ${f(50 + Math.sin(t) * r)}`;
+      }
+      d += 'Z';
     }
   }
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 20" preserveAspectRatio="none" fill="none" stroke="#fff" stroke-width="0.16"><path d="${d}"/></svg>`;
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none" stroke="#fff" stroke-width="0.45"><path d="${d}"/></svg>`;
   return `url("data:image/svg+xml,${encodeURIComponent(svg)}")`;
 }
 /** The 108 mark as a mask: the hologram is cut to its shape */
@@ -59,13 +61,13 @@ function logoMask() {
 }
 let GUILLOCHE = '', MARK = '';
 
-/** The hologram: the 108 mark in foil (metal, rainbow bands, guilloche, glint) */
+/** The hologram: a foil disc (metal, rainbow bands, guilloche, glint) with the 108 mark on it */
 function hologramHtml() {
   GUILLOCHE ||= guilloche();
   MARK ||= logoMask();
   const attr = (v: string) => v.replace(/"/g, '&quot;');
   return `<div class="kmc-holo" aria-hidden="true" style="--kmc-g:${attr(GUILLOCHE)};--kmc-m:${attr(MARK)}">
-      <span class="kmc-holo-foil"></span><span class="kmc-holo-lines"></span><span class="kmc-holo-glare"></span>
+      <span class="kmc-holo-foil"></span><span class="kmc-holo-lines"></span><span class="kmc-holo-mark"></span><span class="kmc-holo-glare"></span>
     </div>`;
 }
 
@@ -82,11 +84,12 @@ const CSS = `
 .kmc-title { font-size: var(--text-lg, var(--text-md)); line-height: var(--leading-lg, var(--leading-md)); letter-spacing: var(--tracking-lg, var(--tracking-md)); color: var(--ink-1); }
 .kmc-since { color: var(--ink-2); }
 
-/* The hologram: the 108 mark in foil, like on a banknote. Brushed metal, rainbow bands that light up where the light
-   falls and slide as it moves, fine guilloche in a second rainbow, and a glint, all cut to the mark's shape */
-.kmc-holo { position: absolute; top: var(--gap-07); left: var(--gap-07); width: 6rem; aspect-ratio: 64 / 20; isolation: isolate; pointer-events: none;
-  --kmc-lx: calc(50% + var(--kmc-hx) * 45%); --kmc-ly: calc(50% + var(--kmc-hy) * 120%);
-  -webkit-mask: var(--kmc-m) center / 100% 100% no-repeat; mask: var(--kmc-m) center / 100% 100% no-repeat;
+/* The hologram, like a banknote foil: a disc of brushed metal (fine rays round the middle), rainbow bands that light
+   up where the light falls and slide as it moves, a few guilloche rings in a second rainbow, the 108 mark big in the
+   middle, and a glint on top */
+.kmc-holo { position: absolute; top: var(--gap-06); left: var(--gap-06); width: 5.25rem; aspect-ratio: 1; border-radius: 50%;
+  overflow: hidden; isolation: isolate; pointer-events: none;
+  --kmc-lx: calc(50% + var(--kmc-hx) * 38%); --kmc-ly: calc(50% + var(--kmc-hy) * 38%);
   background:
     repeating-linear-gradient(calc(100deg + var(--kmc-hx) * 20deg), rgba(255,255,255,0.14) 0 1px, rgba(0,0,0,0.16) 1px 2px),
     radial-gradient(ellipse 60% 180% at var(--kmc-lx) var(--kmc-ly), #f2f4f3 0%, #a6acaa 22%, #5a5f5d 55%, #8b9190 78%, #3a3e3d 100%); }
@@ -97,11 +100,15 @@ const CSS = `
 .kmc-holo-lines { background: linear-gradient(calc(-30deg - var(--kmc-hx) * 110deg), ${RAINBOW}, ${RAINBOW});
   background-size: 300% 300%; background-position: calc(50% - var(--kmc-hx) * 60%) calc(50% - var(--kmc-hy) * 60%);
   -webkit-mask: var(--kmc-g) center / 100% 100% no-repeat; mask: var(--kmc-g) center / 100% 100% no-repeat; mix-blend-mode: hard-light; }
-.kmc-holo-glare { background: linear-gradient(calc(110deg + var(--kmc-hy) * 25deg), transparent 30%, rgba(255,255,255,0.7) 47%, rgba(255,255,255,0.1) 55%, transparent 64%);
-  background-size: 260% 100%; background-position: calc(50% - var(--kmc-hx) * 80%) 50%; mix-blend-mode: soft-light; }
+/* The mark: engraved into the foil (dark), catching a little of the rainbow */
+.kmc-holo-mark { inset: 0 16%; border-radius: 0; background: linear-gradient(calc(120deg + var(--kmc-hx) * 60deg), #141615, #2c302e 50%, #141615);
+  -webkit-mask: var(--kmc-m) center / 100% auto no-repeat; mask: var(--kmc-m) center / 100% auto no-repeat; opacity: 0.88; }
+.kmc-holo-glare { background: radial-gradient(circle at var(--kmc-lx) var(--kmc-ly), rgba(255,255,255,0.6) 0%, rgba(255,255,255,0) 18%),
+    linear-gradient(calc(115deg + var(--kmc-hy) * 25deg), transparent 34%, rgba(255,255,255,0.55) 49%, transparent 60%);
+  background-size: 100% 100%, 260% 260%; background-position: 0 0, calc(50% - var(--kmc-hx) * 70%) 50%; mix-blend-mode: soft-light; }
 @media (max-width: 767px) {
   .kmc-bottom { left: var(--gap-06); right: var(--gap-06); bottom: var(--gap-06); }
-  .kmc-holo { top: var(--gap-06); left: var(--gap-06); width: 5rem; }
+  .kmc-holo { top: var(--gap-05); left: var(--gap-05); width: 4.25rem; }
 }
 `;
 function ensureStyle() {

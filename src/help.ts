@@ -36,9 +36,11 @@ const CSS = `
 .kit-help-backdrop { position: absolute; inset: 0; background: rgba(0, 0, 0, 0); -webkit-backdrop-filter: none; backdrop-filter: none;
   transition: background-color 0.5s var(--ease-smooth), -webkit-backdrop-filter 0.5s var(--ease-smooth), backdrop-filter 0.5s var(--ease-smooth); }
 .kit-help.is-open .kit-help-backdrop { background: rgba(0, 0, 0, 0.45); -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px); }
-.kit-help-card { position: relative; box-sizing: border-box; width: min(100%, 30rem); padding: var(--gap-07); display: flex; flex-direction: column; gap: var(--gap-04);
+.kit-help-card { position: relative; box-sizing: border-box; width: min(100%, 30rem); --win-pad: var(--gap-07); padding: var(--win-pad); display: flex; flex-direction: column; gap: var(--gap-04);
   border-radius: var(--radius-lg); background: var(--dark-2); color: var(--light-2); font-family: var(--font-body); }
-.kit-help-eyebrow { color: var(--ink-2); }
+.kit-help .win-bar { margin-bottom: var(--gap-02); }
+.kit-help .win-close { background: var(--dark-3); color: var(--light-2); }
+@media (hover: hover) { .kit-help .win-close:hover { background: var(--light-2); color: var(--dark-1); } }
 .kit-help-title { margin: 0 0 var(--gap-02); font-family: var(--font-heading); font-weight: var(--weight-default);
   font-size: var(--text-h3); line-height: var(--leading-h3); letter-spacing: var(--tracking-h3); }
 .kit-help-rows { display: grid; grid-template-columns: max-content 1fr; gap: var(--gap-03) var(--gap-05); margin: 0; }
@@ -61,17 +63,13 @@ const CSS = `
 .kit-help-links a { color: var(--ink-2); text-decoration: none; transition: color 0.3s var(--ease-smooth); }
 @media (hover: hover) { .kit-help-links a:hover { color: var(--light-2); } .kit-help-head:hover svg { color: var(--light-2); } }
 @media (prefers-reduced-motion: reduce) { .kit-help-fold, .kit-help-head svg { transition: none; } }
-.kit-help-close { position: absolute; top: var(--gap-04); right: var(--gap-04); display: grid; place-items: center;
-  width: 2.5rem; height: 2.5rem; border: 0; padding: 0; border-radius: var(--radius-full); background: var(--dark-3); color: var(--light-2); cursor: pointer;
-  transition: background-color 0.3s var(--ease-smooth); }
-@media (hover: hover) { .kit-help-close:hover { background: var(--overlay-glass-hover); } }
-.kit-help-close svg { width: 1rem; height: 1rem; }
 @media (max-width: 767px) {
-  .kit-help { align-items: end; padding: var(--gap-03); padding-bottom: max(var(--gap-03), env(safe-area-inset-bottom)); }
-  .kit-help-card { padding: var(--gap-06); }
+  /* The same sheet as every window on phones: up from the bottom (help.ts animates it), floating, all corners rounded */
+  .kit-help { align-items: end; padding: var(--gap-02); }
+  .kit-help-card { --win-pad: var(--gap-06); }
   .kit-help-rows { grid-template-columns: 1fr; gap: var(--gap-01); }
   .kit-help-rows dd + dt { margin-top: var(--gap-03); }
-  .kit-help-card { max-height: calc(100svh - 2 * var(--gap-03)); }
+  .kit-help-card { width: 100%; max-height: calc(100dvh - 2 * var(--gap-02)); }
   .kit-help-head { padding: var(--gap-04); }
   .kit-help-fold .kit-help-rows { padding: 0 var(--gap-04) var(--gap-04); }
 }
@@ -98,8 +96,7 @@ export function mountHelp(openers: Iterable<HTMLElement> | HTMLElement, opts: He
   root.setAttribute('aria-labelledby', `${id}-t`);
   root.innerHTML = `<div class="kit-help-backdrop" data-close></div>
     <div class="kit-help-card">
-      <button type="button" class="kit-help-close" data-close aria-label="Close">${X}</button>
-      <span class="label-small kit-help-eyebrow">${esc(opts.eyebrow ?? 'How it works')}</span>
+      <div class="win-bar"><span class="win-title">${esc(opts.eyebrow ?? 'How it works')}</span><button type="button" class="win-close" data-close aria-label="Close">${X}</button></div>
       <h2 class="kit-help-title" id="${id}-t">${esc(opts.title)}</h2>
       ${opts.rows?.length ? rowsHtml(opts.rows) : ''}
       ${opts.sections?.length ? `<div class="kit-help-sections">${opts.sections.map((sec, i) => `<div class="kit-help-section${i === 0 ? ' is-open' : ''}">
@@ -111,8 +108,9 @@ export function mountHelp(openers: Iterable<HTMLElement> | HTMLElement, opts: He
   // At the end of <body>: an ancestor with opacity or a transform would switch the backdrop blur off
   document.body.append(root);
   const card = root.querySelector<HTMLElement>('.kit-help-card')!;
-  const closeBtn = root.querySelector<HTMLButtonElement>('.kit-help-close')!;
+  const closeBtn = root.querySelector<HTMLButtonElement>('.win-close')!;
   const reduce = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const sheet = () => matchMedia('(max-width: 767px)').matches;
   const list = openers instanceof HTMLElement ? [openers] : Array.from(openers);
   let open = false;
   let from: HTMLElement | null = null;
@@ -127,8 +125,10 @@ export function mountHelp(openers: Iterable<HTMLElement> | HTMLElement, opts: He
     sound.tap();
     requestAnimationFrame(() => root.classList.add('is-open'));
     anim?.cancel();
-    anim = card.animate([{ opacity: 0, transform: 'translateY(12px) scale(0.96)' }, { opacity: 1, transform: 'none' }],
-      { duration: reduce() ? 0 : 600, delay: reduce() ? 0 : 50, easing: 'cubic-bezier(0.16, 1, 0.3, 1)', fill: 'backwards' });
+    // Phones: up from the bottom like every window; computers: a small rise
+    const away = sheet() ? { transform: 'translateY(calc(100% + 0.5rem))' } : { opacity: 0, transform: 'translateY(12px) scale(0.96)' };
+    anim = card.animate([away, { opacity: 1, transform: 'none' }],
+      { duration: reduce() ? 0 : sheet() ? 500 : 600, delay: reduce() ? 0 : 50, easing: sheet() ? 'cubic-bezier(0.32, 0.72, 0, 1)' : 'cubic-bezier(0.16, 1, 0.3, 1)', fill: 'backwards' });
     closeBtn.focus({ preventScroll: true });
   }
   function hide() {
@@ -138,8 +138,8 @@ export function mountHelp(openers: Iterable<HTMLElement> | HTMLElement, opts: He
     root.classList.remove('is-open');
     list.forEach((o) => o.setAttribute('aria-expanded', 'false'));
     anim?.cancel();
-    const mine = (anim = card.animate([{ opacity: 1, transform: 'none' }, { opacity: 0, transform: 'translateY(8px) scale(0.97)' }],
-      { duration: reduce() ? 0 : 350, easing: 'cubic-bezier(0.55, 0, 1, 0.45)', fill: 'forwards' }));
+    const mine = (anim = card.animate([{ opacity: 1, transform: 'none' }, sheet() ? { transform: 'translateY(calc(100% + 0.5rem))' } : { opacity: 0, transform: 'translateY(8px) scale(0.97)' }],
+      { duration: reduce() ? 0 : sheet() ? 450 : 350, easing: sheet() ? 'cubic-bezier(0.32, 0.72, 0, 1)' : 'cubic-bezier(0.55, 0, 1, 0.45)', fill: 'forwards' }));
     mine.finished.then(() => {
       if (anim !== mine) return;
       root.hidden = true;
