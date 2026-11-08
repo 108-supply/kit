@@ -224,7 +224,8 @@ const CSS = `
 .kaw-box-title { margin: 0; font-size: var(--text-md); line-height: var(--leading-md); color: var(--ink-1); }
 .kaw-box-note { margin: var(--gap-01) 0 0; max-width: 24rem; color: var(--ink-2); text-wrap: pretty; }
 .kaw-box-links { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--gap-01); margin-top: var(--gap-05); }
-.kaw-member { padding: var(--gap-02) 0 var(--gap-03); }
+/* The member card gets room above and below (Ariel 2026-11-08) */
+.kaw-member { padding: var(--gap-08) 0; }
 .kaw-member[hidden] { display: none; }
 
 .kaw-button { display: inline-flex; align-items: center; justify-content: center; gap: 0.5em; flex: none; padding: var(--gap-02) var(--gap-04); border: 0; border-radius: var(--radius-full);
