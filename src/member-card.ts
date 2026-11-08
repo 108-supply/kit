@@ -231,7 +231,7 @@ export function mountMemberCard(card: HTMLElement) {
     if (reduce) { tx = 0.3; ty = -0.2; }
     const k = reduce ? 1 : 0.08;
     light.x += (tx - light.x) * k; light.y += (ty - light.y) * k;
-    if (Math.abs(light.x - setX) > 0.004 || Math.abs(light.y - setY) > 0.004) {
+    if (!(Math.abs(light.x - setX) <= 0.004 && Math.abs(light.y - setY) <= 0.004)) {
       setX = light.x; setY = light.y;
       card.style.setProperty('--kmc-hx', setX.toFixed(3));
       card.style.setProperty('--kmc-hy', setY.toFixed(3));
