@@ -8,22 +8,22 @@
 import { ACCOUNT_ORIGIN } from './account';
 
 export const CREATURES = [
-  { id: 'swan', name: 'Swan' },
-  { id: 'hecuba', name: 'Hecuba' },
-  { id: 'orbit', name: 'Orbit' },
-  { id: 'joya', name: 'Joya' },
-  { id: 'penta', name: 'Penta' },
-  { id: 'hassium', name: 'Hassium' },
-  { id: 'mala', name: 'Mala' },
-  { id: 'vostok', name: 'Vostok' },
-  { id: 'execute', name: 'Execute' },
-  { id: 'candle', name: 'Candle' },
-  { id: 'meru', name: 'Meru' },
-  { id: 'hatch', name: 'Hatch' },
-  { id: 'karana', name: 'Karana' },
-  { id: 'muktika', name: 'Muktika' },
-  { id: 'bonno', name: 'Bonno' },
-  { id: 'timer', name: 'Timer' },
+  { id: 'swan', name: 'Swan', story: 'In Lost, the button in the Swan station had to be pushed every 108 minutes.' },
+  { id: 'hecuba', name: 'Hecuba', story: '108 Hecuba, an asteroid in the main belt, found in 1869.' },
+  { id: 'orbit', name: 'Orbit', story: 'Gagarin went once around the Earth in 108 minutes.' },
+  { id: 'joya', name: 'Joya', story: 'Joya no Kane: on New Year’s Eve, Japanese temple bells ring 108 times.' },
+  { id: 'penta', name: 'Penta', story: 'Every inner angle of a regular pentagon is 108 degrees.' },
+  { id: 'hassium', name: 'Hassium', story: 'Hassium, element 108 of the periodic table.' },
+  { id: 'mala', name: 'Mala', story: 'A mala, the prayer bead string, has 108 beads.' },
+  { id: 'vostok', name: 'Vostok', story: 'Vostok 1, the first human flight into space, lasted 108 minutes.' },
+  { id: 'execute', name: 'Execute', story: 'In Lost, six numbers adding up to 108 were typed in, then Execute.' },
+  { id: 'candle', name: 'Candle', story: '' },
+  { id: 'meru', name: 'Meru', story: 'Phnom Bakheng, a temple built as Mount Meru, is ringed by 108 towers.' },
+  { id: 'hatch', name: 'Hatch', story: 'In Lost, the hatch hid a countdown that had to be reset every 108 minutes.' },
+  { id: 'karana', name: 'Karana', story: 'Classical Indian dance knows 108 karanas, its key poses.' },
+  { id: 'muktika', name: 'Muktika', story: 'The Muktika Upanishad lists 108 Upanishads.' },
+  { id: 'bonno', name: 'Bonno', story: 'Buddhism counts 108 bonnō, the earthly desires.' },
+  { id: 'timer', name: 'Timer', story: 'In Lost, the timer counted down from 108 minutes.' },
 ] as const;
 
 export type Creature = (typeof CREATURES)[number];
