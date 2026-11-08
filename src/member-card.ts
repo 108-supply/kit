@@ -91,14 +91,12 @@ const CSS = `
   overflow: hidden; isolation: isolate; pointer-events: none;
   --kmc-lx: calc(50% + var(--kmc-hx) * 38%); --kmc-ly: calc(50% + var(--kmc-hy) * 38%);
   background:
-    repeating-conic-gradient(from calc(var(--kmc-hx) * 30deg), rgba(255,255,255,0.16) 0deg 0.7deg, rgba(0,0,0,0.18) 0.7deg 1.4deg),
-    radial-gradient(circle at var(--kmc-lx) var(--kmc-ly), #eef1f0 0%, #a3a9a7 14%, #555a58 42%, #858b89 68%, #2e3231 100%); }
-.kmc-holo > * { position: absolute; inset: 0; border-radius: 50%; }
-.kmc-holo-foil { background: repeating-linear-gradient(calc(55deg + var(--kmc-hx) * 80deg), ${BANDS});
+    repeating-linear-gradient(calc(100deg + var(--kmc-hx) * 20deg), rgba(255,255,255,0.14) 0 1px, rgba(0,0,0,0.16) 1px 2px),
+    radial-gradient(ellipse 60% 180% at var(--kmc-lx) var(--kmc-ly), #f2f4f3 0%, #a6acaa 22%, #5a5f5d 55%, #8b9190 78%, #3a3e3d 100%); }
+.kmc-holo > * { position: absolute; inset: 0; }
+.kmc-holo-foil { background: repeating-linear-gradient(calc(60deg + var(--kmc-hx) * 80deg), ${BANDS});
   background-size: 200% 200%; background-position: calc(50% + var(--kmc-hx) * 60%) calc(50% + var(--kmc-hy) * 60%);
-  -webkit-mask: radial-gradient(circle at var(--kmc-lx) var(--kmc-ly), #000 0%, rgba(0,0,0,0.85) 40%, rgba(0,0,0,0.35) 80%);
-  mask: radial-gradient(circle at var(--kmc-lx) var(--kmc-ly), #000 0%, rgba(0,0,0,0.85) 40%, rgba(0,0,0,0.35) 80%);
-  mix-blend-mode: hard-light; opacity: 0.62; }
+  mix-blend-mode: hard-light; opacity: 0.68; }
 .kmc-holo-lines { background: linear-gradient(calc(-30deg - var(--kmc-hx) * 110deg), ${RAINBOW}, ${RAINBOW});
   background-size: 300% 300%; background-position: calc(50% - var(--kmc-hx) * 60%) calc(50% - var(--kmc-hy) * 60%);
   -webkit-mask: var(--kmc-g) center / 100% 100% no-repeat; mask: var(--kmc-g) center / 100% 100% no-repeat; mix-blend-mode: hard-light; }
