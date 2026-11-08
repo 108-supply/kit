@@ -1,8 +1,8 @@
 /* The All Access member card: a quiet card on Surface 3, your member number top left, "All Access" and
-   "Member since November 2026" bottom left. Its dots are one even field that flows slowly across the card and bends
-   around a point of gravity, like space around a heavy star: near the point the spacing shrinks, the dots never grow.
-   The point follows the phone's tilt (gyroscope), the cursor on computers, and drifts slowly on its own when nothing
-   moves; the card leans a little with it. Still for reduced motion.
+   "Member since November 2026" bottom left. Its dots are a sunflower spiral (the one on /thank-you) turning slowly, with a
+   shockwave running out from its centre every few seconds that pushes the dots as it passes (they never grow).
+   The centre and the turn follow the phone's tilt (gyroscope) or the cursor on computers; the card leans a little
+   with them. Still for reduced motion.
    On iPhone, Safari asks once for motion access: the first tap on the card asks (it can't be asked without a tap).
 
    import { memberCardHtml, mountMemberCard } from '@108-supply/kit/member-card';
@@ -21,6 +21,7 @@ export interface Member {
 const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!);
 const TAU = Math.PI * 2;
 const clamp = (v: number, a = -1, b = 1) => Math.max(a, Math.min(b, v));
+const smooth = (t: number) => t * t * (3 - 2 * t);
 
 /** "November 2026" */
 export function memberSince(iso?: string | null) {
@@ -113,58 +114,68 @@ export function mountMemberCard(card: HTMLElement) {
   const needsAsk = typeof (window as unknown as { DeviceOrientationEvent?: { requestPermission?: unknown } }).DeviceOrientationEvent?.requestPermission === 'function';
   if (!needsAsk) listenTilt();
 
-  let w = 0, h = 0, dpr = 1, gap = 20, cols = 0, rows = 0;
+  let w = 0, h = 0, dpr = 1, step = 10, count = 0, R = 100;
   let ink: Rgba = [239, 241, 240, 1];
   const pointer = { x: 0, y: 0, on: false };
-  const well = { x: 0.3, y: -0.1 };
-  let running = false, visible = true;
+  const centre = { x: 0, y: 0 };
+  let running = false, visible = true, angle = 0, last = 0, nextWave = 600;
+  const waves: number[] = [];
+  const GOLDEN = Math.PI * (3 - Math.sqrt(5));
 
   function resize() {
     w = card.offsetWidth; h = card.offsetHeight; // the card leans (3D): its own size, not the tilted box
     if (!w || !h) return;
     dpr = Math.min(window.devicePixelRatio || 1, 2);
     canvas.width = Math.round(w * dpr); canvas.height = Math.round(h * dpr);
-    gap = w / (w < 360 ? 16 : 19);
-    cols = Math.ceil(w / gap) + 3; rows = Math.ceil(h / gap) + 3;
+    step = w / (w < 360 ? 26 : 30);
+    R = Math.hypot(w, h) * 0.9;
+    count = Math.ceil((R / step) ** 2);
     ink = parseColor(getComputedStyle(card).getPropertyValue('--ink-1').trim(), '#eff1f0');
   }
 
   function draw(now: number) {
     if (!w || !h) return;
-    // The point of gravity: the cursor, else the tilt, else a slow drift of its own
-    let tx: number, ty: number;
+    const dt = last ? Math.min(64, now - last) : 16;
+    last = now;
+    // The spiral's centre leans with the phone's tilt or the cursor; on its own it stays near the middle
+    let tx = 0, ty = 0;
     if (pointer.on) { tx = pointer.x; ty = pointer.y; }
     else if (now - tilt.at < 2500) { tx = tilt.x; ty = tilt.y; }
-    else { tx = Math.sin(now * 0.00017) * 0.45 + 0.15; ty = Math.sin(now * 0.00011 + 1.2) * 0.35 - 0.1; }
-    const k = reduce ? 1 : 0.04;
-    well.x += (tx - well.x) * k; well.y += (ty - well.y) * k;
+    else { tx = Math.sin(now * 0.00015) * 0.12; ty = Math.sin(now * 0.0001 + 1.2) * 0.1; }
+    const k = reduce ? 1 : 0.05;
+    centre.x += (tx - centre.x) * k; centre.y += (ty - centre.y) * k;
     if (!reduce) {
-      card.style.setProperty('--kmc-ry', `${(well.x * 4).toFixed(2)}deg`);
-      card.style.setProperty('--kmc-rx', `${(-well.y * 3).toFixed(2)}deg`);
+      card.style.setProperty('--kmc-ry', `${(centre.x * 4).toFixed(2)}deg`);
+      card.style.setProperty('--kmc-rx', `${(-centre.y * 3).toFixed(2)}deg`);
     }
-    const wx = w * (0.5 + well.x * 0.5), wy = h * (0.5 + well.y * 0.5);
-    const soft = w * 0.22, pull = 0.95;
-    const radius = Math.max(1, gap * 0.1);
-    // The field flows slowly to the right and a little down, forever (wrapping by one step)
-    const flow = reduce ? 0 : now * 0.006;
-    const fx = flow % gap, fy = (flow * 0.35) % gap;
+    // Off to the right like /thank-you, so the arms of the spiral read; clear of the words bottom left
+    const cx = w * (0.7 + centre.x * 0.22), cy = h * (0.42 + centre.y * 0.3);
+    // The sunflower turns slowly; tilting turns it a little faster
+    if (!reduce) angle += dt * (0.00005 + Math.hypot(tx, ty) * 0.00012);
+    // A shockwave leaves the centre every few seconds and runs out past the corners
+    const far = Math.hypot(w, h) * 0.85, speed = far / 2600, band = step * 2.6;
+    if (!reduce && now > nextWave) { waves.push(now); nextWave = now + 3800; }
+    while (waves.length && (now - waves[0]) * speed > far + band) waves.shift();
+    const radius = Math.max(0.9, step * 0.12);
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, w, h);
-    for (let j = 0; j < rows; j++) for (let i = 0; i < cols; i++) {
-      const x0 = (i - 1.5) * gap + fx, y0 = (j - 1.5) * gap + fy;
-      // Bend toward the point: the closer, the stronger (never past it), with a slight swirl around it
-      const dx = wx - x0, dy = wy - y0, r = Math.hypot(dx, dy) || 1;
-      const s = Math.min(r * 0.7, (pull * soft * soft) / (r + soft));
-      const ux = dx / r, uy = dy / r;
-      const swirl = s * 0.28;
-      const x = x0 + ux * s - uy * swirl, y = y0 + uy * s + ux * swirl;
-      // Dense near the point (more ink there), whole dots only inside the card
+    for (let i = 0; i < count; i++) {
+      const r = step * Math.sqrt(i + 0.5);
+      const a = i * GOLDEN + angle;
+      let x = cx + Math.cos(a) * r, y = cy + Math.sin(a) * r;
+      // The wave pushes dots outward as it passes (they don't grow), and lights them a little
+      let push = 0;
+      for (const t of waves) {
+        const off = Math.abs(r - (now - t) * speed);
+        if (off < band) push += smooth(1 - off / band) * (1 - 0.6 * clamp((now - t) * speed / far, 0, 1));
+      }
+      if (push) { x += Math.cos(a) * push * step * 0.55; y += Math.sin(a) * push * step * 0.55; }
       const edge = Math.min(x, y, w - x, h - y);
       if (edge < radius + 2) continue;
-      const fade = Math.min(1, (edge - radius - 2) / gap);
-      const near = Math.max(0, 1 - r / (soft * 2.6));
-      const a = (0.08 + 0.3 * near * near) * fade;
-      ctx.fillStyle = `rgba(${ink[0] | 0},${ink[1] | 0},${ink[2] | 0},${a.toFixed(3)})`;
+      const fade = Math.min(1, (edge - radius - 2) / step);
+      // Brightest in the middle, quiet towards the edges (as on /thank-you); the wave lights what it passes
+      const al = (0.06 + 0.42 * (1 - smooth(Math.min(1, r / R))) + 0.3 * Math.min(1, push)) * fade;
+      ctx.fillStyle = `rgba(${ink[0] | 0},${ink[1] | 0},${ink[2] | 0},${al.toFixed(3)})`;
       ctx.beginPath();
       ctx.arc(x, y, radius, 0, TAU);
       ctx.fill();
