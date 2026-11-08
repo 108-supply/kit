@@ -183,6 +183,8 @@ const CSS = `
 /* Picking a creature: just the block, the window as tall as it needs */
 .kaw-edit-body { display: flex; flex-direction: column; padding-top: var(--gap-05); }
 .kaw-edit-body > .kaw-step { margin-block: auto; }
+/* The drum runs to the window's edges, so a creature is never cut by the padding */
+.kaw-edit-body .kid-drum { margin-inline: calc(var(--gap-06) * -1); }
 
 .kaw-who { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 .kaw-name { font-size: var(--text-md); line-height: var(--leading-md); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -318,6 +320,7 @@ const CSS = `
   .kaw-tag { margin: var(--gap-02); scale: 0.85; transform-origin: top left; }
   .kaw-edit-bar { padding: var(--gap-02) var(--gap-03); }
   .kaw-edit-body { padding: var(--gap-02) var(--gap-04) calc(var(--gap-07) + env(safe-area-inset-bottom)); }
+  .kaw-edit-body .kid-drum { margin-inline: calc(var(--gap-04) * -1); }
   .kaw-line { padding-inline: var(--gap-04); }
   .kaw-line + .kaw-line::before { left: var(--gap-04); }
   .kaw-hero-creature { width: 5.5rem; height: 5.5rem; }
