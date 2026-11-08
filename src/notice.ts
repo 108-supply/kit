@@ -15,7 +15,10 @@
    The bar is the element whose first child is the left group of buttons and whose last child is the right group
    (the 108 tools all have this; a single button or pill works as a group too). Everything between them is the middle
    and makes room for the message. A tool with a full-screen preview mounts a second one in the preview's top row and
-   shows the message there while the preview is open. */
+   shows the message there while the preview is open.
+
+   A bar that is two lines tall (the account window's head: name over email) can let the message wrap to two lines
+   in the middle before it moves under the bar: mountNotice(head, { lines: 2 }). */
 
 const CSS = `
 .kit-notice { position: absolute; left: 50%; top: 0; z-index: 30; display: flex; align-items: center; justify-content: center;
@@ -49,7 +52,7 @@ export interface Notice {
 
 let styled = false;
 
-export function mountNotice(bar: HTMLElement, defaults: { ms?: number } = {}): Notice {
+export function mountNotice(bar: HTMLElement, defaults: { ms?: number; lines?: number } = {}): Notice {
   if (!styled) {
     styled = true;
     const s = document.createElement('style');
@@ -115,15 +118,20 @@ export function mountNotice(bar: HTMLElement, defaults: { ms?: number } = {}): N
     // Fits on one line in the middle? Measure the pill at its natural width
     el.style.maxWidth = 'none';
     const need = el.scrollWidth;
-    const inside = need <= room;
+    let inside = need <= room;
+    if (!inside && (defaults.lines ?? 1) > 1 && room > 0) {
+      // Wrapped to the middle's width: still fits if it takes no more lines than the bar allows
+      el.style.maxWidth = `${room}px`;
+      inside = text.getClientRects().length <= defaults.lines!;
+    }
     bar.classList.toggle('kit-notice-under', !inside);
     if (inside) {
       el.style.maxWidth = `${room}px`;
       el.style.top = `${centreY}px`;
       el.style.translate = '-50% -50%';
     } else {
-      // Under the bar, as wide as the bar allows (two lines at most on a small phone)
-      el.style.maxWidth = `${b.width}px`;
+      // Under the bar, as wide as the bar allows less a margin each side (two lines at most on a small phone)
+      el.style.maxWidth = `${b.width - gap * 1.5}px`;
       el.style.top = `${b.height + gap * 0.5}px`;
       el.style.translate = '-50% 0';
     }

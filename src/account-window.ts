@@ -1,10 +1,14 @@
 /* Your 108 account as one window over the page you're on: centred on computers, a sheet from the bottom on phones.
    The same window as on 108.supply, so a tool never sends you to the site for it. Head: your creature, name and
-   email; a click on the creature opens the Account tab, where who you are is edited in one place.
+   email; a click on the creature opens the edit state, where who you are is edited in one place.
    Pill tabs with the white slice: Library (what you own, with its files right here; empty, or with All Access, one
-   quiet centred box), Tools (other tools open in a new tab), Account (your creature on a drum with your name under
-   it and one Save for both (./identity), the email as a plain line, then three Surface 3 rows: orders and
-   invoices, sign out, delete account). Two cards a row.
+   quiet centred box), Tools (other tools open in a new tab), Account (your creature big in the middle with an Edit
+   pill, then one grouped box: Name, edited right in its row and saved on Return or when you leave it, and Email,
+   which can't be changed (a tap says so in the kit notice); then three Surface 3 rows: orders and invoices, sign out,
+   delete account). Two cards a row.
+   Edit, the big creature or the one in the head turn the whole window into its edit state: the first sign-in
+   screen itself ("Pick your creature and name", ./identity) with a round back button on the left and a round
+   accent check on the right that saves. Messages ("Couldn't save") use ./notice in the window's top row.
 
    import { openAccountWindow } from '@108-supply/kit/account-window';
    openAccountWindow('library' | 'tools' | 'account');   // usually via account.open() from @108-supply/kit/account
@@ -14,6 +18,7 @@
 import { ACCOUNT_ORIGIN, account, setAccount, type Account } from './account';
 import { avatarHtml, creatureOf } from './avatar';
 import { identityHtml, mountIdentity, type Identity } from './identity';
+import { mountNotice, type Notice } from './notice';
 import { sound } from './sound';
 
 export type AccountTab = 'library' | 'tools' | 'account';
@@ -24,7 +29,8 @@ const ICON = {
   receipt: 'M72,104a8,8,0,0,1,8-8h96a8,8,0,0,1,0,16H80A8,8,0,0,1,72,104Zm8,40h96a8,8,0,0,0,0-16H80a8,8,0,0,0,0,16ZM232,56V208a8,8,0,0,1-11.58,7.15L192,200.94l-28.42,14.21a8,8,0,0,1-7.16,0L128,200.94,99.58,215.15a8,8,0,0,1-7.16,0L64,200.94,35.58,215.15A8,8,0,0,1,24,208V56A16,16,0,0,1,40,40H216A16,16,0,0,1,232,56Zm-16,0H40V195.06l20.42-10.22a8,8,0,0,1,7.16,0L96,199.06l28.42-14.22a8,8,0,0,1,7.16,0L160,199.06l28.42-14.22a8,8,0,0,1,7.16,0L216,195.06Z',
   close: 'M205.66 194.34a8 8 0 0 1-11.32 11.32L128 139.31l-66.34 66.35a8 8 0 0 1-11.32-11.32L116.69 128 50.34 61.66a8 8 0 0 1 11.32-11.32L128 116.69l66.34-66.35a8 8 0 0 1 11.32 11.32L139.31 128Z',
   back: 'M224 128a8 8 0 0 1-8 8H59.31l58.35 58.34a8 8 0 0 1-11.32 11.32l-72-72a8 8 0 0 1 0-11.32l72-72a8 8 0 0 1 11.32 11.32L59.31 120H216a8 8 0 0 1 8 8Z',
-  question: 'M140,180a12,12,0,1,1-12-12A12,12,0,0,1,140,180ZM128,72c-22.06,0-40,16.15-40,36v4a8,8,0,0,0,16,0v-4c0-11,10.77-20,24-20s24,9,24,20-10.77,20-24,20a8,8,0,0,0-8,8v8a8,8,0,0,0,16,0v-.72c18.24-3.35,32-17.9,32-35.28C168,88.15,150.06,72,128,72Zm104,56A104,104,0,1,1,128,24,104.11,104.11,0,0,1,232,128Zm-16,0a88,88,0,1,0-88,88A88.1,88.1,0,0,0,216,128Z',
+  caretLeft: 'M165.66,202.34a8,8,0,0,1-11.32,11.32l-80-80a8,8,0,0,1,0-11.32l80-80a8,8,0,0,1,11.32,11.32L91.31,128Z',
+  check: 'M229.66,77.66l-128,128a8,8,0,0,1-11.32,0l-56-56a8,8,0,0,1,11.32-11.32L96,188.69,218.34,66.34a8,8,0,0,1,11.32,11.32Z',
   signOut: 'M120,216a8,8,0,0,1-8,8H48a8,8,0,0,1-8-8V40a8,8,0,0,1,8-8h64a8,8,0,0,1,0,16H56V208h56A8,8,0,0,1,120,216Zm109.66-93.66-40-40a8,8,0,0,0-11.32,11.32L204.69,120H112a8,8,0,0,0,0,16h92.69l-26.35,26.34a8,8,0,0,0,11.32,11.32l40-40A8,8,0,0,0,229.66,122.34Z',
 };
 const svg = (d: string) => `<svg viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="${d}"/></svg>`;
@@ -46,11 +52,14 @@ const sized = (url: string, w: number) => (url.includes('cdn.sanity.io') ? `${ur
 const nameOf = (m: Account) => (m.name || (m.email ? m.email.split('@')[0] : '') || '').trim();
 const frameOf = (kind: string) => (kind.startsWith('Motion') ? 'motion' : kind.startsWith('Visual') ? 'visual' : 'web');
 const OUT = 450;
+const EMAIL_NOTE = 'Email can’t be changed. It’s linked to your purchases.';
 
 const HTML = `
 <div class="kaw-overlay" data-close></div>
 <div class="kaw-panel" tabindex="-1">
   <span class="kaw-grab" aria-hidden="true"></span>
+  <div class="kaw-stage" data-state="main">
+  <div class="kaw-view kaw-view--main" data-main>
   <div class="kaw-head">
     <button type="button" class="kaw-avatar" data-avatar></button>
     <span class="kaw-who"><span class="kaw-name" id="kaw-name" data-name></span><span class="kaw-email" data-email></span></span>
@@ -91,14 +100,14 @@ const HTML = `
       </div>
     </div>
     <div class="kaw-pane" data-pane="account" role="tabpanel" hidden>
-      <form class="kaw-profile" data-profile>
-        ${identityHtml({ label: true })}
-        <div class="kaw-field"><span class="input-label"><label for="kaw-email">Email</label><span class="kaw-info" data-info>
-            <button type="button" class="kaw-info-button" aria-label="About your email" aria-describedby="kaw-email-tip" aria-expanded="false">${svg(ICON.question)}</button>
-            <span class="kaw-tip kaw-tip--info" role="tooltip" id="kaw-email-tip">Your purchases are matched by this email.</span>
-          </span></span><input class="input" id="kaw-email" name="email" disabled /></div>
-        <div class="kaw-actions"><button class="kaw-button kaw-button--accent" type="submit">Save</button><span class="kaw-note" data-saved aria-live="polite"></span></div>
-      </form>
+      <div class="kaw-hero">
+        <button type="button" class="kaw-hero-creature" aria-label="Change your creature and name" data-edit data-hero></button>
+        <button type="button" class="kaw-button" data-edit>Edit</button>
+      </div>
+      <div class="kaw-group">
+        <label class="kaw-line"><span class="kaw-line-label">Name</span><input class="kaw-line-input" name="name" maxlength="80" autocomplete="name" autocapitalize="words" placeholder="Your name" enterkeyhint="done" data-name-input /></label>
+        <button type="button" class="kaw-line kaw-line--static" data-email-row><span class="kaw-line-label">Email</span><span class="kaw-line-value" data-email-value></span></button>
+      </div>
       <div class="kaw-rows">
         <div class="kaw-row"><span class="kaw-row-title">Orders and invoices</span>
           <a class="kaw-button" href="${ACCOUNT_ORIGIN}/api/portal" target="_blank" rel="noopener">${svg(ICON.receipt)}Open</a></div>
@@ -108,6 +117,20 @@ const HTML = `
           <a class="kaw-danger" href="mailto:hi@108.supply?subject=Delete%20my%20108%20account">Delete</a></div>
       </div>
     </div>
+  </div>
+  </div>
+  <div class="kaw-view kaw-view--edit" data-edit-view inert>
+    <div class="kaw-edit-bar" data-edit-bar>
+      <button type="button" class="kaw-round" aria-label="Back" data-edit-back>${svg(ICON.caretLeft)}</button>
+      <button type="submit" form="kaw-identity" class="kaw-round kaw-round--accent" aria-label="Save">${svg(ICON.check)}</button>
+    </div>
+    <div class="kaw-edit-body">
+      <form class="kaw-step" id="kaw-identity" data-profile novalidate>
+        <h2 class="kaw-step-title">Pick your creature and name</h2>
+        ${identityHtml()}
+      </form>
+    </div>
+  </div>
   </div>
 </div>`;
 
@@ -126,19 +149,35 @@ const CSS = `
 .kaw.is-open .kaw-panel { opacity: 1; translate: 0 0; }
 .kaw-grab { display: none; }
 .kaw-head { display: flex; align-items: center; gap: var(--gap-04); padding: var(--gap-04) var(--gap-04) var(--gap-03) var(--gap-05); }
-/* Your creature (no circle, it stands on the window): a click opens the Account tab, where you change it */
+/* Your creature (no circle, it stands on the window): a click opens the edit state, where you change it */
 .kaw-avatar { flex: none; width: 2.75rem; height: 2.75rem; padding: 0; border: 0; border-radius: var(--radius-full); background: none; cursor: pointer;
   transition: scale 0.4s var(--ease-smooth); -webkit-tap-highlight-color: transparent; }
 .kaw-avatar img { display: block; width: 100%; height: 100%; pointer-events: none; }
 @media (hover: hover) { .kaw-avatar:hover { scale: 1.06; } }
 .kaw-avatar:active { scale: 0.96; }
-/* Tooltips: small, Ink 1 on its own, no shadow; hover, keyboard focus or a tap */
-.kaw-tip { position: absolute; z-index: 2; width: max-content; max-width: min(18rem, calc(100vw - 6rem)); padding: var(--gap-01) var(--gap-02); border-radius: var(--radius-sm);
-  background: var(--ink-1); color: var(--surface-1); pointer-events: none; opacity: 0; translate: 0 0.25rem;
-  transition: opacity 0.2s var(--ease-smooth), translate 0.3s var(--ease-smooth); }
-.kaw-tip:empty { display: none; }
-@media (hover: hover) { .kaw-info:hover .kaw-tip { opacity: 1; translate: 0 0; transition-delay: 0.15s; } }
-.kaw-info:has(:focus-visible) .kaw-tip, .kaw-info.is-on .kaw-tip { opacity: 1; translate: 0 0; }
+/* Two states of one screen: the window and its edit state slide past each other */
+.kaw-stage { flex: 1; min-height: 0; display: grid; grid-template: minmax(0, 1fr) / minmax(0, 1fr); }
+.kaw-view { grid-area: 1 / 1; min-width: 0; min-height: 0; display: flex; flex-direction: column;
+  transition: opacity 0.4s var(--ease-smooth), translate 0.6s var(--ease-smooth), visibility 0s; }
+.kaw-stage[data-state="main"] > .kaw-view--edit, .kaw-stage[data-state="edit"] > .kaw-view--main {
+  opacity: 0; visibility: hidden; pointer-events: none;
+  transition: opacity 0.3s var(--ease-smooth), translate 0.6s var(--ease-smooth), visibility 0s 0.6s; }
+.kaw-stage[data-state="main"] > .kaw-view--edit { translate: 2.5rem 0; }
+.kaw-stage[data-state="edit"] > .kaw-view--main { translate: -2.5rem 0; }
+.kaw-edit-bar { flex: none; display: flex; align-items: center; justify-content: space-between; padding: var(--gap-04) var(--gap-04) var(--gap-02); }
+.kaw-round { display: grid; place-items: center; flex: none; width: 2.25rem; height: 2.25rem; padding: 0; border: 0; border-radius: var(--radius-full);
+  background: var(--surface-3); color: var(--ink-1); cursor: pointer; transition: background-color 0.3s var(--ease-smooth), color 0.3s var(--ease-smooth), opacity 0.3s var(--ease-smooth); }
+.kaw-round svg { width: 0.875rem; height: 0.875rem; }
+@media (hover: hover) { .kaw-round:hover { background: var(--ink-1); color: var(--surface-1); } }
+.kaw-round--accent { background: var(--accent); color: var(--dark-1); }
+@media (hover: hover) { .kaw-round--accent:hover { background: var(--light-2); color: var(--dark-1); } }
+.kaw-round[aria-busy="true"] { opacity: 0.6; pointer-events: none; }
+.kaw-edit-body { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: var(--gap-02) var(--gap-06) var(--gap-07); }
+/* The first sign-in screen (./signin): small centred title, the identity block */
+.kaw-step { display: flex; flex-direction: column; text-align: center; }
+.kaw-step-title { margin: 0 0 var(--gap-06); font-family: var(--font-heading); font-weight: var(--weight-default);
+  font-size: var(--text-h6); line-height: var(--leading-h6); letter-spacing: var(--tracking-h6); text-wrap: balance; }
+.kaw-step .kid-field { margin-top: var(--gap-04); }
 
 .kaw-who { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 .kaw-name { font-size: var(--text-md); line-height: var(--leading-md); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -227,18 +266,25 @@ const CSS = `
 .kaw-file-size { opacity: 0.56; }
 .kaw-loading { color: var(--ink-2); padding: var(--gap-04) 0; }
 
-.kaw-profile { display: flex; flex-direction: column; }
-.kaw-field { display: flex; flex-direction: column; margin-top: var(--gap-05); }
-/* (?) next to Email: the sentence as a tooltip on hover, focus or tap */
-.kaw-info { position: relative; display: inline-flex; }
-.kaw-info-button { display: grid; place-items: center; width: 1.25rem; height: 1.25rem; padding: 0; border: 0; border-radius: var(--radius-full);
-  background: none; color: var(--ink-3); cursor: pointer; transition: color 0.3s var(--ease-smooth); }
-.kaw-info-button svg { width: 1rem; height: 1rem; }
-@media (hover: hover) { .kaw-info-button:hover { color: var(--ink-1); } }
-.kaw-tip--info { bottom: calc(100% + var(--gap-01)); left: 0; }
-.kaw-note { display: block; margin: 0; color: var(--ink-2); }
-.kaw-actions { display: flex; align-items: center; gap: var(--gap-04); margin-top: var(--gap-05); }
-.kaw-rows { display: flex; flex-direction: column; gap: var(--gap-01); margin-top: var(--gap-08); }
+/* Account tab: your creature big in the middle, Edit under it */
+.kaw-hero { display: flex; flex-direction: column; align-items: center; gap: var(--gap-03); padding: var(--gap-03) 0 var(--gap-06); }
+.kaw-hero-creature { width: 6.5rem; height: 6.5rem; padding: 0; border: 0; background: none; cursor: pointer;
+  transition: scale 0.4s var(--ease-smooth); -webkit-tap-highlight-color: transparent; }
+.kaw-hero-creature img { display: block; width: 100%; height: 100%; pointer-events: none; }
+@media (hover: hover) { .kaw-hero-creature:hover { scale: 1.04; } }
+.kaw-hero-creature:active { scale: 0.97; }
+/* One grouped box: the label in Ink 2, the value right of it, a thin line between the rows */
+.kaw-group { border-radius: var(--radius-lg); background: var(--surface-3); overflow: hidden; font-size: var(--text-input); }
+.kaw-line { position: relative; display: flex; align-items: center; gap: var(--gap-04); width: 100%; min-height: 3.25rem; margin: 0; padding: var(--gap-02) var(--gap-05);
+  border: 0; background: none; color: inherit; font: inherit; text-align: left; transition: background-color 0.3s var(--ease-smooth); -webkit-tap-highlight-color: transparent; }
+.kaw-line + .kaw-line::before { content: ""; position: absolute; top: 0; left: var(--gap-05); right: 0; height: 1px; background: var(--ink-4); }
+.kaw-line:has(.kaw-line-input:focus), .kaw-line--static:active { background: var(--ink-hover); }
+.kaw-line--static { cursor: default; }
+.kaw-line-label { flex: none; width: 3.5rem; color: var(--ink-2); }
+.kaw-line-value { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--ink-1); }
+.kaw-line-input { flex: 1; min-width: 0; padding: 0; border: 0; background: none; color: var(--ink-1); font: inherit; font-size: var(--text-input); outline: 0; }
+.kaw-line-input::placeholder { color: var(--ink-3); }
+.kaw-rows { display: flex; flex-direction: column; gap: var(--gap-01); margin-top: var(--gap-06); }
 .kaw-row { display: flex; align-items: center; justify-content: space-between; gap: var(--gap-04); padding: var(--gap-04) var(--gap-04) var(--gap-04) var(--gap-05); border-radius: var(--radius-lg); background: var(--surface-3); }
 .kaw-row-title { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 /* Buttons on a Surface 3 card step back to Surface 2 so they stay visible */
@@ -268,6 +314,11 @@ const CSS = `
   .kaw-plan { display: none; }
   .kaw-tag { margin: var(--gap-02); scale: 0.85; transform-origin: top left; }
   .kaw-row { padding: var(--gap-03) var(--gap-03) var(--gap-03) var(--gap-04); }
+  .kaw-edit-bar { padding: var(--gap-02) var(--gap-03); }
+  .kaw-edit-body { padding: var(--gap-02) var(--gap-04) calc(var(--gap-07) + env(safe-area-inset-bottom)); }
+  .kaw-line { padding-inline: var(--gap-04); }
+  .kaw-line + .kaw-line::before { left: var(--gap-04); }
+  .kaw-hero-creature { width: 5.5rem; height: 5.5rem; }
   .kaw-file { flex-direction: column; align-items: stretch; padding: var(--gap-04); }
   .kaw-file-actions { align-items: stretch; }
 }
@@ -277,6 +328,7 @@ const CSS = `
 @media (prefers-reduced-motion: reduce) {
   .kaw-overlay, .kaw-panel, .kaw-slice { transition-duration: 0.01ms; }
   .kaw-pane { animation: none; }
+  .kaw-view { translate: none !important; }
 }
 `;
 
@@ -286,6 +338,9 @@ let lastFocus: HTMLElement | null = null;
 let catalog: Promise<CatalogItem[]> | null = null;
 let shown = '';
 let identity: Identity | null = null;
+let notice: Notice | null = null;
+let editNotice: Notice | null = null;
+let opener: HTMLElement | null = null;
 
 const $ = <T extends HTMLElement = HTMLElement>(sel: string) => root!.querySelector<T>(sel)!;
 const loadCatalog = () =>
@@ -321,7 +376,8 @@ function build() {
   document.addEventListener('keydown', (e) => {
     if (e.key !== 'Escape' || !root || root.hidden) return;
     e.stopPropagation();
-    close();
+    if (editing()) closeEdit();
+    else close();
   }, true);
   window.addEventListener('resize', () => {
     if (!root || root.hidden) return;
@@ -335,39 +391,47 @@ function build() {
   });
   $('[data-files-back]').addEventListener('click', () => { sound.tap(); hideFiles(); });
 
-  // Touch has no hover: a tap on the (?) shows what hover would; a tap anywhere else hides it
-  const info = $('[data-info]');
-  const toggle = (el: HTMLElement, on: boolean) => {
-    el.classList.toggle('is-on', on);
-    el.querySelector('[aria-expanded]')?.setAttribute('aria-expanded', String(on));
-  };
-  info.querySelector('button')!.addEventListener('click', () => toggle(info, !info.classList.contains('is-on')));
-  root.addEventListener('pointerdown', (e) => {
-    const t = e.target as Node;
-    if (!info.contains(t)) toggle(info, false);
-  });
+  // Messages in the window's top row (between your creature and ×), and in the edit state's (between ‹ and ✓)
+  notice = mountNotice($('.kaw-head'), { lines: 2 });
+  editNotice = mountNotice($('[data-edit-bar]'));
 
-  // Your creature in the head opens the Account tab, where you change it together with your name
-  $('[data-avatar]').addEventListener('click', () => {
-    sound.tap();
-    selectTab('account');
-    identity!.focus();
-  });
+  // Edit, the big creature, or your creature in the head: the whole window turns into the edit state
+  root.querySelectorAll<HTMLElement>('[data-edit], [data-avatar]').forEach((b) => b.addEventListener('click', () => { sound.tap(); openEdit(b); }));
+  $('[data-edit-back]').addEventListener('click', () => { sound.tap(); closeEdit(); });
 
-  // Who you are: the creature and the name in one block, one Save for both (only what changed is sent)
+  // The edit state: the creature and the name in one block, saved with the check (only what changed is sent)
   identity = mountIdentity($('[data-profile] .kid'));
   $<HTMLFormElement>('[data-profile]').addEventListener('submit', async (e) => {
     e.preventDefault();
-    const saved = $('[data-saved]');
-    const before = account.now;
-    const patch = identity!.changes(before);
-    if (!Object.keys(patch).length) { saved.textContent = 'Saved'; setTimeout(() => (saved.textContent = ''), 2400); return; }
-    saved.textContent = 'Saving…';
+    const patch = identity!.changes(account.now);
+    if (patch.name === '') delete patch.name; // an empty name keeps the one you have
+    if (!Object.keys(patch).length) { closeEdit(); return; }
+    const check = $('.kaw-round--accent');
+    check.setAttribute('aria-busy', 'true');
     const { status } = await api('/api/me', { method: 'PATCH', body: JSON.stringify(patch) }).catch(() => ({ status: 0 }));
-    saved.textContent = status === 200 ? 'Saved' : 'Couldn’t save';
-    if (status === 200) { sound.press(); setAccount({ ...account.now, ...patch }); identity!.set(account.now, true); }
-    setTimeout(() => (saved.textContent = ''), 2400);
+    check.removeAttribute('aria-busy');
+    if (status !== 200) { editNotice!.show('Couldn’t save. Try again'); return; }
+    sound.press();
+    setAccount({ ...account.now, ...patch });
+    closeEdit();
   });
+
+  // Name: edited right in its row, saved on Return or when you leave it
+  const nameInput = $<HTMLInputElement>('[data-name-input]');
+  nameInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') { e.preventDefault(); nameInput.blur(); }
+  });
+  nameInput.addEventListener('change', async () => {
+    const name = nameInput.value.trim();
+    if (!name || name === (account.now.name || '').trim()) { nameInput.value = account.now.name || ''; return; }
+    const { status } = await api('/api/me', { method: 'PATCH', body: JSON.stringify({ name }) }).catch(() => ({ status: 0 }));
+    if (status !== 200) { nameInput.value = account.now.name || ''; notice!.show('Couldn’t save your name'); return; }
+    sound.press();
+    setAccount({ ...account.now, name });
+  });
+
+  // Email can't be changed: a tap says why
+  $('[data-email-row]').addEventListener('click', () => { sound.tap(); notice!.show(EMAIL_NOTE); });
 
   $('[data-signout]').addEventListener('click', async () => {
     sound.tap();
@@ -376,6 +440,27 @@ function build() {
   });
 
   account.onChange(render);
+}
+
+const editing = () => $('.kaw-stage').dataset.state === 'edit';
+function openEdit(from?: HTMLElement | null) {
+  opener = from ?? null;
+  identity!.set(account.now, true);
+  $('.kaw-stage').dataset.state = 'edit';
+  $('[data-main]').inert = true;
+  $('[data-edit-view]').inert = false;
+  identity!.show();
+  $('.kaw-edit-body').scrollTo({ top: 0 });
+  setTimeout(() => identity!.focus(), matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 350);
+}
+function closeEdit(restore = true) {
+  if (!root) return;
+  $('.kaw-stage').dataset.state = 'main';
+  $('[data-edit-view]').inert = true;
+  $('[data-main]').inert = false;
+  editNotice?.hide();
+  if (restore) opener?.focus({ preventScroll: true });
+  opener = null;
 }
 
 function placeSlice(animate = true) {
@@ -399,7 +484,6 @@ function selectTab(next: AccountTab, animate = true) {
   hideFiles();
   $('.kaw-body').scrollTo({ top: 0 });
   placeSlice(animate);
-  if (tab === 'account') identity?.show();
 }
 
 function render(me: Account) {
@@ -413,7 +497,10 @@ function render(me: Account) {
   $('[data-email]').textContent = me.email || '';
   $('[data-plan]').textContent = me.allAccess ? 'All Access' : '';
   identity?.set(me);
-  $<HTMLInputElement>('[data-profile] [name=email]').value = me.email || '';
+  $('[data-hero]').innerHTML = avatarHtml(seed, 256).replace(/ title="[^"]*"/, '').replace(/ alt="[^"]*"/, ' alt=""');
+  const nameInput = $<HTMLInputElement>('[data-name-input]');
+  if (document.activeElement !== nameInput) nameInput.value = me.name || '';
+  $('[data-email-value]').textContent = me.email || '';
   root.querySelectorAll<HTMLElement>('[data-pro]').forEach((el) => {
     el.hidden = !(me.allAccess || me.products?.includes(el.dataset.pro!));
   });
@@ -491,8 +578,9 @@ function close() {
   setTimeout(() => {
     if (!root || root.classList.contains('is-open')) return;
     root.hidden = true;
-    // Next time it opens folded again
-    root.querySelectorAll('.is-on').forEach((el) => el.classList.remove('is-on'));
+    // Next time it opens on the window, not the edit state
+    closeEdit(false);
+    notice?.hide();
   }, OUT);
   lastFocus?.focus({ preventScroll: true });
 }
