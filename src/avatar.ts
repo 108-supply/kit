@@ -8,22 +8,22 @@
 import { ACCOUNT_ORIGIN } from './account';
 
 export const CREATURES = [
-  { id: 'swan', name: 'Swan', story: 'In Lost, the button in the Swan station had to be pushed every 108 minutes.' },
-  { id: 'hecuba', name: 'Hecuba', story: '108 Hecuba, an asteroid in the main belt, found in 1869.' },
-  { id: 'orbit', name: 'Orbit', story: 'Gagarin went once around the Earth in 108 minutes.' },
-  { id: 'joya', name: 'Joya', story: 'Joya no Kane: on New Year’s Eve, Japanese temple bells ring 108 times.' },
-  { id: 'penta', name: 'Penta', story: 'Every inner angle of a regular pentagon is 108 degrees.' },
-  { id: 'hassium', name: 'Hassium', story: 'Hassium, element 108 of the periodic table.' },
-  { id: 'mala', name: 'Mala', story: 'A mala, the prayer bead string, has 108 beads.' },
-  { id: 'vostok', name: 'Vostok', story: 'Vostok 1, the first human flight into space, lasted 108 minutes.' },
-  { id: 'execute', name: 'Execute', story: 'In Lost, six numbers adding up to 108 were typed in, then Execute.' },
-  { id: 'candle', name: 'Candle', story: '' },
-  { id: 'meru', name: 'Meru', story: 'Phnom Bakheng, a temple built as Mount Meru, is ringed by 108 towers.' },
-  { id: 'hatch', name: 'Hatch', story: 'In Lost, the hatch hid a countdown that had to be reset every 108 minutes.' },
-  { id: 'karana', name: 'Karana', story: 'Classical Indian dance knows 108 karanas, its key poses.' },
-  { id: 'muktika', name: 'Muktika', story: 'The Muktika Upanishad lists 108 Upanishads.' },
-  { id: 'bonno', name: 'Bonno', story: 'Buddhism counts 108 bonnō, the earthly desires.' },
-  { id: 'timer', name: 'Timer', story: 'In Lost, the timer counted down from 108 minutes.' },
+  { id: 'hecuba', name: 'Hecuba', story: 'Porous like the asteroid it is named after, 108 Hecuba.' },
+  { id: 'mala', name: 'Mala', story: 'Ceramic beads, like a mala of 108.' },
+  { id: 'kane', name: 'Kane', story: 'A brick bell for Joya no kane, rung 108 times on New Year’s Eve.' },
+  { id: 'stitch', name: 'Stitch', story: 'Red stitches, like the 108 double stitches on a baseball.' },
+  { id: 'hyper', name: 'Hyper', story: 'One, two and three dots: 1¹ × 2² × 3³ = 108, the hyperfactorial of three.' },
+  { id: 'vostok', name: 'Vostok', story: 'A lime porthole for Gagarin’s first orbit, 108 minutes long.' },
+  { id: 'penta', name: 'Penta', story: 'A pentagon, whose every inner angle is 108°.' },
+  { id: 'sol', name: 'Sol', story: 'The hot face of the Sun, about 108 of its widths away from us.' },
+  { id: 'hassium', name: 'Hassium', story: 'A dark metal pebble, named after element 108.' },
+  { id: 'muktika', name: 'Muktika', story: 'A knot coming loose, for the Muktika Upanishad and its list of 108.' },
+  { id: 'karana', name: 'Karana', story: 'A fan of folds, like the 108 karanas of the Natya Shastra.' },
+  { id: 'timer', name: 'Timer', story: '4, 8, 15, 16, 23, 42 from Lost, which add up to 108.' },
+  { id: 'luna', name: 'Luna', story: 'A ceramic crescent: the Moon is about 108 of its widths away.' },
+  { id: 'argent', name: 'Argent', story: 'Hammered silver, whose atomic weight rounds to 108.' },
+  { id: 'sutra', name: 'Sutra', story: 'Pleasure, indifference and pain, from the Buddhist count of 108 feelings.' },
+  { id: 'destiny', name: 'Destiny', story: 'A chipped star of destiny, for the 108 heroes of Water Margin.' },
 ] as const;
 
 export type Creature = (typeof CREATURES)[number];
@@ -34,9 +34,13 @@ function hash(s: string) {
   return h >>> 0;
 }
 
+/** Creatures of the first series (2026-11-06) that were renamed or redrawn: a saved one keeps the closest new one */
+const RENAMED: Record<string, string> = { swan: 'destiny', orbit: 'luna', joya: 'kane', candle: 'kane', execute: 'stitch', meru: 'hyper', hatch: 'hecuba', bonno: 'sol' };
+
 /** The creature for a seed: a creature id picks that creature, anything else (an email, an old seed) picks one by hash. */
 export function creatureOf(seed: string): Creature {
-  const s = (seed || '108').toLowerCase();
+  const raw = (seed || '108').toLowerCase();
+  const s = RENAMED[raw] ?? raw;
   return CREATURES.find((c) => c.id === s) ?? CREATURES[hash(s) % CREATURES.length];
 }
 
