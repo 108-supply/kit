@@ -1,8 +1,10 @@
 /* Your 108 account as one window over the page you're on: centred on computers, a sheet from the bottom on phones.
    The same window as on 108.supply, so a tool never sends you to the site for it. Head: your creature, name and
    email; a click on the creature opens the edit state, where who you are is edited in one place.
-   Pill tabs with the white slice: Library (what you own, with its files right here; empty, or with All Access, one
-   quiet centred box), Tools (other tools open in a new tab), Account (your creature big in the middle with an Edit
+   Pill tabs with the white slice: Library (what you have: with All Access only your member card (./member-card),
+   nothing else; otherwise the tools you pay for first (Mockup Gen Pro, "Subscribed" or "Purchased"), then what you
+   bought, newest first, each marked "Purchased" (free ones unmarked), with its files right here; empty: one quiet
+   centred box), Account (your creature big in the middle with an Edit
    pill, then one grouped box: Name, edited right in its row and saved on Return or when you leave it (the line under
    it fades while you type), and Email, which can't be changed (a tap says so in the kit notice); then plain buttons
    side by side, no boxes: Orders and invoices, Sign out, Delete account). Two cards a row.
@@ -11,18 +13,19 @@
    round accent check that saves. The window takes the height of what it shows and changes it smoothly (morph()). Messages ("Couldn't save") use ./notice in the window's top row.
 
    import { openAccountWindow } from '@108-supply/kit/account-window';
-   openAccountWindow('library' | 'tools' | 'account');   // usually via account.open() from @108-supply/kit/account
+   openAccountWindow('library' | 'account');   // 'tools' (the old tab) opens Library; usually via account.open() from @108-supply/kit/account
 
    Data: ACCOUNT_ORIGIN/api/me (./account), /account-catalog.json (names, pictures and pages of the site's products),
    /api/access?link=… (a product's files). Signed out it opens the sign-in first (./signin). Styled from the 108 tokens. */
-import { ACCOUNT_ORIGIN, account, setAccount, type Account } from './account';
+import { ACCOUNT_ORIGIN, MOCKUP_GEN_PRO, account, setAccount, toolStatus, type Account } from './account';
+import { memberCardHtml, mountMemberCard } from './member-card';
 import { avatarHtml, creatureOf } from './avatar';
 import { identityHtml, mountIdentity, type Identity } from './identity';
 import { mountNotice, type Notice } from './notice';
 import { sound } from './sound';
 
 export type AccountTab = 'library' | 'tools' | 'account';
-interface CatalogItem { link: string; title: string; kind: string; href: string; thumb: string | null; date?: string | null }
+interface CatalogItem { link: string; title: string; kind: string; href: string; thumb: string | null; date?: string | null; free?: boolean }
 interface FileItem { title: string; type: string; url?: string; note?: string; files?: { name: string; size: string; url: string }[] }
 
 const ICON = {
@@ -35,16 +38,15 @@ const ICON = {
 };
 const svg = (d: string) => `<svg viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="${d}"/></svg>`;
 
-const TOOLS = [
-  { title: 'Mockup Gen', line: 'Mockups in real photos', href: 'https://mockupgen.108.supply', image: '/images/all-access/tool-tadaa.webp', pro: 'e77b50a9-a5d5-46a8-870e-cc5f6c84e438' },
-  { title: 'Grainwash', line: 'Blur and film grain', href: 'https://grainwash.108.supply', image: '/images/all-access/tool-grainwash.webp' },
-  { title: 'Snip Snap', line: 'Photos cut into shapes', href: 'https://snipsnap.108.supply', image: '/images/all-access/tool-snip-snap.webp' },
+/** Tools you can pay for: in Library (on top) only when you do */
+const PAID_TOOLS = [
+  { title: 'Mockup Gen Pro', line: 'Tool', href: 'https://mockupgen.108.supply', image: '/images/all-access/tool-tadaa.webp', products: MOCKUP_GEN_PRO },
 ];
 const TABS: { id: AccountTab; label: string }[] = [
   { id: 'library', label: 'Library' },
-  { id: 'tools', label: 'Tools' },
   { id: 'account', label: 'Account' },
 ];
+const BADGE = { subscribed: 'Subscribed', purchased: 'Purchased' } as const;
 
 const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!);
 const site = (path: string) => (/^https?:/.test(path) ? path : `${ACCOUNT_ORIGIN}${path}`);
@@ -63,7 +65,6 @@ const HTML = `
   <div class="kaw-head">
     <button type="button" class="kaw-avatar" data-avatar></button>
     <span class="kaw-who"><span class="kaw-name" id="kaw-name" data-name></span><span class="kaw-email" data-email></span></span>
-    <span class="kaw-plan" data-plan></span>
     <button class="kaw-close" type="button" aria-label="Close" data-close>${svg(ICON.close)}</button>
   </div>
   <div class="kaw-tabs"><div class="kaw-pills" role="tablist" aria-label="Your account">
@@ -73,8 +74,7 @@ const HTML = `
   <div class="kaw-body">
     <div class="kaw-pane" data-pane="library" role="tabpanel">
       <div data-library-list>
-        <div class="kaw-box" data-everything hidden><p class="kaw-box-title">All Access</p><p class="kaw-box-note">Every template, visual and tool, and everything we make next. Open any product to get its files.</p></div>
-        <h3 class="kaw-sub" data-bought-title hidden>Bought one by one</h3>
+        <div class="kaw-member" data-member hidden></div>
         <div class="kaw-grid" data-library></div>
         <div class="kaw-box" data-empty hidden>
           <p class="kaw-box-title">Nothing here yet.</p>
@@ -89,14 +89,6 @@ const HTML = `
         <button type="button" class="kaw-back" data-files-back>${svg(ICON.back)}Library</button>
         <h3 class="kaw-files-title" data-files-title></h3>
         <ul class="kaw-files" data-files></ul>
-      </div>
-    </div>
-    <div class="kaw-pane" data-pane="tools" role="tabpanel" hidden>
-      <div class="kaw-grid">
-        ${TOOLS.map((t) => `<a href="${t.href}" class="kaw-card"${location.hostname === new URL(t.href).hostname ? ' data-close' : ' target="_blank" rel="noopener"'}>
-          <span class="kaw-media"><span class="kaw-frame kaw-frame--web"><img src="${site(t.image)}" alt="" loading="lazy" decoding="async" /></span>${t.pro ? `<span class="kaw-tag kaw-tag--pro" data-pro="${t.pro}" hidden>Pro</span>` : ''}</span>
-          <span class="kaw-caption"><span><span class="kaw-caption-title">${t.title}</span><span class="kaw-caption-sub">${t.line}</span></span></span>
-        </a>`).join('')}
       </div>
     </div>
     <div class="kaw-pane" data-pane="account" role="tabpanel" hidden>
@@ -189,9 +181,6 @@ const CSS = `
 .kaw-who { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 .kaw-name { font-size: var(--text-md); line-height: var(--leading-md); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .kaw-email { color: var(--ink-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.kaw-plan { flex: none; padding: var(--gap-02) var(--gap-03); border-radius: var(--radius-full); background: var(--accent); color: var(--dark-1);
-  font-family: var(--font-label); font-size: var(--label-sm); letter-spacing: var(--tracking-label-sm); text-transform: uppercase; }
-.kaw-plan:empty { display: none; }
 .kaw-close { display: grid; place-items: center; flex: none; width: 2.25rem; height: 2.25rem; padding: 0; border: 0; border-radius: var(--radius-full);
   background: var(--surface-3); color: var(--ink-1); cursor: pointer; transition: background-color 0.3s var(--ease-smooth), color 0.3s var(--ease-smooth); }
 .kaw-close svg { width: 0.875rem; height: 0.875rem; }
@@ -233,12 +222,13 @@ const CSS = `
 .kaw-frame img { display: block; width: 100%; height: 100%; object-fit: cover; }
 .kaw-tag { position: absolute; top: 0; left: 0; z-index: 1; margin: var(--gap-03); padding: var(--gap-01) var(--gap-02); border-radius: var(--radius-full);
   background: var(--light-1); color: var(--dark-1); font-family: var(--font-label); font-size: var(--label-sm); line-height: 1; letter-spacing: var(--tracking-label-sm); text-transform: uppercase; }
-.kaw-tag--pro { background: var(--accent); }
 .kaw-tag[hidden] { display: none; }
 .kaw-caption { display: flex; justify-content: space-between; align-items: flex-start; gap: var(--gap-03); }
 .kaw-caption > span:first-child { min-width: 0; display: flex; flex-direction: column; }
 .kaw-caption-title { color: var(--ink-1); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .kaw-caption-sub { color: var(--ink-2); }
+.kaw-caption > a { flex: none; color: var(--ink-1); }
+@media (hover: hover) { .kaw-caption > a:hover { text-decoration: underline; } }
 .kaw-caption button { flex: none; padding: 0; border: 0; background: none; font: inherit; color: var(--ink-1); cursor: pointer; }
 @media (hover: hover) { .kaw-caption button:hover { text-decoration: underline; } }
 /* One quiet centred box on Surface 3: the empty library (with a row of small tertiary links) and All Access */
@@ -248,7 +238,8 @@ const CSS = `
 .kaw-box-title { margin: 0; font-size: var(--text-md); line-height: var(--leading-md); color: var(--ink-1); }
 .kaw-box-note { margin: var(--gap-01) 0 0; max-width: 24rem; color: var(--ink-2); text-wrap: pretty; }
 .kaw-box-links { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--gap-01); margin-top: var(--gap-05); }
-.kaw-box + .kaw-sub { margin-top: var(--gap-07); }
+.kaw-member { padding: var(--gap-02) 0 var(--gap-03); }
+.kaw-member[hidden] { display: none; }
 
 .kaw-button { display: inline-flex; align-items: center; justify-content: center; gap: 0.5em; flex: none; padding: var(--gap-02) var(--gap-04); border: 0; border-radius: var(--radius-full);
   background: var(--surface-3); color: var(--ink-1) !important; font: inherit; white-space: nowrap; cursor: pointer;
@@ -318,7 +309,6 @@ const CSS = `
   .kaw-body { padding: var(--gap-01) var(--gap-03) calc(var(--gap-08) + env(safe-area-inset-bottom)); }
   .kaw-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--gap-04) var(--gap-02); }
   .kaw-box { padding: var(--gap-07) var(--gap-04); }
-  .kaw-plan { display: none; }
   .kaw-tag { margin: var(--gap-02); scale: 0.85; transform-origin: top left; }
   .kaw-edit-bar { padding: var(--gap-02) var(--gap-03); }
   .kaw-edit-body { padding: var(--gap-02) var(--gap-04) calc(var(--gap-07) + env(safe-area-inset-bottom)); }
@@ -528,42 +518,65 @@ function render(me: Account) {
   $('[data-avatar]').setAttribute('aria-label', `${creatureOf(seed).name}, change creature`);
   $('[data-name]').textContent = nameOf(me) || 'Your account';
   $('[data-email]').textContent = me.email || '';
-  $('[data-plan]').textContent = me.allAccess ? 'All Access' : '';
   identity?.set(me);
   $('[data-hero]').innerHTML = avatarHtml(seed, 256).replace(/ title="[^"]*"/, '').replace(/ alt="[^"]*"/, ' alt=""');
   const nameInput = $<HTMLInputElement>('[data-name-input]');
   if (document.activeElement !== nameInput) nameInput.value = me.name || '';
   $('[data-email-value]').textContent = me.email || '';
-  root.querySelectorAll<HTMLElement>('[data-pro]').forEach((el) => {
-    el.hidden = !(me.allAccess || me.products?.includes(el.dataset.pro!));
-  });
-  const key = `${me.email}|${me.allAccess}|${(me.owned ?? []).join(',')}`;
+  const key = [me.email, me.name, me.avatar, me.allAccess, me.owned, me.products, me.subscriptions, me.member?.since, me.member?.no].map(String).join('|');
   if (key !== shown) { shown = key; renderLibrary(me); }
   placeSlice(false);
 }
 
 async function renderLibrary(me: Account) {
+  const member = $('[data-member]');
+  const list = $('[data-library]');
+  // All Access: your member card and nothing else (you have everything)
+  if (me.allAccess) {
+    const seed = me.avatar || me.email || '108';
+    member.innerHTML = memberCardHtml({
+      name: nameOf(me) || 'Member',
+      avatar: avatarHtml(seed, 112).replace(/ title="[^"]*"/, '').replace(/ alt="[^"]*"/, ' alt=""'),
+      since: me.member?.since, no: me.member?.no,
+    });
+    member.hidden = false;
+    list.innerHTML = '';
+    $('[data-empty]').hidden = true;
+    requestAnimationFrame(() => mountMemberCard(member.querySelector<HTMLElement>('[data-member-card]')!));
+    placeSlice(false);
+    return;
+  }
+  member.hidden = true;
+  member.innerHTML = '';
   const items = await loadCatalog();
   const owned = new Set(me.owned ?? []);
   const seen = new Set<string>();
-  const products = items.filter((i) => i.kind !== 'Collection');
-  // Newest first: with an odd count the newest takes the whole first row
-  const mine = products.filter((i) => owned.has(i.link) && !seen.has(i.href) && seen.add(i.href))
+  // Tools you pay for come first
+  const tools = PAID_TOOLS.map((t) => ({ t, status: toolStatus(me, t.products) })).filter((x) => x.status);
+  // Then what you bought, newest first (with an odd count the first card takes the whole row)
+  const mine = items.filter((i) => i.kind !== 'Collection' && owned.has(i.link) && !seen.has(i.href) && seen.add(i.href))
     .sort((a, b) => (b.date ?? '').localeCompare(a.date ?? ''));
-
-  const everything = $('[data-everything]');
-  everything.hidden = !me.allAccess;
-  $('[data-library]').innerHTML = mine.map((i) => `<article class="kaw-card">
+  const tag = (text: string) => `<span class="kaw-tag">${text}</span>`;
+  list.innerHTML = tools.map(({ t, status }) => `<article class="kaw-card">
+      <a href="${t.href}" class="kaw-media" aria-label="${esc(t.title)}"${location.hostname === new URL(t.href).hostname ? ' data-close' : ' target="_blank" rel="noopener"'}>
+        <span class="kaw-frame kaw-frame--web"><img src="${site(t.image)}" alt="" loading="lazy" decoding="async" /></span>${tag(BADGE[status as keyof typeof BADGE])}
+      </a>
+      <div class="kaw-caption">
+        <span><span class="kaw-caption-title">${esc(t.title)}</span><span class="kaw-caption-sub">${esc(t.line)}</span></span>
+        <a href="${t.href}"${location.hostname === new URL(t.href).hostname ? ' data-close' : ' target="_blank" rel="noopener"'}>Open</a>
+      </div>
+    </article>`).join('') + mine.map((i) => `<article class="kaw-card">
       <a href="${esc(site(i.href))}" target="_blank" rel="noopener" class="kaw-media" aria-label="${esc(i.title)}">
-        <span class="kaw-frame kaw-frame--${frameOf(i.kind)}">${i.thumb ? `<img src="${esc(sized(i.thumb, 480))}" alt="" loading="lazy" decoding="async" />` : ''}</span>
+        <span class="kaw-frame kaw-frame--${frameOf(i.kind)}">${i.thumb ? `<img src="${esc(sized(i.thumb, 480))}" alt="" loading="lazy" decoding="async" />` : ''}</span>${i.free ? '' : tag(BADGE.purchased)}
       </a>
       <div class="kaw-caption">
         <span><a href="${esc(site(i.href))}" target="_blank" rel="noopener" class="kaw-caption-title">${esc(i.title)}</a><span class="kaw-caption-sub">${esc(i.kind)}</span></span>
-        <button type="button" data-get-files="${esc(i.link)}" data-title="${esc(i.title)}">Get files</button>
+        <button type="button" data-get-files="${esc(i.link)}" data-title="${esc(i.title)}">Download</button>
       </div>
     </article>`).join('');
-  $('[data-bought-title]').hidden = !me.allAccess || !mine.length;
-  $('[data-empty]').hidden = !!me.allAccess || mine.length > 0;
+  // The tool you're in: its card just closes the window
+  list.querySelectorAll<HTMLElement>('[data-close]').forEach((a) => a.addEventListener('click', (e) => { e.preventDefault(); sound.tap(); close(); }));
+  $('[data-empty]').hidden = tools.length + mine.length > 0;
   placeSlice(false);
 }
 
