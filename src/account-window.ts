@@ -294,10 +294,12 @@ const CSS = `
 @media (hover: hover) { .kaw-danger:hover { background: var(--status-error); color: var(--dark-1) !important; } }
 
 @media (max-width: 767px) {
-  /* The sheet runs on under Safari's bottom bar (6rem past the screen's edge, taken back as padding), so the page never
-     shows through below it */
-  .kaw { padding: 0; align-items: end; bottom: -6rem; }
-  .kaw-panel { width: 100%; max-height: calc(100dvh + 1.5rem); padding-bottom: 6rem; border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  /* iOS 26 Safari cuts fixed boxes off above its bottom bar and fills the bar's area from whatever solid colour
+     touches the screen's bottom edge. So the sheet sits on the edge (bottom: 0) in a solid Surface 2, not the glass:
+     Safari carries it on under the bar and the page never shows through below it */
+  .kaw { padding: 0; align-items: end; }
+  .kaw-panel { width: 100%; max-height: calc(100dvh - 3rem); border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    background: var(--surface-2); -webkit-backdrop-filter: none; backdrop-filter: none;
     translate: 0 100%; transition: opacity 0.2s var(--ease-smooth), translate 0.55s var(--ease-out), height 0.5s var(--ease-smooth); }
   .kaw.is-open .kaw-panel { translate: 0 0; }
   .kaw-grab { display: block; flex: none; width: 2.5rem; height: 0.25rem; margin: var(--gap-03) auto 0; border-radius: var(--radius-md); background: var(--ink-4); }
