@@ -92,7 +92,7 @@ const CSS = `
 /* The hologram, a rosette seal: brushed metal, rainbow bands that slide as the light moves, woven rings and an edge in
    a second rainbow, ALL ACCESS in a ring, and a glint. It turns with the spiral. */
 .kmc-holo { position: absolute; top: var(--gap-06); right: var(--gap-06); width: 6rem; aspect-ratio: 1; rotate: var(--kmc-rot);
-  isolation: isolate; pointer-events: none; color: #151716;
+  isolation: isolate; pointer-events: none; color: #151716; will-change: rotate;
   -webkit-mask: var(--kmc-o) center / 100% 100% no-repeat; mask: var(--kmc-o) center / 100% 100% no-repeat;
   --kmc-lx: calc(50% + var(--kmc-hx) * 40%); --kmc-ly: calc(50% + var(--kmc-hy) * 40%);
   background:
@@ -188,6 +188,14 @@ export function mountMemberCard(card: HTMLElement) {
   const light = { x: 0.3, y: -0.2 };
   let running = false, visible = true, angle = 0, last = 0;
   const GOLDEN = Math.PI * (3 - Math.sqrt(5));
+  // Per dot, worked out once per size: distance from the centre, the direction (cos, sin), and the wave front's
+  // shape at that direction (the dot's angle relative to the seal never changes, they turn together)
+  let R = new Float32Array(0), C = R, S = R, LOBE = R;
+  // What the hologram was last told, so its styles only change when the light or the turn really moves
+  let setX = NaN, setY = NaN, setRot = NaN, drawn = -Infinity;
+  // The lime wave is drawn in a few steps of brightness, one path each (a fill per dot is what costs)
+  const LEVELS = 6;
+  const paths: Path2D[] = [];
 
   function resize() {
     w = card.offsetWidth; h = card.offsetHeight;
@@ -200,6 +208,12 @@ export function mountMemberCard(card: HTMLElement) {
     cx = mark ? mark.offsetLeft + mark.offsetWidth / 2 : w * 0.2;
     cy = mark ? mark.offsetTop + mark.offsetHeight / 2 : h * 0.2;
     count = Math.ceil((Math.hypot(Math.max(cx, w - cx), Math.max(cy, h - cy)) / step + 1) ** 2);
+    R = new Float32Array(count); C = new Float32Array(count); S = new Float32Array(count); LOBE = new Float32Array(count);
+    for (let i = 0; i < count; i++) {
+      const a = i * GOLDEN;
+      R[i] = step * Math.sqrt(i + 0.5); C[i] = Math.cos(a); S[i] = Math.sin(a);
+      LOBE[i] = 1 + EDGE_AMP * (Math.sin(LOBES * a - Math.PI / 2) - 1);
+    }
     const cs = getComputedStyle(card);
     ink = parseColor(cs.getPropertyValue('--ink-1').trim(), '#eff1f0');
     lime = parseColor(cs.getPropertyValue('--accent').trim(), '#dcff02');
@@ -217,47 +231,58 @@ export function mountMemberCard(card: HTMLElement) {
     if (reduce) { tx = 0.3; ty = -0.2; }
     const k = reduce ? 1 : 0.08;
     light.x += (tx - light.x) * k; light.y += (ty - light.y) * k;
-    card.style.setProperty('--kmc-hx', light.x.toFixed(3));
-    card.style.setProperty('--kmc-hy', light.y.toFixed(3));
+    if (Math.abs(light.x - setX) > 0.004 || Math.abs(light.y - setY) > 0.004) {
+      setX = light.x; setY = light.y;
+      card.style.setProperty('--kmc-hx', setX.toFixed(3));
+      card.style.setProperty('--kmc-hy', setY.toFixed(3));
+    }
     // The sunflower from the hologram, turning slowly (the seal turns with it); every dot the same, right up to the edges
     if (!reduce) angle += dt * 0.00004;
-    card.style.setProperty('--kmc-rot', `${angle.toFixed(4)}rad`);
+    if (!(Math.abs(angle - setRot) < 0.003)) { setRot = angle; card.style.setProperty('--kmc-rot', `${angle.toFixed(4)}rad`); }
     // Every few seconds a lime wave leaves the hologram, shaped like the seal's edge (same waves, same turn), and runs
     // past the far corner
     const far = Math.hypot(Math.max(cx, w - cx), Math.max(cy, h - cy)) * 1.08;
     const speed = far / 5200;
     if (!reduce && now > nextPulse) { pulses.push(now); nextPulse = now + 4600; }
     while (pulses.length && (now - pulses[0]) * speed > far + step * 6) pulses.shift();
+    // The dots move less than a pixel a frame, so they are redrawn at about 30 fps (the light above stays at full rate)
+    if (!reduce && now - drawn < 30) return;
+    drawn = now;
     const band = step * 4.5;
     const radius = Math.max(0.8, step * 0.15);
+    const ca = Math.cos(angle), sa = Math.sin(angle);
+    const fronts = pulses.map((p) => (now - p) * speed);
+    const base = new Path2D();
+    for (let l = 0; l < LEVELS; l++) paths[l] = new Path2D();
+    const m = -radius * 4;
+    for (let i = 0; i < count; i++) {
+      const r = R[i];
+      const dx = C[i] * ca - S[i] * sa, dy = S[i] * ca + C[i] * sa;
+      let x = cx + dx * r, y = cy + dy * r;
+      if (x < m || y < m || x > w - m || y > h - m) continue;
+      let g = 0;
+      for (let k = 0; k < fronts.length; k++) {
+        const off = Math.abs(r - fronts[k] * LOBE[i]);
+        if (off < band) { const e = 1 - off / band; if (e > g) g = e; }
+      }
+      if (g > 0) g = g * g * (3 - 2 * g);
+      if (g > 0.02) {
+        const push = g * step * 0.35;
+        x += dx * push; y += dy * push;
+        const l = Math.min(LEVELS - 1, Math.floor(g * LEVELS));
+        const rr = radius * (1 + 0.25 * ((l + 0.5) / LEVELS));
+        paths[l].moveTo(x + rr, y); paths[l].arc(x, y, rr, 0, TAU);
+      } else { base.moveTo(x + radius, y); base.arc(x, y, radius, 0, TAU); }
+    }
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, w, h);
-    const base = `rgba(${ink[0] | 0},${ink[1] | 0},${ink[2] | 0},0.3)`;
-    for (let i = 0; i < count; i++) {
-      const r = step * Math.sqrt(i + 0.5);
-      const a = i * GOLDEN + angle;
-      let x = cx + Math.cos(a) * r, y = cy + Math.sin(a) * r;
-      if (x < -radius * 4 || y < -radius * 4 || x > w + radius * 4 || y > h + radius * 4) continue;
-      let g = 0;
-      if (pulses.length) {
-        // The wave front at this dot's angle: the seal's edge, scaled up (the seal's wave starts at the top, -90°)
-        const th = Math.atan2(y - cy, x - cx) - angle;
-        const lobe = 1 + EDGE_AMP * (Math.sin(LOBES * th - Math.PI / 2) - 1);
-        for (const p of pulses) {
-          const front = (now - p) * speed;
-          const off = Math.abs(r - front * lobe);
-          if (off < band) g = Math.max(g, 1 - off / band);
-        }
-        g = g * g * (3 - 2 * g);
-        if (g > 0) { const push = g * step * 0.35; x += Math.cos(a) * push; y += Math.sin(a) * push; }
-      }
-      if (g > 0.02) {
-        const m = (c0: number, c1: number) => (c0 + (c1 - c0) * g) | 0;
-        ctx.fillStyle = `rgba(${m(ink[0], lime[0])},${m(ink[1], lime[1])},${m(ink[2], lime[2])},${(0.3 + 0.65 * g).toFixed(3)})`;
-      } else ctx.fillStyle = base;
-      ctx.beginPath();
-      ctx.arc(x, y, radius * (1 + 0.25 * g), 0, TAU);
-      ctx.fill();
+    ctx.fillStyle = `rgba(${ink[0] | 0},${ink[1] | 0},${ink[2] | 0},0.3)`;
+    ctx.fill(base);
+    for (let l = 0; l < LEVELS; l++) {
+      const g = (l + 0.5) / LEVELS;
+      const mix = (c0: number, c1: number) => (c0 + (c1 - c0) * g) | 0;
+      ctx.fillStyle = `rgba(${mix(ink[0], lime[0])},${mix(ink[1], lime[1])},${mix(ink[2], lime[2])},${(0.3 + 0.65 * g).toFixed(3)})`;
+      ctx.fill(paths[l]);
     }
   }
 
