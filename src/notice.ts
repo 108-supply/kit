@@ -17,20 +17,25 @@
    and makes room for the message. A tool with a full-screen preview mounts a second one in the preview's top row and
    shows the message there while the preview is open.
 
-   A bar that is two lines tall (the account window's head: name over email) can let the message wrap to two lines
-   in the middle before it moves under the bar: mountNotice(head, { lines: 2 }). */
+   Always ONE line. A message longer than the room it has stays on one line and slides slowly from start to end
+   inside the pill, under soft gradient edges, so it can be read to the end. (`lines` is accepted and ignored.) */
 
 const CSS = `
 .kit-notice { position: absolute; left: 50%; top: 0; z-index: 30; display: flex; align-items: center; justify-content: center;
   box-sizing: border-box; min-height: 2.25rem; width: max-content; padding: var(--gap-02) var(--gap-04);
   border-radius: 1.125rem; background: var(--overlay-glass); -webkit-backdrop-filter: blur(24px); backdrop-filter: blur(24px);
   color: var(--ink-1); font-family: var(--font-label); font-size: var(--label-sm); line-height: 1.25; letter-spacing: var(--tracking-label-sm);
-  text-transform: uppercase; text-align: center; text-wrap: balance; pointer-events: none;
+  text-transform: uppercase; text-align: center; white-space: nowrap; pointer-events: none;
   translate: -50% -50%;
   /* Out: a small round pill tucked up at the centre (like the iPhone's Dynamic Island before it opens) */
   clip-path: inset(0 calc(50% - 1.125rem) round 1.125rem); transform: translateY(-1rem) scale(0.7); opacity: 0; visibility: hidden;
   transition: clip-path 0.45s cubic-bezier(0.65, 0, 0.35, 1), transform 0.55s cubic-bezier(0.65, 0, 0.35, 1), opacity 0.3s ease-in 0.15s, visibility 0s 0.55s; }
-.kit-notice > span { opacity: 0; transition: opacity 0.15s ease-out; }
+.kit-notice > span { display: block; max-width: 100%; overflow: hidden; opacity: 0; transition: opacity 0.15s ease-out; }
+.kit-notice > span > span { display: inline-block; will-change: transform; }
+.kit-notice.is-long > span { text-align: left;
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 var(--gap-04), #000 calc(100% - var(--gap-04)), transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 var(--gap-04), #000 calc(100% - var(--gap-04)), transparent);
+  padding-inline: var(--gap-03); margin-inline: calc(-1 * var(--gap-03)); max-width: calc(100% + 2 * var(--gap-03)); }
 /* In: it drops in from the top and grows out of the centre to its full width */
 .kit-notice.is-on { clip-path: inset(0 0 round 1.125rem); transform: none; opacity: 1; visibility: visible;
   transition: clip-path 0.75s cubic-bezier(0.16, 1, 0.3, 1) 0.05s, transform 0.6s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.2s ease-out, visibility 0s; }
@@ -64,8 +69,11 @@ export function mountNotice(bar: HTMLElement, defaults: { ms?: number; lines?: n
   el.className = 'kit-notice';
   el.setAttribute('role', 'status');
   el.setAttribute('aria-live', 'polite');
+  const clip = document.createElement('span');
   const text = document.createElement('span');
-  el.append(text);
+  clip.append(text);
+  el.append(clip);
+  let slide: Animation | null = null;
   bar.append(el);
 
   const sides = () => {
@@ -118,23 +126,48 @@ export function mountNotice(bar: HTMLElement, defaults: { ms?: number; lines?: n
     // Fits on one line in the middle? Measure the pill at its natural width
     el.style.maxWidth = 'none';
     const need = el.scrollWidth;
-    let inside = need <= room;
-    if (!inside && (defaults.lines ?? 1) > 1 && room > 0) {
-      // Wrapped to the middle's width: still fits if it takes no more lines than the bar allows
-      el.style.maxWidth = `${room}px`;
-      inside = text.getClientRects().length <= defaults.lines!;
-    }
+    // One line always: inside the middle when there is a usable room (a long message slides there),
+    // under the bar only when the middle is too narrow for even a short word or two
+    const inside = need <= room || room >= gap * 7;
     bar.classList.toggle('kit-notice-under', !inside);
     if (inside) {
       el.style.maxWidth = `${room}px`;
       el.style.top = `${centreY}px`;
       el.style.translate = '-50% -50%';
     } else {
-      // Under the bar, as wide as the bar allows less a margin each side (two lines at most on a small phone)
+      // Under the bar, as wide as the bar allows less a margin each side (still one line)
       el.style.maxWidth = `${b.width - gap * 1.5}px`;
       el.style.top = `${b.height + gap * 0.5}px`;
       el.style.translate = '-50% 0';
     }
+  }
+
+  // A message wider than its pill slides from start to end (a pause first, a pause at the end). Returns its length in ms.
+  function run(): number {
+    slide?.cancel();
+    slide = null;
+    el.classList.remove('is-long');
+    const over = text.scrollWidth - clip.clientWidth;
+    if (over <= 1) return 0;
+    el.classList.add('is-long');
+    const cs = getComputedStyle(clip);
+    const inner = clip.clientWidth - (parseFloat(cs.paddingLeft) || 0) - (parseFloat(cs.paddingRight) || 0);
+    const travel = Math.max(1, text.scrollWidth - inner); // the last letter ends where the right fade starts
+    const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const pace = reduce ? 30 : 45; // px per second, calm
+    const move = (travel / pace) * 1000;
+    const hold = 1100;
+    const total = hold + move + hold;
+    slide = text.animate(
+      [
+        { transform: 'translateX(0)', offset: 0 },
+        { transform: 'translateX(0)', offset: hold / total },
+        { transform: `translateX(${-travel}px)`, offset: (hold + move) / total },
+        { transform: `translateX(${-travel}px)`, offset: 1 },
+      ],
+      { duration: total, easing: 'linear', fill: 'forwards' },
+    );
+    return total;
   }
 
   let timer = 0;
@@ -149,16 +182,20 @@ export function mountNotice(bar: HTMLElement, defaults: { ms?: number; lines?: n
         void el.offsetWidth;
       }
       el.classList.add('is-on');
+      // wait for the pill to open before measuring and sliding
+      const slideMs = run();
       clearTimeout(timer);
-      const ms = opts.ms ?? defaults.ms ?? Math.min(7000, 2600 + message.length * 45);
+      const base = opts.ms ?? defaults.ms ?? Math.min(7000, 2600 + message.length * 45);
+      const ms = Math.max(base, slideMs + 1400);
       timer = window.setTimeout(() => notice.hide(), ms);
     },
     hide() {
       clearTimeout(timer);
+      window.setTimeout(() => { if (!el.classList.contains('is-on')) { slide?.cancel(); el.classList.remove('is-long'); } }, 600);
       el.classList.remove('is-on');
       bar.classList.remove('kit-notice-on');
     },
   };
-  window.addEventListener('resize', () => { if (el.classList.contains('is-on')) place(); });
+  window.addEventListener('resize', () => { if (el.classList.contains('is-on')) { place(); run(); } });
   return notice;
 }
