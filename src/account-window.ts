@@ -2,7 +2,7 @@
    The same window as on 108.supply, so a tool never sends you to the site for it. Head: your creature, name and
    email; a click on the creature opens the edit state, where who you are is edited in one place.
    Pill tabs with the white slice: Library (what you have: with All Access only your member card (./member-card),
-   nothing else; otherwise the tools you pay for first (Mockup Gen Pro, "Subscribed" or "Purchased"), then what you
+   nothing else; otherwise the tools you pay for first (Mockup Gem Pro, "Subscribed" or "Purchased"), then what you
    bought, newest first, each marked "Purchased" (free ones unmarked), with its files right here; empty: one quiet
    centred box), Account (your creature big in the middle with an Edit
    pill, then one grouped box: Name, edited right in its row and saved on Return or when you leave it (the line under
@@ -40,7 +40,7 @@ const svg = (d: string) => `<svg viewBox="0 0 256 256" fill="currentColor" aria-
 
 /** Tools you can pay for: in Library (on top) only when you do */
 const PAID_TOOLS = [
-  { title: 'Mockup Gen Pro', line: 'Tool', href: 'https://mockupgen.108.supply', image: '/images/all-access/tool-tadaa.webp', products: MOCKUP_GEN_PRO },
+  { title: 'Mockup Gem Pro', line: 'Tool', href: 'https://mockupgem.108.supply', image: '/images/all-access/tool-tadaa.webp', products: MOCKUP_GEN_PRO },
 ];
 const TABS: { id: AccountTab; label: string }[] = [
   { id: 'library', label: 'Library' },
@@ -283,7 +283,7 @@ const CSS = `
 @media (max-width: 767px) {
   /* Phones: every window is the same sheet. It slides up from the bottom and floats a little above the edge, rounded on
      all four corners (so Safari's bottom bar never has to match its colour), and slides back down when it closes (no
-     fade), 0.5 s on --ease-smooth both ways. Sign in, checkout, help, the site's windows and Mockup Gen Pro do the same. */
+     fade), 0.5 s on --ease-smooth both ways. Sign in, checkout, help, the site's windows and Mockup Gem Pro do the same. */
   .kaw { padding: var(--gap-02); align-items: end; }
   .kaw-panel { width: 100%; max-height: calc(100dvh - 2 * var(--gap-02)); border-radius: var(--radius-lg);
     opacity: 1; translate: 0 calc(100% + var(--gap-02)); transition: translate 0.5s var(--ease-smooth), height 0.5s var(--ease-smooth); }

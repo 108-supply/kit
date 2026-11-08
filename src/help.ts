@@ -4,7 +4,7 @@
 
    import { mountHelp } from '@108-supply/kit/help';
    mountHelp(document.querySelectorAll('[data-help]'), {
-     title: 'Mockup Gen',
+     title: 'Mockup Gem',
      rows: [
        ['Start', 'Drop, paste or choose a picture or a video'],
        ['Look closer', 'Press and hold, or pinch'],

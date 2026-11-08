@@ -21,7 +21,7 @@ export interface Account {
   owned?: string[];
   /** Polar product ids this person owns */
   products?: string[];
-  /** Polar product ids of the subscriptions running now (Mockup Gen Pro monthly or yearly) */
+  /** Polar product ids of the subscriptions running now (Mockup Gem Pro monthly or yearly) */
   subscriptions?: string[];
   /** All Access members: when they joined (ISO) and their member number */
   member?: { since?: string | null; no?: number | null } | null;
@@ -29,7 +29,7 @@ export interface Account {
   stale?: boolean;
 }
 
-/** Mockup Gen Pro: the old one-time product and the two subscriptions (they share one benefit) */
+/** Mockup Gem Pro: the old one-time product and the two subscriptions (they share one benefit) */
 export const MOCKUP_GEN_PRO = ['e77b50a9-a5d5-46a8-870e-cc5f6c84e438', '8648c124-3b8a-4056-a06c-97d600b7638a', '00fee5f4-f0ae-47bd-b0ff-035e20240c92'];
 
 /** How you have a paid tool: 'subscribed' (a subscription runs), 'purchased' (bought once), or '' (not, or All Access) */
