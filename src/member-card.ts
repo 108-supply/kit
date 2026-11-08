@@ -1,11 +1,12 @@
-/* The All Access member card: a quiet card on Surface 3, a hologram with the 108 mark top left, "All Access" and
-   "Member since November 2026" bottom left. Its dots are the sunflower spiral from /thank-you, turning slowly, even
-   all over (no fading at the edges), nothing else.
-   The hologram is a foil disc built like a banknote's: brushed metal, rainbow bands that slide as the light changes, a
-   few guilloche rings in a second rainbow, the 108 mark big in the middle and a glint. It follows the cursor on computers and the phone's tilt
-   (gyroscope), and shimmers slowly on its own when neither moves. Still for reduced motion.
-   (The member number is left off the card for now; memberNo stays for later.)
-   On iPhone, Safari asks once for motion access: the first tap on the card asks (it can't be asked without a tap).
+/* The All Access member card (Ariel 2026-11-08): a quiet card on Surface 3. Top left the member number, top right the
+   hologram, bottom left "All Access" and "Member since November 2026" (both Text Large).
+   One geometry runs through it all, with 13 waves (a Fibonacci number, like the sunflower's own arms):
+   - the hologram is a rosette seal: woven wavy rings, an edge cut in the same wave, ALL ACCESS in a ring between them,
+     and in the middle 1 · 0 · 8 that flips as the light moves (one, nothing, infinity), like a banknote's kinegram;
+   - the dots are the sunflower spiral from /thank-you, starting at the hologram and turning slowly (the seal turns with it);
+   - every few seconds a lime wave runs out from the hologram, shaped like the seal's edge, growing across the card.
+   The light follows the cursor on computers and the phone's tilt (gyroscope), and drifts slowly on its own. Still for
+   reduced motion. On iPhone, Safari asks once for motion access: the first tap on the card asks.
 
    import { memberCardHtml, mountMemberCard } from '@108-supply/kit/member-card';
    el.innerHTML = memberCardHtml({ since: '2026-11-08T…', no: 42 });
@@ -32,42 +33,47 @@ export function memberSince(iso?: string | null) {
 /** "No. 042" */
 export const memberNo = (n?: number | null) => (n && n > 0 ? `No. ${String(n).padStart(3, '0')}` : '');
 
-/* ---------- the hologram's line work, drawn once ---------- */
-const LOGO = [
-  'M8.73292 19.4353H18.2947C16.0833 7.81001 23.1471 0.573713 23.1471 0.573713H15.8342C13.8968 3.67062 11.1906 6.76415 2.32832 5.30097L0 11.911C8.28473 13.4476 11.9565 10.9165 15.2255 8.3414C15.2255 8.3414 10.3583 11.4445 8.73292 19.4353Z',
-  'M56.1379 0.00899545C44.6438 -0.294823 44.8906 7.18656 46.1807 8.93775C46.1807 8.93775 45.0835 9.12749 43.651 9.09135C43.7332 8.4792 43.7747 8.24145 43.7747 7.50054C43.7752 3.81463 40.3372 0.00899545 34.2963 0.00899545C26.3536 0.00899545 20.1317 5.70417 20.1317 12.1549C20.1317 16.9053 24.2193 20 29.3503 20H29.3526C34.2271 20 38.7022 17.6293 41.4327 13.9056C39.0301 13.6882 36.7335 13.1861 34.892 12.3283C34.1119 13.735 32.3702 14.9605 30.6262 14.9175L30.6285 14.9192C28.8323 14.8724 27.7113 13.3826 27.7113 11.5394C27.7113 8.49162 31.0438 3.50516 34.3246 3.50516C34.5073 3.50516 34.6622 3.52832 34.8193 3.55203C33.961 4.28391 33.4663 5.65504 33.4663 6.76584C33.4663 8.10309 34.0132 9.20486 34.8993 10.0915C36.8952 11.5885 39.9004 12.2001 42.9152 12.3464C43.0394 12.3537 43.1625 12.3594 43.2828 12.3622C46.8019 12.4373 50.0147 11.8771 51.8983 11.514C53.7818 11.1509 55.1337 10.8228 56.7223 10.2569C57.3146 10.5461 59.0001 13.2494 55.6778 14.5719C53.7767 15.3287 51.6901 14.625 50.851 13.4589C50.8271 13.4357 47.5446 14.2201 43.0593 14.0157C43.2902 17.4876 47.1906 19.9989 52.0917 20C57.0564 20.0011 62.7065 17.4243 62.7689 13.1472C62.8024 10.8578 61.0226 9.50303 60.1336 8.99309C60.0882 8.96711 63.6619 7.29837 63.7481 4.55893C63.8309 1.93807 61.19 0.142834 56.1379 0.00899545ZM51.8234 7.53781C49.3214 5.34614 51.5669 3.78187 53.24 3.61189C55.1797 3.41481 56.21 4.06367 56.21 4.95762C56.2304 5.79848 53.8618 7.0883 51.8234 7.53781Z',
-];
+/* ---------- the hologram's line work, drawn once (viewBox 100 × 100, centre 50 50) ---------- */
+/** How many waves: the seal's rings, its edge and the lime wave on the card all share it */
+export const LOBES = 13;
+/** The edge wave, as a share of the radius (the lime wave on the card uses the same share) */
+const EDGE_AMP = 0.052;
 const f = (n: number) => n.toFixed(2);
-/** Guilloche: a few woven wavy rings (two families out of phase, so they cross like banknote line work).
-    White lines on nothing: used as a mask. */
-function guilloche() {
+/** A closed wavy ring: r(t) = r + amp · sin(LOBES · t + phase) */
+function wave(r: number, amp: number, phase = 0) {
   let d = '';
-  for (let k = 0; k < 6; k++) {
-    for (const ph of [0, Math.PI]) {
-      for (let i = 0; i <= 360; i++) {
-        const t = (i / 360) * TAU, r = 22 + k * 4.4 + 2.2 * Math.sin(14 * t + k * 0.6 + ph);
-        d += `${i ? 'L' : 'M'}${f(50 + Math.cos(t) * r)} ${f(50 + Math.sin(t) * r)}`;
-      }
-      d += 'Z';
-    }
+  for (let i = 0; i <= 720; i++) {
+    const t = (i / 720) * TAU, rr = r + amp * Math.sin(LOBES * t + phase);
+    d += `${i ? 'L' : 'M'}${f(50 + Math.cos(t) * rr)} ${f(50 + Math.sin(t) * rr)}`;
   }
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none" stroke="#fff" stroke-width="0.45"><path d="${d}"/></svg>`;
-  return `url("data:image/svg+xml,${encodeURIComponent(svg)}")`;
+  return d + 'Z';
 }
-/** The 108 mark as a mask: the hologram is cut to its shape */
-function logoMask() {
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 20">${LOGO.map((p) => `<path d="${p}"/>`).join('')}</svg>`;
-  return `url("data:image/svg+xml,${encodeURIComponent(svg)}")`;
-}
-let GUILLOCHE = '', MARK = '';
+const svgUrl = (inner: string, attrs = '') =>
+  `url("data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" ${attrs}>${inner}</svg>`)}")`;
+/** Woven rings (two families out of phase, so they cross like banknote line work) and the edge line. White on nothing: a mask. */
+const lines = () => {
+  let d = '';
+  for (let k = 0; k < 3; k++) for (const ph of [0, Math.PI]) d += wave(16 + k * 5, 2.2, k * 0.7 + ph);
+  d += wave(46.5 - 46.5 * EDGE_AMP, 46.5 * EDGE_AMP, -Math.PI / 2);
+  return svgUrl(`<path d="${d}"/>`, 'fill="none" stroke="#fff" stroke-width="1"');
+};
+/** The seal's outline: the same wave */
+const outline = () => svgUrl(`<path d="${wave(49.5 - 49.5 * EDGE_AMP, 49.5 * EDGE_AMP, -Math.PI / 2)}"/>`);
+let LINES = '', OUTLINE = '';
 
-/** The hologram: a foil disc (metal, rainbow bands, guilloche, glint) with the 108 mark on it */
+/** The hologram: a rosette seal (metal, rainbow bands, woven rings, a ring of text, 1 · 0 · 8, a glint) */
 function hologramHtml() {
-  GUILLOCHE ||= guilloche();
-  MARK ||= logoMask();
+  LINES ||= lines();
+  OUTLINE ||= outline();
   const attr = (v: string) => v.replace(/"/g, '&quot;');
-  return `<div class="kmc-holo" aria-hidden="true" style="--kmc-g:${attr(GUILLOCHE)};--kmc-m:${attr(MARK)}">
-      <span class="kmc-holo-foil"></span><span class="kmc-holo-lines"></span><span class="kmc-holo-mark"></span><span class="kmc-holo-glare"></span>
+  return `<div class="kmc-holo" aria-hidden="true" style="--kmc-g:${attr(LINES)};--kmc-o:${attr(OUTLINE)}">
+      <span class="kmc-holo-foil"></span><span class="kmc-holo-lines"></span>
+      <svg class="kmc-holo-art" viewBox="0 0 100 100">
+        <defs><path id="kmc-ring" d="M50 50m-33.5 0a33.5 33.5 0 1 1 67 0a33.5 33.5 0 1 1-67 0"/></defs>
+        <text class="kmc-holo-text" font-size="7" letter-spacing="1"><textPath href="#kmc-ring" textLength="208">ALL ACCESS · ALL ACCESS · ALL ACCESS · </textPath></text>
+        <g class="kmc-holo-num"><path class="kmc-n1" d="M50 39.5V60.5M45.5 43.5L50 39.5"/><circle class="kmc-n0" cx="50" cy="50" r="9.5"/><g class="kmc-n8"><circle cx="50" cy="44.6" r="4.9"/><circle cx="50" cy="55.2" r="5.7"/></g></g>
+      </svg>
+      <span class="kmc-holo-glare"></span>
     </div>`;
 }
 
@@ -77,38 +83,44 @@ const RAINBOW = '#ff8fd8, #ffd27a, #dcff02, #7dffcf, #79c8ff, #b494ff, #ff8fd8';
 const CSS = `
 .kmc { position: relative; isolation: isolate; display: block; width: 100%; max-width: 28rem; margin-inline: auto;
   aspect-ratio: 1.586; border-radius: var(--radius-lg); overflow: hidden; background: var(--surface-3); color: var(--ink-1);
-  --kmc-hx: 0.3; --kmc-hy: -0.2;
+  --kmc-hx: 0.3; --kmc-hy: -0.2; --kmc-rot: 0rad; --kmc-s1: 0; --kmc-s0: 1; --kmc-s8: 0;
   -webkit-tap-highlight-color: transparent; user-select: none; -webkit-user-select: none; }
 .kmc canvas { position: absolute; inset: 0; width: 100%; height: 100%; z-index: -1; pointer-events: none; }
-.kmc-bottom { position: absolute; left: var(--gap-07); right: var(--gap-07); bottom: var(--gap-07); display: flex; flex-direction: column; }
-.kmc-title { font-size: var(--text-lg, var(--text-md)); line-height: var(--leading-lg, var(--leading-md)); letter-spacing: var(--tracking-lg, var(--tracking-md)); color: var(--ink-1); }
+.kmc-no { position: absolute; top: var(--gap-07); left: var(--gap-07); font-family: var(--font-label); font-size: var(--label-sm);
+  letter-spacing: var(--tracking-label-sm); text-transform: uppercase; color: var(--ink-2); line-height: 1; }
+.kmc-bottom { position: absolute; left: var(--gap-07); right: var(--gap-07); bottom: var(--gap-07); display: flex; flex-direction: column;
+  font-size: var(--text-lg, var(--text-md)); line-height: var(--leading-lg, var(--leading-md)); letter-spacing: var(--tracking-lg, var(--tracking-md)); }
+.kmc-title { color: var(--ink-1); }
 .kmc-since { color: var(--ink-2); }
 
-/* The hologram, like a banknote foil: a disc of brushed metal (fine rays round the middle), rainbow bands that light
-   up where the light falls and slide as it moves, a few guilloche rings in a second rainbow, the 108 mark big in the
-   middle, and a glint on top */
-.kmc-holo { position: absolute; top: var(--gap-06); left: var(--gap-06); width: 5.25rem; aspect-ratio: 1; border-radius: 50%;
-  overflow: hidden; isolation: isolate; pointer-events: none;
-  --kmc-lx: calc(50% + var(--kmc-hx) * 38%); --kmc-ly: calc(50% + var(--kmc-hy) * 38%);
+/* The hologram, a rosette seal: brushed metal, rainbow bands that slide as the light moves, woven rings and an edge in
+   a second rainbow, ALL ACCESS in a ring, 1 · 0 · 8 in lime that flips with the light, and a glint. It turns with the spiral. */
+.kmc-holo { position: absolute; top: var(--gap-06); right: var(--gap-06); width: 6rem; aspect-ratio: 1; rotate: var(--kmc-rot);
+  isolation: isolate; pointer-events: none; color: #151716;
+  -webkit-mask: var(--kmc-o) center / 100% 100% no-repeat; mask: var(--kmc-o) center / 100% 100% no-repeat;
+  --kmc-lx: calc(50% + var(--kmc-hx) * 40%); --kmc-ly: calc(50% + var(--kmc-hy) * 40%);
   background:
-    repeating-linear-gradient(calc(100deg + var(--kmc-hx) * 20deg), rgba(255,255,255,0.14) 0 1px, rgba(0,0,0,0.16) 1px 2px),
-    radial-gradient(ellipse 60% 180% at var(--kmc-lx) var(--kmc-ly), #f2f4f3 0%, #a6acaa 22%, #5a5f5d 55%, #8b9190 78%, #3a3e3d 100%); }
-.kmc-holo > * { position: absolute; inset: 0; }
-.kmc-holo-foil { background: repeating-linear-gradient(calc(60deg + var(--kmc-hx) * 80deg), ${BANDS});
+    repeating-linear-gradient(calc(90deg + var(--kmc-hx) * 25deg), rgba(255,255,255,0.12) 0 1px, rgba(0,0,0,0.14) 1px 2px),
+    radial-gradient(circle at var(--kmc-lx) var(--kmc-ly), #eef1f0 0%, #a3a9a7 16%, #555a58 45%, #858b89 70%, #2e3231 100%); }
+.kmc-holo > * { position: absolute; inset: 0; width: 100%; height: 100%; }
+.kmc-holo-foil { background: repeating-linear-gradient(calc(55deg + var(--kmc-hx) * 80deg), ${BANDS});
   background-size: 200% 200%; background-position: calc(50% + var(--kmc-hx) * 60%) calc(50% + var(--kmc-hy) * 60%);
-  mix-blend-mode: hard-light; opacity: 0.68; }
+  mix-blend-mode: hard-light; opacity: 0.6; }
 .kmc-holo-lines { background: linear-gradient(calc(-30deg - var(--kmc-hx) * 110deg), ${RAINBOW}, ${RAINBOW});
   background-size: 300% 300%; background-position: calc(50% - var(--kmc-hx) * 60%) calc(50% - var(--kmc-hy) * 60%);
   -webkit-mask: var(--kmc-g) center / 100% 100% no-repeat; mask: var(--kmc-g) center / 100% 100% no-repeat; mix-blend-mode: hard-light; }
-/* The mark: engraved into the foil (dark), catching a little of the rainbow */
-.kmc-holo-mark { inset: 0 16%; border-radius: 0; background: linear-gradient(calc(120deg + var(--kmc-hx) * 60deg), #141615, #2c302e 50%, #141615);
-  -webkit-mask: var(--kmc-m) center / 100% auto no-repeat; mask: var(--kmc-m) center / 100% auto no-repeat; opacity: 0.88; }
-.kmc-holo-glare { background: radial-gradient(circle at var(--kmc-lx) var(--kmc-ly), rgba(255,255,255,0.6) 0%, rgba(255,255,255,0) 18%),
-    linear-gradient(calc(115deg + var(--kmc-hy) * 25deg), transparent 34%, rgba(255,255,255,0.55) 49%, transparent 60%);
+.kmc-holo-art { overflow: visible; }
+.kmc-holo-text { fill: currentColor; opacity: 0.72; font-family: var(--font-label); text-transform: uppercase; }
+/* 1 · 0 · 8: one shows at a time, like a kinegram, and the next one takes over as the light crosses */
+.kmc-holo-num > * { fill: none; stroke: var(--accent); stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+.kmc-n1 { opacity: var(--kmc-s1); } .kmc-n0 { opacity: var(--kmc-s0); } .kmc-n8 { opacity: var(--kmc-s8); }
+.kmc-holo-glare { background: radial-gradient(circle at var(--kmc-lx) var(--kmc-ly), rgba(255,255,255,0.55) 0%, rgba(255,255,255,0) 22%),
+    linear-gradient(calc(115deg + var(--kmc-hy) * 25deg), transparent 34%, rgba(255,255,255,0.5) 49%, transparent 60%);
   background-size: 100% 100%, 260% 260%; background-position: 0 0, calc(50% - var(--kmc-hx) * 70%) 50%; mix-blend-mode: soft-light; }
 @media (max-width: 767px) {
   .kmc-bottom { left: var(--gap-06); right: var(--gap-06); bottom: var(--gap-06); }
-  .kmc-holo { top: var(--gap-05); left: var(--gap-05); width: 4.25rem; }
+  .kmc-no { top: var(--gap-06); left: var(--gap-06); }
+  .kmc-holo { top: var(--gap-05); right: var(--gap-05); width: 5rem; }
 }
 `;
 function ensureStyle() {
@@ -123,7 +135,9 @@ function ensureStyle() {
 export function memberCardHtml(m: Member) {
   ensureStyle();
   const since = memberSince(m.since);
+  const no = memberNo(m.no);
   return `<div class="kmc" role="img" aria-label="${esc(['All Access', since && `member since ${since}`].filter(Boolean).join(', '))}" data-member-card>
+    ${no ? `<span class="kmc-no">${no}</span>` : ''}
     ${hologramHtml()}
     <div class="kmc-bottom"><span class="kmc-title">All Access</span>${since ? `<span class="kmc-since">Member since ${since}</span>` : ''}</div>
   </div>`;
@@ -178,7 +192,9 @@ export function mountMemberCard(card: HTMLElement) {
   if (!needsAsk) listenTilt();
 
   let w = 0, h = 0, dpr = 1, step = 10, count = 0, cx = 0, cy = 0;
-  let ink: Rgba = [239, 241, 240, 1];
+  let ink: Rgba = [239, 241, 240, 1], lime: Rgba = [220, 255, 2, 1];
+  const pulses: number[] = [];
+  let nextPulse = 0;
   const pointer = { x: 0, y: 0, on: false };
   const light = { x: 0.3, y: -0.2 };
   let running = false, visible = true, angle = 0, last = 0;
@@ -189,13 +205,15 @@ export function mountMemberCard(card: HTMLElement) {
     if (!w || !h) return;
     dpr = Math.min(window.devicePixelRatio || 1, 2);
     canvas.width = Math.round(w * dpr); canvas.height = Math.round(h * dpr);
-    step = w / (w < 360 ? 34 : 40);
+    step = w / (w < 360 ? 50 : 58);
     // The spiral starts at the 108 mark: its centre is the mark's centre, and it runs out past the far corner
     const mark = card.querySelector<HTMLElement>('.kmc-holo');
     cx = mark ? mark.offsetLeft + mark.offsetWidth / 2 : w * 0.2;
     cy = mark ? mark.offsetTop + mark.offsetHeight / 2 : h * 0.2;
     count = Math.ceil((Math.hypot(Math.max(cx, w - cx), Math.max(cy, h - cy)) / step + 1) ** 2);
-    ink = parseColor(getComputedStyle(card).getPropertyValue('--ink-1').trim(), '#eff1f0');
+    const cs = getComputedStyle(card);
+    ink = parseColor(cs.getPropertyValue('--ink-1').trim(), '#eff1f0');
+    lime = parseColor(cs.getPropertyValue('--accent').trim(), '#dcff02');
   }
 
   function draw(now: number) {
@@ -212,19 +230,50 @@ export function mountMemberCard(card: HTMLElement) {
     light.x += (tx - light.x) * k; light.y += (ty - light.y) * k;
     card.style.setProperty('--kmc-hx', light.x.toFixed(3));
     card.style.setProperty('--kmc-hy', light.y.toFixed(3));
-    // The sunflower from the 108 mark, turning slowly; every dot the same, right up to the edges
+    // 1 · 0 · 8 in the seal: the light's side picks one, with a short crossfade (a kinegram flips, it doesn't blend)
+    const lx = light.x, edge = (v: number) => Math.max(0, Math.min(1, v / 0.16 + 0.5));
+    const s1 = edge(-0.22 - lx), s8 = edge(lx - 0.22);
+    card.style.setProperty('--kmc-s1', s1.toFixed(3));
+    card.style.setProperty('--kmc-s8', s8.toFixed(3));
+    card.style.setProperty('--kmc-s0', Math.max(0, 1 - s1 - s8).toFixed(3));
+    // The sunflower from the hologram, turning slowly (the seal turns with it); every dot the same, right up to the edges
     if (!reduce) angle += dt * 0.00004;
-    const radius = Math.max(0.85, step * 0.14);
+    card.style.setProperty('--kmc-rot', `${angle.toFixed(4)}rad`);
+    // Every few seconds a lime wave leaves the hologram, shaped like the seal's edge (same waves, same turn), and runs
+    // past the far corner
+    const far = Math.hypot(Math.max(cx, w - cx), Math.max(cy, h - cy)) * 1.08;
+    const speed = far / 5200;
+    if (!reduce && now > nextPulse) { pulses.push(now); nextPulse = now + 4600; }
+    while (pulses.length && (now - pulses[0]) * speed > far + step * 6) pulses.shift();
+    const band = step * 4.5;
+    const radius = Math.max(0.8, step * 0.15);
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, w, h);
-    ctx.fillStyle = `rgba(${ink[0] | 0},${ink[1] | 0},${ink[2] | 0},0.3)`;
+    const base = `rgba(${ink[0] | 0},${ink[1] | 0},${ink[2] | 0},0.3)`;
     for (let i = 0; i < count; i++) {
       const r = step * Math.sqrt(i + 0.5);
       const a = i * GOLDEN + angle;
-      const x = cx + Math.cos(a) * r, y = cy + Math.sin(a) * r;
-      if (x < -radius || y < -radius || x > w + radius || y > h + radius) continue;
+      let x = cx + Math.cos(a) * r, y = cy + Math.sin(a) * r;
+      if (x < -radius * 4 || y < -radius * 4 || x > w + radius * 4 || y > h + radius * 4) continue;
+      let g = 0;
+      if (pulses.length) {
+        // The wave front at this dot's angle: the seal's edge, scaled up (the seal's wave starts at the top, -90°)
+        const th = Math.atan2(y - cy, x - cx) - angle;
+        const lobe = 1 + EDGE_AMP * (Math.sin(LOBES * th - Math.PI / 2) - 1);
+        for (const p of pulses) {
+          const front = (now - p) * speed;
+          const off = Math.abs(r - front * lobe);
+          if (off < band) g = Math.max(g, 1 - off / band);
+        }
+        g = g * g * (3 - 2 * g);
+        if (g > 0) { const push = g * step * 0.35; x += Math.cos(a) * push; y += Math.sin(a) * push; }
+      }
+      if (g > 0.02) {
+        const m = (c0: number, c1: number) => (c0 + (c1 - c0) * g) | 0;
+        ctx.fillStyle = `rgba(${m(ink[0], lime[0])},${m(ink[1], lime[1])},${m(ink[2], lime[2])},${(0.3 + 0.65 * g).toFixed(3)})`;
+      } else ctx.fillStyle = base;
       ctx.beginPath();
-      ctx.arc(x, y, radius, 0, TAU);
+      ctx.arc(x, y, radius * (1 + 0.25 * g), 0, TAU);
       ctx.fill();
     }
   }
