@@ -164,3 +164,5 @@ p { text-wrap: pretty; }
 .win-close svg, .win-round svg { width: 0.875rem; height: 0.875rem; }
 @media (hover: hover) { .win-close:hover, .win-round:hover { background: var(--ink-1); color: var(--surface-1); } }
 .win-bar > :last-child:not(:first-child):not(.win-title) { grid-column: 3; }
+/* The kit notice (a message pill) belongs to the whole bar, not to the last column: it centres over the bar */
+.win-bar > .kit-notice:not(#_) { grid-column: 1 / -1; grid-row: 1; }
