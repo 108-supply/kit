@@ -30,9 +30,7 @@ export const GOOGLE_G = '<svg class="kit-signin-g" viewBox="0 0 48 48" aria-hidd
 const HTML = `
 <div class="kit-signin-overlay" data-close></div>
 <div class="kit-signin-panel" tabindex="-1">
-  <div class="kit-signin-bar">
-    <button class="kit-signin-close" type="button" aria-label="Close" data-close>${X}</button>
-  </div>
+  <div class="win-bar"><span class="win-title">Sign in</span><button class="win-close" type="button" aria-label="Close" data-close>${X}</button></div>
   <form class="kit-signin-step" data-step="email" novalidate>
     <h2 class="kit-signin-title" id="kit-signin-title" data-title></h2>
     <p class="kit-signin-lead" data-lead></p>
@@ -70,17 +68,12 @@ const CSS = `
 .kit-signin[hidden], .kit-signin [hidden] { display: none; }
 .kit-signin-overlay { position: absolute; inset: 0; background: var(--overlay-scrim); opacity: 0; transition: opacity 0.45s var(--ease-smooth); }
 .kit-signin-panel { position: relative; width: min(25rem, 100%); max-height: calc(100dvh - 2 * var(--page-padding)); overflow-y: auto; overscroll-behavior: contain;
-  padding: var(--gap-08) var(--gap-06) var(--gap-06); border-radius: var(--radius-lg);
+  --win-pad: var(--gap-06); padding: var(--win-pad); border-radius: var(--radius-lg);
   background: var(--overlay-glass); -webkit-backdrop-filter: blur(64px); backdrop-filter: blur(64px);
   opacity: 0; translate: 0 1rem; transition: opacity 0.35s var(--ease-smooth), translate 0.6s var(--ease-smooth); }
 .kit-signin-panel:focus { outline: none; }
 .kit-signin.is-open .kit-signin-overlay { opacity: 1; }
 .kit-signin.is-open .kit-signin-panel { opacity: 1; translate: 0 0; }
-.kit-signin-bar { position: absolute; top: var(--gap-04); right: var(--gap-04); }
-.kit-signin-close { display: grid; place-items: center; width: 2.25rem; height: 2.25rem; padding: 0; border: 0; border-radius: var(--radius-full);
-  background: var(--surface-3); color: var(--ink-1); cursor: pointer; transition: background-color 0.3s var(--ease-smooth), color 0.3s var(--ease-smooth); }
-.kit-signin-close svg { width: 0.875rem; height: 0.875rem; }
-@media (hover: hover) { .kit-signin-close:hover { background: var(--ink-1); color: var(--surface-1); } }
 .kit-signin-step { display: none; flex-direction: column; margin: 0; text-align: center; }
 .kit-signin-step.is-active { display: flex; animation: kit-signin-step 0.6s var(--ease-smooth); }
 @keyframes kit-signin-step { from { opacity: 0; translate: 0 0.5rem; } }
@@ -121,8 +114,9 @@ const CSS = `
 .kit-signin-step .kid-field { margin-top: var(--gap-04); }
 @media (max-width: 767px) {
   .kit-signin { padding: var(--gap-02); align-items: end; }
-  .kit-signin-panel { width: 100%; max-height: calc(100dvh - 2 * var(--gap-02)); padding: var(--gap-09) var(--gap-04) var(--gap-04); }
-  .kit-signin-bar { top: var(--gap-03); right: var(--gap-03); }
+  /* The same sheet as every window on phones: up from the bottom, floating, all corners rounded */
+  .kit-signin-panel { width: 100%; max-height: calc(100dvh - 2 * var(--gap-02)); --win-pad: var(--gap-04); padding: var(--win-pad);;
+    opacity: 1; translate: 0 calc(100% + var(--gap-02)); transition: translate 0.5s var(--ease-smooth); }
   .kit-signin-cells span { height: 3.25rem; }
 }
 @media (prefers-reduced-motion: reduce) {
@@ -139,7 +133,7 @@ const ERRORS: Record<string, string> = {
   not_configured: 'Sign in isn’t switched on yet. Try again soon.',
 };
 const errorText = (e?: string) => ERRORS[e ?? ''] ?? 'Something went wrong. Try again in a moment.';
-const OUT = 450; // ms, the window's way out
+const OUT = 500; // ms, the window's way out
 
 let root: HTMLElement | null = null;
 let lastFocus: HTMLElement | null = null;

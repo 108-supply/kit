@@ -19,7 +19,7 @@
 import { ACCOUNT_ORIGIN, account } from './account';
 
 const API = 'https://api.polar.sh/v1/checkouts/client/';
-const FADE = 400;
+const FADE = 500;
 
 export type PayResult =
   | { status: 'paid'; id: string; layer: HTMLElement }
@@ -123,7 +123,7 @@ const field = (name: string, label: string, auto: string, extra = '') =>
 const HTML = `
 <div class="kit-pay-scrim" data-close><span class="kit-pay-dot"></span></div>
 <form class="kit-pay-panel" novalidate aria-labelledby="kit-pay-title">
-  <button class="kit-pay-close" type="button" aria-label="Close" data-close>${X}</button>
+  <div class="win-bar"><span class="win-title">Checkout</span><button class="win-close" type="button" aria-label="Close" data-close>${X}</button></div>
   <h2 class="kit-pay-title" id="kit-pay-title" data-name></h2>
   <div class="kit-pay-switch" role="radiogroup" data-switch hidden></div>
   <p class="kit-pay-price"><span data-price></span><span class="kit-pay-billed" data-billed></span></p>
@@ -168,16 +168,11 @@ const CSS = `
 .kit-pay-panel > * { flex-shrink: 0; }
 .kit-pay-panel { position: relative; display: flex; flex-direction: column; gap: var(--gap-02); width: min(26rem, 100%);
   max-height: calc(100dvh - 2 * var(--page-padding, 24px)); overflow-y: auto; overscroll-behavior: contain; margin: 0;
-  padding: var(--gap-08) var(--gap-06) var(--gap-06); border-radius: var(--radius-lg);
+  --win-pad: var(--gap-06); padding: var(--win-pad); border-radius: var(--radius-lg);
   background: var(--overlay-glass); -webkit-backdrop-filter: blur(64px); backdrop-filter: blur(64px);
   opacity: 0; translate: 0 1rem; pointer-events: none; transition: opacity .35s var(--ease-smooth), translate .6s var(--ease-smooth); }
 .kit-pay.is-ready .kit-pay-panel { opacity: 1; translate: 0 0; pointer-events: auto; }
 .kit-pay.is-leaving .kit-pay-panel { opacity: 0; translate: 0 .5rem; pointer-events: none; }
-.kit-pay-close { position: absolute; top: var(--gap-04); right: var(--gap-04); display: grid; place-items: center; width: 2.25rem; height: 2.25rem;
-  padding: 0; border: 0; border-radius: var(--radius-full); background: var(--surface-3); color: var(--ink-1); cursor: pointer;
-  transition: background-color .3s var(--ease-smooth), color .3s var(--ease-smooth); }
-.kit-pay-close svg { width: .875rem; height: .875rem; }
-@media (hover: hover) { .kit-pay-close:hover { background: var(--ink-1); color: var(--surface-1); } }
 .kit-pay-title { margin: 0 3rem 0 0; font-family: var(--font-heading); font-weight: var(--weight-default);
   font-size: var(--text-h6); line-height: var(--leading-h6); letter-spacing: var(--tracking-h6); }
 .kit-pay-switch { display: flex; gap: var(--gap-01); margin-top: var(--gap-04); padding: var(--gap-01); border-radius: var(--radius-full); background: var(--surface-3); align-self: flex-start; }
@@ -222,8 +217,11 @@ const CSS = `
 .kit-pay-polar { width: 44px; height: 13px; flex: none; }
 @media (max-width: 767px) {
   .kit-pay { padding: var(--gap-02); align-items: end; }
-  .kit-pay-panel { width: 100%; max-height: calc(100dvh - 2 * var(--gap-02)); padding: var(--gap-08) var(--gap-04) var(--gap-04); }
-  .kit-pay-close { top: var(--gap-03); right: var(--gap-03); }
+  /* The same sheet as every window on phones: up from the bottom, floating, all corners rounded */
+  .kit-pay-panel { width: 100%; max-height: calc(100dvh - 2 * var(--gap-02)); --win-pad: var(--gap-04); padding: var(--win-pad);;
+    opacity: 1; translate: 0 calc(100% + var(--gap-02)); transition: translate 0.5s var(--ease-smooth); }
+  .kit-pay.is-ready .kit-pay-panel { opacity: 1; }
+  .kit-pay.is-leaving .kit-pay-panel { opacity: 1; translate: 0 calc(100% + var(--gap-02)); }
 }
 @media (prefers-reduced-motion: reduce) { .kit-pay-scrim, .kit-pay-panel { transition-duration: .01ms; } }
 `;
@@ -450,7 +448,7 @@ export async function openPay(link: string): Promise<PayResult> {
         }
         if (settled) return;
         root.classList.add('is-ready');
-        (input('email').value ? form.querySelector<HTMLElement>('.kit-pay-close') : input('email'))?.focus({ preventScroll: true });
+        (input('email').value ? form.querySelector<HTMLElement>('.win-close') : input('email'))?.focus({ preventScroll: true });
       } catch (e) {
         console.warn('[108 checkout] falling back to Polar:', e);
         if (!settled) end({ status: 'unavailable' });
