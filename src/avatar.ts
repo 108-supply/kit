@@ -9,7 +9,7 @@ import { ACCOUNT_ORIGIN } from './account';
 
 export const CREATURES = [
   { id: 'hecuba', name: 'Hecuba', story: 'Porous like the asteroid it is named after, 108 Hecuba.' },
-  { id: 'mala', name: 'Mala', story: 'Ceramic beads, like a mala of 108.' },
+  { id: 'mala', name: 'Mala', story: 'Ceramic beads, like the 108 beads of a mala.' },
   { id: 'kane', name: 'Kane', story: 'A brick bell for Joya no kane, rung 108 times on New Year’s Eve.' },
   { id: 'stitch', name: 'Stitch', story: 'Red stitches, like the 108 double stitches on a baseball.' },
   { id: 'hyper', name: 'Hyper', story: 'One, two and three dots: 1¹ × 2² × 3³ = 108, the hyperfactorial of three.' },

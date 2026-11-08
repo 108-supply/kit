@@ -66,16 +66,17 @@ const CSS = `
 .kid-field { display: flex; flex-direction: column; margin-top: var(--gap-05); text-align: left; }
 @media (max-width: 767px) { .kid-drum { --tile: 5rem; } }
 /* Just the creature: bigger heads, and the creature's name large in the heading font */
-.kid--big .kid-drum { --tile: 9rem; padding-block: var(--gap-03); }
+.kid--big .kid-drum { --tile: 10.5rem; padding-block: var(--gap-03); }
 .kid--big .kid-turn { gap: var(--gap-04); margin-top: var(--gap-05); }
 .kid--big .kid-names { width: 16rem; max-width: calc(100% - 6rem); height: 1.2em; font-family: var(--font-heading); font-size: var(--text-h3); letter-spacing: var(--tracking-h3); }
 .kid--big .kid-names > span > span { height: 1.2em; line-height: 1.2em; font-size: inherit; letter-spacing: inherit; }
 .kid--big .kid-step { width: 2.5rem; height: 2.5rem; }
-.kid-story { max-width: 18rem; min-height: calc(2 * var(--leading-sm) * 1em); margin: var(--gap-03) auto 0; color: var(--ink-2);
-  font-size: var(--text-sm); line-height: var(--leading-sm); letter-spacing: var(--tracking-sm); text-align: center; text-wrap: balance; }
+/* The 108 it is named after: narrow, so nearly every story takes two lines */
+.kid-story { max-width: 16.5em; min-height: calc(2 * var(--leading-md) * 1em); margin: var(--gap-03) auto 0; color: var(--ink-2);
+  font-size: var(--text-md); line-height: var(--leading-md); letter-spacing: var(--tracking-md); text-align: center; text-wrap: balance; }
 .kid-story.is-in { animation: kid-story-in 0.45s var(--ease-smooth); }
 @keyframes kid-story-in { from { opacity: 0; } }
-@media (max-width: 767px) { .kid--big .kid-drum { --tile: 7.5rem; } }
+@media (max-width: 767px) { .kid--big .kid-drum { --tile: 9rem; } }
 @media (prefers-reduced-motion: reduce) { .kid-story.is-in { animation: none; } }
 `;
 
