@@ -146,7 +146,7 @@ p { text-wrap: pretty; }
 }
 
 /* ---------- The top of every window ----------
-   Sign in, your account, checkout, help, Mockup Gen Pro and the site's own windows all start with this bar: the label in
+   Sign in, your account, checkout, help, Mockup Gem Pro and the site's own windows all start with this bar: the label in
    the middle, × on the right (always this size, always this far from the corner), and an optional slot on the left
    (‹ back, or your creature). The window sets --win-pad to its own padding, so the bar sits var(--gap-03) from the
    window's top and right edges in every one of them. Messages (kit/notice) open in its middle.
