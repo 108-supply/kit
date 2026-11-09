@@ -6,6 +6,8 @@
      const [w, h] = videoSize(width, height);            // 1080p (or videoSize(w, h, VIDEO_4K))
      const mp4 = await renderVideo({ video, file, width: w, height: h, draw: (feed) => canvas, onProgress });
 
+   Mosaic has no source video: renderLoop({ width, height, frames, fps, draw: (i) => canvas }) draws every frame itself.
+
    `fps` and `bitrate` change the defaults (60 fps, ~0.12 bit a pixel): Grainwash makes 30 fps at a higher rate,
    because grain is the hardest thing there is for a video encoder. */
 import { ArrayBufferTarget, Muxer } from 'mp4-muxer';
@@ -362,5 +364,93 @@ async function encodeVideo({ video, file, width, height, draw, onProgress, signa
     if (encoder.state !== 'closed') encoder.close();
     video.currentTime = was;
     if (!wasPaused) video.play().catch(() => {});
+  }
+}
+
+/* ---------- Loops made from nothing (Mosaic): no source video, every frame is drawn by the tool ---------- */
+
+export interface RenderLoop {
+  width: number;
+  height: number;
+  /** How many frames the MP4 has (a perfect loop: frame `frames` would be frame 0 again) */
+  frames: number;
+  fps: number;
+  /** Draws frame i (0 … frames − 1) at width × height */
+  draw: (i: number) => HTMLCanvasElement | OffscreenCanvas | null;
+  onProgress?: (p: number) => void;
+  signal?: { cancelled: boolean };
+  bitrate?: Bitrate;
+}
+
+/** Whether this browser can encode a loop of w × h at fps with WebCodecs (asked before a 4K render) */
+export async function canMakeLoop(w: number, h: number, fps = VIDEO_MAX_FPS, rate: Bitrate = defaultBitrate) {
+  return 'VideoEncoder' in window && 'VideoFrame' in window && !!(await pickCodec(w, h, rate(w, h, fps), fps));
+}
+
+/** An MP4 of `frames` frames, each drawn by `draw(i)`, encoded frame by frame with WebCodecs (H.264, VP9 when there is
+    no H.264). Made with the same care as renderVideo: the encoder's queue is kept short, a frozen encoder is noticed,
+    and Safari's held-back last frames are pushed out with copies after the end that are not kept. Silent. */
+export async function renderLoop({ width, height, frames, fps, draw, onProgress, signal, bitrate: rate }: RenderLoop): Promise<Blob> {
+  if (!('VideoEncoder' in window && 'VideoFrame' in window)) throw new Error('This browser cannot make MP4 video');
+  const bits = rate ?? defaultBitrate;
+  const picked = await pickCodec(width, height, bits(width, height, fps), fps);
+  if (!picked) throw new Error('This browser cannot make MP4 video');
+  const { config, mux } = picked;
+  const muxer = new Muxer({ target: new ArrayBufferTarget(), video: { codec: mux, width, height, frameRate: fps }, fastStart: 'in-memory' });
+  let failed: unknown = null;
+  let out = 0, gave = performance.now(), sent = 0, given = 0;
+  const end = Math.round((frames * 1e6) / fps);
+  const frozen = () => !document.hidden && sent > 0 && performance.now() - Math.max(gave, sent) > (given ? 30000 : 10000);
+  const encoder = new VideoEncoder({
+    output: (chunk, meta) => { gave = performance.now(); given++; if (chunk.timestamp >= end) return; out++; muxer.addVideoChunk(chunk, meta); },
+    error: (e) => { failed = e; },
+  });
+  encoder.configure(config);
+  let limit = 4;
+  const budget = Math.max(6, Math.min(48, Math.floor(400e6 / (width * height * 4))));
+  try {
+    for (let i = 0; i < frames; i++) {
+      if (signal?.cancelled) throw new Error('cancelled');
+      if (failed) throw failed;
+      if (encoder.state !== 'configured') throw new Error('interrupted');
+      const src = draw(i);
+      if (!src) throw new Error('No picture');
+      const frame = new VideoFrame(src, { timestamp: Math.round((i * 1e6) / fps), duration: Math.round(1e6 / fps) });
+      encoder.encode(frame, { keyFrame: i % (fps * 2) === 0 });
+      frame.close();
+      if (!sent) sent = performance.now();
+      if (frozen()) throw new Error('encoder stalled');
+      let t = 0, q = encoder.encodeQueueSize, still = 0;
+      while (encoder.encodeQueueSize > limit && t++ < (encoder.encodeQueueSize > budget && still < 150 ? 750 : 50)) {
+        await new Promise((r) => setTimeout(r, 4));
+        if (frozen()) throw new Error('encoder stalled');
+        if (encoder.encodeQueueSize === q) still++; else { q = encoder.encodeQueueSize; still = 0; }
+      }
+      if (encoder.encodeQueueSize > limit) limit = Math.min(budget, limit + 8);
+      // let the page breathe (the progress shows) every few frames
+      if (i % 4 === 3) await new Promise((r) => setTimeout(r, 0));
+      onProgress?.((i + 1) / frames);
+    }
+    const flushed = encoder.flush().then(() => true, (e) => { failed ??= e; return true; });
+    const until = performance.now() + 20000;
+    const last = draw(frames - 1);
+    let pad = 0, quiet = 0;
+    while (!(await Promise.race([flushed, new Promise<false>((r) => setTimeout(() => r(false), 250))]))) {
+      if (signal?.cancelled) throw new Error('cancelled');
+      if (out >= frames) break;
+      if (performance.now() > until) throw new Error('stalled');
+      if (++quiet >= 2 && last && pad < 60 && encoder.state === 'configured') {
+        for (let k = 0; k < 8; k++, pad++) {
+          const f = new VideoFrame(last, { timestamp: end + Math.round((pad * 1e6) / fps), duration: Math.round(1e6 / fps) });
+          encoder.encode(f, { keyFrame: false });
+          f.close();
+        }
+      }
+    }
+    if (failed) throw failed;
+    muxer.finalize();
+    return new Blob([muxer.target.buffer], { type: 'video/mp4' });
+  } finally {
+    if (encoder.state !== 'closed') encoder.close();
   }
 }
