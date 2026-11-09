@@ -20,6 +20,8 @@
     "./confirm": "./src/confirm.ts",
     "./notice": "./src/notice.ts",
     "./help": "./src/help.ts",
+    "./video": "./src/video.ts",
+    "./video-decode": "./src/video-decode.ts",
     "./system.css": "./src/styles/system.css",
     "./tokens.css": "./src/styles/tokens.css",
     "./base.css": "./src/styles/base.css",
@@ -27,5 +29,9 @@
   },
   "files": [
     "src"
-  ]
+  ],
+  "dependencies": {
+    "mp4-muxer": "^5.2.2",
+    "mp4box": "^2.5.0"
+  }
 }
