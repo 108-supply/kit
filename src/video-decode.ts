@@ -18,8 +18,15 @@ export interface Frames {
 
 const CHUNK = 4 << 20;
 
-/** Reads the index (moov), wherever it is in the file: the media data before it is skipped, not read */
-async function index(blob: Blob) {
+/** Reads the index (moov), wherever it is in the file: the media data before it is skipped, not read. Kept per file:
+    a perfect loop opens the same file again for every piece it plays backwards. */
+const indexes = new WeakMap<Blob, ReturnType<typeof readIndex>>();
+function index(blob: Blob) {
+  let i = indexes.get(blob);
+  if (!i) { i = readIndex(blob); indexes.set(blob, i); }
+  return i;
+}
+async function readIndex(blob: Blob) {
   const file = createFile();
   let info: Movie | null = null;
   let failed = '';
@@ -48,7 +55,9 @@ function description(file: ReturnType<typeof createFile>, id: number) {
   return undefined;
 }
 
-export async function openFrames(blob: Blob, seconds: number): Promise<Frames | null> {
+/** The frames of the first `seconds` of the file. With `from`, decoding starts at the keyframe just before that time
+    (frames before it are not asked for). */
+export async function openFrames(blob: Blob, seconds: number, from = 0): Promise<Frames | null> {
   if (!('VideoDecoder' in window) || !blob.size) return null;
   let parsed: Awaited<ReturnType<typeof index>>;
   try { parsed = await index(blob); } catch { return null; }
@@ -75,7 +84,12 @@ export async function openFrames(blob: Blob, seconds: number): Promise<Frames | 
   // Only what the mockup uses: the first `seconds` (and a little more, for frames shown out of order)
   const first = Math.min(...samples.slice(0, 16).map((s) => s.cts));
   const until = first + (seconds + 0.5) * track.timescale;
-  const todo = samples.filter((s) => s.dts <= until);
+  let start = 0;
+  if (from > 0) {
+    const at = first + from * track.timescale;
+    for (let k = 0; k < samples.length && samples[k].dts <= until; k++) if (samples[k].is_sync && samples[k].cts <= at) start = k;
+  }
+  const todo = samples.slice(start).filter((s) => s.dts <= until);
 
   const frames: VideoFrame[] = [];
   let failed: unknown = null;

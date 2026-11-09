@@ -131,6 +131,9 @@ export interface RenderVideo {
   fps?: number;
   /** Bits per second (default about 0.12 bit a pixel, at most 24–30 Mbit/s for 1080p and 50 for 4K) */
   bitrate?: Bitrate;
+  /** A perfect loop: the video, then the same frames backwards (twice as long, at most 30 s of the file). Only
+      frame by frame (WebCodecs); a browser that records the video as it plays makes it once, forwards. */
+  loop?: boolean;
 }
 
 /** Frame by frame everywhere (WebCodecs): every frame of your video gets its own render, so the MP4 is smooth however
@@ -232,14 +235,19 @@ async function recordVideo({ video, width, height, draw, onProgress, signal }: R
 /** 60 fps, 1080p and 4K */
 const fpsFor = (_w: number, _h: number) => VIDEO_MAX_FPS;
 
-async function encodeVideo({ video, file, width, height, draw, onProgress, signal, fps: asked }: RenderVideo, want = asked ?? fpsFor(width, height)): Promise<Blob> {
-  const duration = Math.min(VIDEO_MAX_SECONDS, Number.isFinite(video.duration) ? video.duration : 0);
+async function encodeVideo({ video, file, width, height, draw, onProgress, signal, fps: asked, loop }: RenderVideo, want = asked ?? fpsFor(width, height)): Promise<Blob> {
+  // a perfect loop is twice as long: half of the longest video goes in
+  const duration = Math.min(loop ? VIDEO_MAX_SECONDS / 2 : VIDEO_MAX_SECONDS, Number.isFinite(video.duration) ? video.duration : 0);
   // 60 fps always; 30 when this device cannot encode that size at that rate
   let fps = want;
   trace.step = 'codec';
   let picked = await pickCodec(width, height, bitrate(width, height, fps), fps);
   if (!picked && fps > 30) { fps = 30; picked = await pickCodec(width, height, bitrate(width, height, fps), fps); }
-  const frames = Math.max(1, Math.floor(duration * fps));
+  const forward = Math.max(1, Math.floor(duration * fps));
+  const frames = loop && forward > 2 ? forward * 2 - 2 : forward;
+  // the middle of each frame's slot, so a 30 fps source never lands between two of its own frames
+  const timeOf = (k: number) => Math.min(duration - 0.001, (k + 0.5) / fps);
+  const stamp = (i: number) => Math.round((i * 1e6) / fps);
   if (!picked) throw new Error('This browser cannot make MP4 video');
   const { config, mux } = picked;
 
@@ -276,27 +284,25 @@ async function encodeVideo({ video, file, width, height, draw, onProgress, signa
   if (!decoded && file) opening.then((late) => late?.close());
   seekMisses = 0;
   try {
-    for (let i = 0; i < frames; i++) {
+    /** The picture at `at` seconds of the video: decoded from the file in order (`from`), else by seeking the <video> */
+    const pictureAt = async (at: number, i: number, from: Frames | null) => {
       if (signal?.cancelled) throw new Error('cancelled');
       if (failed) throw failed;
       // iOS can take the encoder away while Safari is in the background
       if (encoder.state !== 'configured') throw new Error('interrupted');
-      // the middle of each frame's slot, so a 30 fps source never lands between two of its own frames
-      const at = Math.min(duration - 0.001, (i + 0.5) / fps);
       let feed: Feed | undefined;
       const n = i < 3 ? `${i + 1} ` : '';
       if (i < 3 || i % 30 === 0) trace.step = `${n}decode ${fps}fps ${width}×${height}`;
-      if (decoded) {
+      if (from) {
         try {
           // a decoder that gives nothing for 6 s is left for the <video>
-          const asked = decoded.frameAt(at);
+          const asked = from.frameAt(at);
           asked.catch(() => {});
           const f = await Promise.race([asked, new Promise<never>((_, no) => setTimeout(() => no(new Error('slow decode')), 6000))]);
-          if (f) feed = { frame: f, width: decoded.width, height: decoded.height, turns: decoded.turns };
+          if (f) feed = { frame: f, width: from.width, height: from.height, turns: from.turns };
         } catch {
           if (signal?.cancelled) throw new Error('cancelled');
-          decoded.close();
-          decoded = null;
+          return null; // the caller lets this decoder go and asks again without it
         }
       }
       if (!feed) { if (i < 3) trace.step = `${n}seek`; await seek(video, at); }
@@ -304,16 +310,17 @@ async function encodeVideo({ video, file, width, height, draw, onProgress, signa
       if (seekMisses >= 4) throw new Error('stalled');
       let src: ReturnType<typeof draw>;
       try { src = draw(feed); } catch (e) {
-        if (!feed || !decoded) throw e;
-        // this browser cannot draw the decoded frames: the <video> is stepped instead, from here on
-        decoded.close();
-        decoded = null;
-        await seek(video, at);
-        src = draw();
+        if (!feed) throw e;
+        return null; // this browser cannot draw the decoded frames: the <video> is stepped instead
       }
       if (!src) throw new Error('No picture');
+      return src;
+    };
+    /** Frame i of the MP4 (a picture, or a frame kept from it), then waits for the encoder to keep up */
+    const push = async (src: CanvasImageSource | OffscreenCanvas | VideoFrame, i: number) => {
+      const n = i < 3 ? `${i + 1} ` : '';
       if (i < 3) trace.step = `${n}encode`;
-      const frame = new VideoFrame(src, { timestamp: Math.round((i * 1e6) / fps), duration: Math.round(1e6 / fps) });
+      const frame = src instanceof VideoFrame ? src : new VideoFrame(src as CanvasImageSource, { timestamp: stamp(i), duration: Math.round(1e6 / fps) });
       encoder.encode(frame, { keyFrame: i % (fps * 2) === 0 });
       frame.close();
       if (!sent) sent = performance.now();
@@ -333,7 +340,53 @@ async function encodeVideo({ video, file, width, height, draw, onProgress, signa
         if (encoder.encodeQueueSize === q) still++; else { q = encoder.encodeQueueSize; still = 0; }
       }
       if (encoder.encodeQueueSize > limit) limit = Math.min(budget, limit + 8);
-      onProgress?.((i + 1) / frames);
+    };
+    /** The picture at `at`, from `from` when it can, else from the <video> (from then on: `lost` says so) */
+    let lost = false;
+    const picture = async (at: number, i: number, from: Frames | null) => {
+      const src = await pictureAt(at, i, lost ? null : from);
+      if (src) return src;
+      lost = true;
+      return (await pictureAt(at, i, null))!;
+    };
+
+    // Forward: the video as it plays
+    let done = 0;
+    for (let i = 0; i < forward; i++) {
+      const src = await picture(timeOf(i), i, decoded);
+      if (lost && decoded) { decoded.close(); decoded = null; }
+      await push(src, i);
+      onProgress?.(++done / frames);
+    }
+    decoded?.close();
+    decoded = null;
+
+    // A perfect loop: the same frames back to the start (the last and the first are not shown twice). A decoder only
+    // goes forward, so the way back is made in pieces: each piece is decoded forward from its keyframe, its pictures
+    // are kept (as many as fit in about 250 MB), then they go to the encoder last first.
+    const piece = Math.max(4, Math.min(60, Math.floor(250e6 / (width * height * 4))));
+    for (let j = forward - 2; j >= 1;) {
+      const lo = Math.max(1, j - piece + 1);
+      let back: Frames | null = null;
+      if (file && !lost) {
+        const opening = openFrames(file, duration, timeOf(lo)).catch(() => null);
+        back = await Promise.race([opening, new Promise<null>((r) => setTimeout(() => r(null), 12000))]);
+        if (!back) { lost = true; opening.then((late) => late?.close()); }
+      }
+      const kept: VideoFrame[] = [];
+      try {
+        for (let k = lo; k <= j; k++) {
+          const i = frames - k;
+          const src = await picture(timeOf(k), i, back);
+          kept.push(new VideoFrame(src as CanvasImageSource, { timestamp: stamp(i), duration: Math.round(1e6 / fps) }));
+          onProgress?.(++done / frames);
+        }
+        while (kept.length) await push(kept.pop()!, frames - (lo + kept.length));
+      } finally {
+        kept.forEach((f) => f.close());
+        back?.close();
+      }
+      j = lo - 1;
     }
     // The last frames: wait for the encoder, but not for ever. If every frame came back the file is complete even
     // when flush itself never ends (Safari). Safari holds its last frames until more come: copies of the last frame
