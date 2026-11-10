@@ -195,7 +195,7 @@ const CSS = `
 .kaw-grid > .kaw-card:first-child:nth-last-child(odd) .kaw-media { aspect-ratio: 8 / 3; }
 .kaw-grid:empty { display: none; }
 .kaw-grid + .kaw-grid { margin-top: var(--gap-06); }
-.kaw-sub { margin: var(--gap-07) 0 var(--gap-04); color: var(--ink-2); font-weight: inherit; font-family: var(--font-label); font-size: var(--label-sm); letter-spacing: var(--tracking-label-sm); text-transform: uppercase; }
+.kaw-sub { margin: var(--gap-07) 0 var(--gap-04); color: var(--ink-2); font-weight: inherit; font-family: var(--font-label); font-size: var(--label-sm); letter-spacing: var(--tracking-label-sm); text-transform: uppercase; font-feature-settings: "case" 1; }
 .kaw-card { display: flex; flex-direction: column; gap: var(--gap-02); min-width: 0; }
 .kaw-media { position: relative; display: block; aspect-ratio: 4 / 3; border-radius: var(--radius-md); overflow: hidden;
   background: var(--surface-3); container-type: size; transition: background-color 0.4s var(--ease-smooth), transform 0.2s; }
@@ -207,7 +207,7 @@ const CSS = `
 .kaw-frame--visual { aspect-ratio: 4 / 5; }
 .kaw-frame img { display: block; width: 100%; height: 100%; object-fit: cover; }
 .kaw-tag { position: absolute; top: 0; left: 0; z-index: 1; margin: var(--gap-03); padding: var(--gap-01) var(--gap-02); border-radius: var(--radius-full);
-  background: var(--light-1); color: var(--dark-1); font-family: var(--font-label); font-size: var(--label-sm); line-height: 1; letter-spacing: var(--tracking-label-sm); text-transform: uppercase; }
+  background: var(--light-1); color: var(--dark-1); font-family: var(--font-label); font-size: var(--label-sm); line-height: 1; letter-spacing: var(--tracking-label-sm); text-transform: uppercase; font-feature-settings: "case" 1; }
 .kaw-tag[hidden] { display: none; }
 .kaw-caption { display: flex; justify-content: space-between; align-items: flex-start; gap: var(--gap-03); }
 .kaw-caption > span:first-child { min-width: 0; display: flex; flex-direction: column; }

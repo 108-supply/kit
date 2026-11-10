@@ -27,6 +27,8 @@ a { color: inherit; text-decoration: none; }
 ul { list-style: none; }
 html {
   -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent; /* no grey flash on tap (iOS); focus rings still show for keyboards */
   text-rendering: optimizeLegibility;
   font-kerning: normal;
   font-feature-settings: "kern" 1, "liga" 1, "clig" 1, "calt" 1;
@@ -52,7 +54,7 @@ p { text-wrap: pretty; }
 .heading-h3 { font-family: var(--font-heading); font-size: var(--text-h3); line-height: var(--leading-h3); letter-spacing: var(--tracking-h3); }
 .text-large { font-size: var(--text-lg); line-height: var(--leading-lg); letter-spacing: var(--tracking-lg); }
 .text-small { font-size: var(--text-sm); line-height: var(--leading-sm); letter-spacing: var(--tracking-sm); }
-.label-small { font-family: var(--font-label); font-size: var(--label-sm); line-height: 1; letter-spacing: var(--tracking-label-sm); text-transform: uppercase; }
+.label-small { font-family: var(--font-label); font-size: var(--label-sm); line-height: 1; letter-spacing: var(--tracking-label-sm); text-transform: uppercase; font-feature-settings: "case" 1; }
 .muted { color: var(--ink-2); }
 .subtle { color: var(--ink-2); } /* same as .muted since Ink 3 became the fill colour */
 
@@ -156,7 +158,7 @@ p { text-wrap: pretty; }
 .win-bar > * { grid-row: 1; }
 .win-bar > :first-child:not(.win-title):not(.win-close) { grid-column: 1; }
 .win-title { grid-column: 2; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: center; color: var(--ink-2);
-  font-family: var(--font-label); font-size: var(--label-sm); line-height: 1.2; letter-spacing: var(--tracking-label-sm); text-transform: uppercase; }
+  font-family: var(--font-label); font-size: var(--label-sm); line-height: 1.2; letter-spacing: var(--tracking-label-sm); text-transform: uppercase; font-feature-settings: "case" 1; }
 .win-close, .win-round { display: grid; place-items: center; width: 2.5rem; height: 2.5rem; padding: 0; border: 0; border-radius: var(--radius-full);
   background: var(--surface-3); color: var(--ink-1); cursor: pointer; -webkit-tap-highlight-color: transparent;
   transition: background-color 0.3s var(--ease-smooth), color 0.3s var(--ease-smooth); }
