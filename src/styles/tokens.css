@@ -157,7 +157,7 @@
     --section-xs: 1rem;
     --section-sm: 3rem;
     --section-md: 4rem;
-    --section-lg: 7.5rem;
+    --section-lg: 6rem;
     --section-xl: 10rem;
 
     /* Phone type scale (1rem = 16px at 390): headings step down so a screen holds a heading, a line of copy and the work */
