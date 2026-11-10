@@ -25,7 +25,7 @@ const CSS = `
   box-sizing: border-box; min-height: 2.25rem; width: max-content; padding: var(--gap-02) var(--gap-04);
   border-radius: 1.125rem; background: var(--overlay-glass); -webkit-backdrop-filter: blur(24px); backdrop-filter: blur(24px);
   color: var(--ink-1); font-family: var(--font-label); font-size: var(--label-sm); line-height: 1.25; letter-spacing: var(--tracking-label-sm);
-  text-transform: uppercase; text-align: center; white-space: nowrap; pointer-events: none;
+  text-transform: uppercase; font-feature-settings: "case" 1; text-align: center; white-space: nowrap; pointer-events: none;
   translate: -50% -50%;
   /* Out: a small round pill tucked up at the centre (like the iPhone's Dynamic Island before it opens) */
   clip-path: inset(0 calc(50% - 1.125rem) round 1.125rem); transform: translateY(-1rem) scale(0.7); opacity: 0; visibility: hidden;

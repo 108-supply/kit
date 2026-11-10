@@ -106,7 +106,7 @@ const CSS = `
   background-size: 300% 300%; background-position: calc(50% - var(--kmc-hx) * 60%) calc(50% - var(--kmc-hy) * 60%);
   -webkit-mask: var(--kmc-g) center / 100% 100% no-repeat; mask: var(--kmc-g) center / 100% 100% no-repeat; mix-blend-mode: hard-light; }
 .kmc-holo-art { overflow: visible; }
-.kmc-holo-text { fill: currentColor; opacity: 0.72; font-family: var(--font-label); text-transform: uppercase; }
+.kmc-holo-text { fill: currentColor; opacity: 0.72; font-family: var(--font-label); text-transform: uppercase; font-feature-settings: "case" 1; }
 .kmc-holo-glare { background: radial-gradient(circle at var(--kmc-lx) var(--kmc-ly), rgba(255,255,255,0.55) 0%, rgba(255,255,255,0) 22%),
     linear-gradient(calc(115deg + var(--kmc-hy) * 25deg), transparent 34%, rgba(255,255,255,0.5) 49%, transparent 60%);
   background-size: 100% 100%, 260% 260%; background-position: 0 0, calc(50% - var(--kmc-hx) * 70%) 50%; mix-blend-mode: soft-light; }
