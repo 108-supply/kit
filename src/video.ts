@@ -365,7 +365,8 @@ async function encodeVideo({ video, file, width, height, draw, onProgress, signa
     // goes forward, so the way back is made in pieces: each piece is decoded forward from its keyframe, its pictures
     // are kept (as many as fit in about 250 MB), then they go to the encoder last first.
     const piece = Math.max(4, Math.min(60, Math.floor(250e6 / (width * height * 4))));
-    for (let j = forward - 2; j >= 1;) {
+    // (only for a loop: without one the video ends with its last frame)
+    for (let j = loop ? forward - 2 : 0; j >= 1;) {
       const lo = Math.max(1, j - piece + 1);
       let back: Frames | null = null;
       if (file && !lost) {
