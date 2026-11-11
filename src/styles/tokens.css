@@ -3,11 +3,11 @@
    see base.css (fluid scale). Fonts are loaded separately: fonts.css (tools) or the site's own files. */
 
 /* Fallbacks shaped like Diatype: the computer's own Arial / Courier New, resized and given Diatype's line metrics
-   (measured from the woff2 files: ascent 0.85, descent 0.15, no line gap; Diatype is 99.5% of Arial's width, Mono is
-   exactly Courier's 0.6 em). While Diatype is still loading the invisible text already takes its final size, so
+   (measured from the woff2 files: ascent 0.85, descent 0.15, no line gap; Diatype is 99.5% of Arial's width; Geist Mono
+   is exactly Courier's 0.6 em and gets the same 0.85 / 0.15 metrics in its @font-face). While Diatype is still loading the invisible text already takes its final size, so
    nothing moves when the real font arrives. */
 @font-face { font-family: "Diatype Fallback"; src: local("Arial"), local("ArialMT"), local("Liberation Sans"); size-adjust: 99.5%; ascent-override: 85.4%; descent-override: 15.1%; line-gap-override: 0%; }
-@font-face { font-family: "Diatype Mono Fallback"; src: local("Courier New"), local("CourierNewPSMT"), local("Liberation Mono"); size-adjust: 100%; ascent-override: 85%; descent-override: 15%; line-gap-override: 0%; }
+@font-face { font-family: "Geist Mono Fallback"; src: local("Courier New"), local("CourierNewPSMT"), local("Liberation Mono"); size-adjust: 100%; ascent-override: 85%; descent-override: 15%; line-gap-override: 0%; }
 
 :root {
   /* 👉 Your Brand */
@@ -21,7 +21,7 @@
 
   --font-heading: "Diatype", "Diatype Fallback", Arial, sans-serif;
   --font-body: "Diatype", "Diatype Fallback", Arial, sans-serif;
-  --font-label: "Diatype Mono", "Diatype Mono Fallback", ui-monospace, monospace;
+  --font-label: "Geist Mono", "Geist Mono Fallback", ui-monospace, monospace;
   --font-alt: "Season Sans", "Diatype", sans-serif;
   --weight-default: 500;
   --weight-strong: 600;
