@@ -38,8 +38,8 @@ export function toolStatus(me: Account, products: string[]): 'subscribed' | 'pur
   return products.some((id) => me.subscriptions?.includes(id)) ? 'subscribed' : 'purchased';
 }
 
-/** Where the account lives. new.108.supply until the site launches on 108.supply (then change it here, once). */
-export const ACCOUNT_ORIGIN = 'https://new.108.supply';
+/** Where the account lives. 108.supply (live since 2026-11-13). */
+export const ACCOUNT_ORIGIN = 'https://108.supply';
 
 const SIGNED_OUT: Account = { signedIn: false };
 const listeners = new Set<(a: Account) => void>();
