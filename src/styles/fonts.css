@@ -6,5 +6,4 @@
 @font-face { font-family: "Diatype"; src: url("https://new.108.supply/fonts/Diatype-Medium.woff2") format("woff2"); font-weight: 600; font-display: block; }
 /* Geist Mono (free, SIL OFL) for the labels, with Diatype Mono's old line metrics so nothing moves (same 0.6 em width). */
 @font-face { font-family: "Geist Mono"; src: url("https://new.108.supply/fonts/GeistMono-Regular.woff2") format("woff2"); font-weight: 400 500; font-display: block; ascent-override: 85%; descent-override: 15%; line-gap-override: 0%; }
-@font-face { font-family: "Season Sans"; src: url("https://new.108.supply/fonts/SeasonSans-Medium.woff2") format("woff2"); font-weight: 500; font-display: block; }
 
