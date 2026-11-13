@@ -34,7 +34,7 @@
   --text-h1: 3.5rem;       --leading-h1: 0.92;      --tracking-h1: -0.048em;
   --text-h2: 3rem;         --leading-h2: 1;         --tracking-h2: -0.04em;
   --text-h3: 2.16rem;      --leading-h3: 1.08;      --tracking-h3: -0.032em;
-  --text-h6: 1.5rem;       --leading-h6: 1;         --tracking-h6: 0.03125em;
+  --text-h6: 1.5rem;       --leading-h6: 1;         --tracking-h6: 0;
   --text-lg: 1.25rem;      --leading-lg: 1.36;      --tracking-lg: 0;     
   --text-md: 1rem;         --leading-md: 1.5;       --tracking-md: -0.008em;
   --text-sm: 0.875rem;     --leading-sm: 1.5;       --tracking-sm: -0.008em;
