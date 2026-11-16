@@ -1,5 +1,5 @@
 /* The All Access member card (Ariel 2026-11-08): a quiet card on Surface 3. Top right the hologram, bottom left
-   "Lifetime All Access" and "Member since November 2026" (both Text Large), gap 06 from the edges. (memberNo stays for later.)
+   "All Access" and "Member since November 2026" (both Text Large), gap 06 from the edges. (memberNo stays for later.)
    One geometry runs through it all, with 13 waves (a Fibonacci number, like the sunflower's own arms):
    - the hologram is a rosette seal: woven wavy rings, an edge cut in the same wave, ALL ACCESS in a ring between them;
    - the dots are the sunflower spiral from /thank-you, starting at the hologram and turning slowly (the seal turns with it);
@@ -126,9 +126,9 @@ function ensureStyle() {
 export function memberCardHtml(m: Member) {
   ensureStyle();
   const since = memberSince(m.since);
-  return `<div class="kmc" role="img" aria-label="${esc(['Lifetime All Access', since && `member since ${since}`].filter(Boolean).join(', '))}" data-member-card>
+  return `<div class="kmc" role="img" aria-label="${esc(['All Access', since && `member since ${since}`].filter(Boolean).join(', '))}" data-member-card>
     ${hologramHtml()}
-    <div class="kmc-bottom"><span class="kmc-title">Lifetime All Access</span>${since ? `<span class="kmc-since">Member since ${since}</span>` : ''}</div>
+    <div class="kmc-bottom"><span class="kmc-title">All Access</span>${since ? `<span class="kmc-since">Member since ${since}</span>` : ''}</div>
   </div>`;
 }
 
