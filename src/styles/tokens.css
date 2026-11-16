@@ -90,6 +90,8 @@
   --shade-2: #00000099;            /* strong shade over photos and videos (60%) */
   --dot-color: #eff1f02e;          /* dot backgrounds and the dot logo */
   --dot-accent: var(--accent);
+  --selection-fill: var(--light-3); /* highlighted text: light grey + full black, same in both modes (Ariel 2026-11-16) */
+  --selection-ink: var(--dark-1);
 
   /* 🚦 Status */
   --status-error: #ff4a33;

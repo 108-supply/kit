@@ -68,6 +68,7 @@ p { text-wrap: pretty; }
 .text-link:hover { text-decoration: underline; }
 
 :focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+::selection { background: var(--selection-fill); color: var(--selection-ink); }
 
 /* ---------- Inputs: one style for every text field (account name, newsletter email, sign-in email and code) ----------
    Editable = a filled Surface 3 pill, no border; hover and focus lift it to Ink hover, focus adds a thin Ink 3 ring.
