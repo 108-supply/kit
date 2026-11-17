@@ -9,6 +9,7 @@
 
    Backend: 108-supply/108-supply → worker/account.ts (GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET). */
 import { ACCOUNT_ORIGIN } from './account';
+import { visitContext } from './visit';
 
 let available: Promise<boolean> | null = null;
 
@@ -24,7 +25,7 @@ const signedInCookie = () => document.cookie.split(';').some((c) => c.trim().sta
 
 /** Opens Google. Resolves true once you're signed in, false if the window was closed or it took too long. */
 export function signInWithGoogle(origin = ACCOUNT_ORIGIN): Promise<boolean> {
-  const back = encodeURIComponent(location.href);
+  const back = `${encodeURIComponent(location.href)}&ctx=${encodeURIComponent(JSON.stringify(visitContext()))}`;
   const w = 480, h = 640;
   const left = Math.max(0, (window.screenX ?? 0) + (window.outerWidth - w) / 2);
   const top = Math.max(0, (window.screenY ?? 0) + (window.outerHeight - h) / 2);

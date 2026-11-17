@@ -13,6 +13,7 @@ import { ACCOUNT_ORIGIN, account, setAccount, type Account } from './account';
 import { identityHtml, mountIdentity, type Identity } from './identity';
 import { sound } from './sound';
 import { googleAvailable, signInWithGoogle } from './google';
+import { visitContext } from './visit';
 
 export interface SignInOptions {
   /** "signup" only changes the words: the same code signs you in or makes your account */
@@ -266,7 +267,7 @@ async function verify(form: HTMLFormElement) {
   verifying = true;
   submit.setAttribute('aria-busy', 'true');
   try {
-    const { status, body } = await api<Account & { ok?: boolean; error?: string }>('/api/auth/verify', { code });
+    const { status, body } = await api<Account & { ok?: boolean; error?: string }>('/api/auth/verify', { code, ctx: visitContext() });
     if (status !== 200 || !body.ok) { err.textContent = errorText(body.error); return; }
     const { ok: _ok, error: _e, ...next } = body;
     me = next;
