@@ -13,6 +13,7 @@
 
    Every element passed opens it (a tool can have the opener in more than one place). */
 import { sound } from './sound';
+import './focus-trap';
 
 export interface HelpOptions {
   title: string;

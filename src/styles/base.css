@@ -80,7 +80,7 @@ p { text-wrap: pretty; }
   background: var(--surface-3); color: var(--ink-1); font: inherit; font-size: var(--text-input); text-align: left;
   transition: background-color 0.3s var(--ease-smooth), outline-color 0.3s var(--ease-smooth);
   outline: 1.5px solid transparent; outline-offset: -1.5px; }
-.input::placeholder { color: var(--ink-3); }
+.input::placeholder { color: var(--ink-2); } /* Ink 3 is under 4.5:1: never text */
 @media (hover: hover) { .input:hover:not(:disabled, [readonly]) { background: var(--ink-hover); } }
 .input:focus, .input:focus-visible { background: var(--ink-hover); outline: 1.5px solid var(--ink-3); outline-offset: -1.5px; }
 .input:disabled, .input[readonly] { padding: 0; border-radius: 0; background: none; outline: 0; color: var(--ink-2);
