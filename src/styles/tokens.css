@@ -22,8 +22,8 @@
   --font-heading: "Diatype", "Diatype Fallback", Arial, sans-serif;
   --font-body: "Diatype", "Diatype Fallback", Arial, sans-serif;
   --font-label: "Geist Mono", "Geist Mono Fallback", ui-monospace, monospace;
-  --weight-default: 500;
-  --weight-strong: 600;
+  --weight-default: 400;
+  --weight-strong: 400;
 
   /* 🅰 Typography (Desktop 1440) */
   /* Display: the big titles (All Access, Tools, numbers, About). Browse: listing titles (Motion, Web, Account…) */

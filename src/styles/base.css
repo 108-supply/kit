@@ -46,6 +46,8 @@ body {
   font-synthesis: none;
 }
 h1, h2, h3 { font-weight: inherit; text-wrap: balance; }
+/* One Diatype file (Regular) draws every weight: bold elements keep the token weight so tools read "Regular" */
+b, strong, th { font-weight: var(--weight-strong); }
 p { text-wrap: pretty; }
 
 /* ---------- Text styles (same names as Figma) ---------- */

@@ -100,7 +100,7 @@ const CSS = `
 .kit-cheer.is-in .kit-cheer-blur { background: color-mix(in srgb, var(--dark-1, #000) 45%, transparent); -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px); }
 .kit-cheer-title {
   position: relative; margin: 0; text-align: center; color: var(--light-1, #fff);
-  font-family: var(--font-heading, sans-serif); font-weight: var(--weight-default, 500);
+  font-family: var(--font-heading, sans-serif); font-weight: var(--weight-default, 400);
   font-size: var(--text-h2, 3rem); line-height: var(--leading-h2, 1); letter-spacing: var(--tracking-h2, -0.04em);
   opacity: 0; translate: 0 16px; transition: opacity 0.8s var(--ease-smooth, ease), translate 0.8s var(--ease-smooth, ease);
 }
