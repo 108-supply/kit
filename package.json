@@ -13,6 +13,7 @@
     "./account-pill": "./src/account-pill.ts",
     "./signin": "./src/signin.ts",
     "./google": "./src/google.ts",
+    "./visit": "./src/visit.ts",
     "./account-window": "./src/account-window.ts",
     "./identity": "./src/identity.ts",
     "./checkout": "./src/checkout.ts",

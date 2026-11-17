@@ -39,6 +39,8 @@ export function toolStatus(me: Account, products: string[]): 'subscribed' | 'pur
 }
 
 /** Where the account lives. 108.supply (live since 2026-11-13). */
+import './visit'; // remembers where this browser first came from (sent only with a sign-in)
+
 export const ACCOUNT_ORIGIN = 'https://108.supply';
 
 const SIGNED_OUT: Account = { signedIn: false };
