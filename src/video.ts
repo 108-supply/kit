@@ -11,7 +11,11 @@
    `fps` and `bitrate` change the defaults (60 fps, ~0.12 bit a pixel): Grainwash makes 30 fps at a higher rate,
    because grain is the hardest thing there is for a video encoder. */
 import { ArrayBufferTarget, Muxer } from 'mp4-muxer';
-import { openFrames, type Frames } from './video-decode';
+import type { Frames } from './video-decode';
+
+/** The file reader (mp4box, about 200 KB) is loaded with the first video that is made, not with the page: most visits
+    never make one. If it cannot be loaded the frames are taken from the <video> instead, as for any file it cannot read. */
+const openFrames = async (...args: [Blob, number, number?]) => (await import('./video-decode')).openFrames(...args);
 
 /** Where a video render is (shown in the "slow" note, so a stuck render on a phone tells us where it waits) */
 export const trace = { step: '' };
