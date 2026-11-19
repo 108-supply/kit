@@ -24,6 +24,7 @@
     "./focus-trap": "./src/focus-trap.ts",
     "./video": "./src/video.ts",
     "./video-decode": "./src/video-decode.ts",
+    "./shape": "./src/shape.ts",
     "./system.css": "./src/styles/system.css",
     "./tokens.css": "./src/styles/tokens.css",
     "./base.css": "./src/styles/base.css",
