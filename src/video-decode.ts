@@ -11,6 +11,9 @@ export interface Frames {
   height: number;
   /** Quarter turns clockwise from the decoded picture to the picture as it plays (phones store portrait video lying down) */
   turns: number;
+  /** Frames per second the video was made at (0 when the file does not tell). For a video whose frames are not evenly
+      apart (a screen recording), the rate of its quick stretches. */
+  fps: number;
   /** The frame showing at t seconds from the start. It stays valid until the next call, or until close. */
   frameAt(t: number): Promise<VideoFrame | null>;
   close(): void;
@@ -90,6 +93,10 @@ export async function openFrames(blob: Blob, seconds: number, from = 0): Promise
     for (let k = 0; k < samples.length && samples[k].dts <= until; k++) if (samples[k].is_sync && samples[k].cts <= at) start = k;
   }
   const todo = samples.slice(start).filter((s) => s.dts <= until);
+  // How long a frame lasts where the video moves quickest (the tenth shortest of a hundred): a camera's frames all
+  // last the same, a screen recording holds a still frame for long and its average would say too little
+  const lasts = todo.slice(0, 1200).map((s) => s.duration / s.timescale).filter((d) => d > 0).sort((x, y) => x - y);
+  const fps = lasts.length > 1 ? 1 / lasts[Math.floor(lasts.length / 10)] : 0;
 
   const frames: VideoFrame[] = [];
   let failed: unknown = null;
@@ -163,7 +170,7 @@ export async function openFrames(blob: Blob, seconds: number, from = 0): Promise
   };
 
   return {
-    width, height, turns,
+    width, height, turns, fps,
     async frameAt(t: number) {
       const us = t * 1e6;
       await pump(us);

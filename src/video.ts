@@ -8,8 +8,8 @@
 
    Mosaic has no source video: renderLoop({ width, height, frames, fps, draw: (i) => canvas }) draws every frame itself.
 
-   `fps` and `bitrate` change the defaults (60 fps, ~0.12 bit a pixel): Grainwash makes 30 fps at a higher rate,
-   because grain is the hardest thing there is for a video encoder. */
+   `fps` and `bitrate` change the defaults (the file's own frame rate up to 60 fps, ~0.12 bit a pixel): Grainwash
+   makes 30 fps at a higher rate, because grain is the hardest thing there is for a video encoder. */
 import { ArrayBufferTarget, Muxer, StreamTarget } from 'mp4-muxer';
 import type { Frames } from './video-decode';
 
@@ -18,14 +18,15 @@ import type { Frames } from './video-decode';
 const openFrames = async (...args: [Blob, number, number?]) => (await import('./video-decode')).openFrames(...args);
 
 /** Where a video render is (shown in the "slow" note, so a stuck render on a phone tells us where it waits) */
-export const trace = { step: '', /** where the last MP4 was kept while it was made: 'disk' or 'memory' */ file: '',
+export const trace = { step: '', /** frames per second of the last video made */ fps: 0, /** where the last MP4 was kept while it was made: 'disk' or 'memory' */ file: '',
   /** where the last render's time went, in ms: reading the video's frames, drawing them, encoding (with its waits) */
   ms: { decode: 0, draw: 0, encode: 0 } };
 
 /** Frames per second when the file does not say (and the fewest a video is made with) */
 export const VIDEO_FPS = 30;
-/** Every video is made at 60 fps, whatever the file's own rate (a 30 fps file shows each of its frames twice). An
-    encoder that gives nothing back at 60 is tried again at 30 (see renderVideo). */
+/** The most frames per second a video is made with. A video is made at its file's own rate (see rateFor): a 30 fps
+    file as 60 would only show each frame twice, in twice the time. An encoder that gives nothing back at 60 is tried
+    again at 30 (see renderVideo). */
 export const VIDEO_MAX_FPS = 60;
 export const VIDEO_MAX_SECONDS = 60;
 /** Long side of the MP4. 1920 plays everywhere (H.264 level 4.2); bigger frames are a gamble on phones. */
@@ -177,7 +178,7 @@ export interface RenderVideo {
   draw: (feed?: Feed) => HTMLCanvasElement | OffscreenCanvas | null;
   onProgress?: (p: number) => void;
   signal?: { cancelled: boolean };
-  /** Frames per second of the MP4 (default 60; 30 when the device cannot do 60 at that size) */
+  /** Frames per second of the MP4 (default: the file's own, at most 60; 30 when the device cannot do more at that size) */
   fps?: number;
   /** Bits per second (default about 0.12 bit a pixel, at most 24–30 Mbit/s for 1080p and 50 for 4K) */
   bitrate?: Bitrate;
@@ -198,11 +199,11 @@ export async function renderVideo(opts: RenderVideo): Promise<Blob> {
   bitrate = opts.bitrate ?? defaultBitrate;
   const webcodecs = 'VideoEncoder' in window && 'VideoFrame' in window;
   if (webcodecs && (await pickCodec(opts.width, opts.height, bitrate(opts.width, opts.height, VIDEO_FPS)))) {
-    // An encoder that says yes to 60 fps and then gives nothing back is tried once more at 30 fps (same size)
+    // An encoder that says yes to more than 30 fps and then gives nothing back is tried once more at 30 fps (same size)
     try { return await watched(opts); } catch (e) {
       if ((e as Error)?.message === 'disk' && !opts.signal?.cancelled) { opts.onProgress?.(0); return watched({ ...opts, disk: false }); }
-      if ((e as Error)?.message !== 'encoder stalled' || (opts.fps ?? fpsFor(opts.width, opts.height)) <= 30 || opts.signal?.cancelled || document.hidden) throw e;
-      console.warn('video encoder stalled at 60 fps, trying 30');
+      if ((e as Error)?.message !== 'encoder stalled' || trace.fps <= 30 || opts.signal?.cancelled || document.hidden) throw e;
+      console.warn(`video encoder stalled at ${trace.fps} fps, trying 30`);
       opts.onProgress?.(0);
       return watched(opts, 30);
     }
@@ -286,14 +287,29 @@ async function recordVideo({ video, width, height, draw, onProgress, signal }: R
   }
 }
 
-/** 60 fps, 1080p and 4K */
+/** 60 fps at most, 1080p and 4K */
 const fpsFor = (_w: number, _h: number) => VIDEO_MAX_FPS;
+/** The MP4's frames per second for a file made at `own` (0 = not known), at most `most`: the file's own rate, so every
+    frame of it is made once and lands evenly (24 stays 24, 30 stays 30, 60 and more is 60). Under 24 it is 30. */
+export const rateFor = (own: number, most = VIDEO_MAX_FPS) => {
+  const r = Math.round(own);
+  if (!Number.isFinite(r) || r <= 0) return most;
+  return Math.min(most, r < 24 ? VIDEO_FPS : r);
+};
 
 async function encodeVideo({ video, file, width, height, draw, onProgress, signal, fps: asked, loop, disk }: RenderVideo, want = asked ?? fpsFor(width, height)): Promise<Blob> {
   // a perfect loop is twice as long: half of the longest video goes in
   const duration = Math.min(loop ? VIDEO_MAX_SECONDS / 2 : VIDEO_MAX_SECONDS, Number.isFinite(video.duration) ? video.duration : 0);
-  // 60 fps always; 30 when this device cannot encode that size at that rate
-  let fps = want;
+  // Frames in order from the file when it can be read here, else by seeking the <video> (also if decoding fails midway)
+  // (not waited for for ever: a file that takes over 12 s to open is stepped through the <video> instead)
+  trace.step = 'file';
+  const opening = file ? openFrames(file, duration).catch(() => null) : Promise.resolve(null);
+  let decoded: Frames | null = await Promise.race([opening, new Promise<null>((r) => setTimeout(() => r(null), 12000))]);
+  if (!decoded && file) opening.then((late) => late?.close());
+  // The file's own frame rate, at most 60 (60 when the file cannot be read here); the rate the tool asks for as it is;
+  // 30 when this device cannot encode that size at that rate
+  let fps = asked ? want : rateFor(decoded?.fps ?? 0, want);
+  trace.fps = fps;
   trace.step = 'codec';
   let picked = await pickCodec(width, height, bitrate(width, height, fps), fps);
   if (!picked && fps > 30) { fps = 30; picked = await pickCodec(width, height, bitrate(width, height, fps), fps); }
@@ -302,10 +318,10 @@ async function encodeVideo({ video, file, width, height, draw, onProgress, signa
   // the middle of each frame's slot, so a 30 fps source never lands between two of its own frames
   const timeOf = (k: number) => Math.min(duration - 0.001, (k + 0.5) / fps);
   const stamp = (i: number) => Math.round((i * 1e6) / fps);
-  if (!picked) throw new Error('This browser cannot make MP4 video');
+  if (!picked) { decoded?.close(); throw new Error('This browser cannot make MP4 video'); }
   const { config, mux } = picked;
 
-  const mp4 = await mp4Out(frames, !!disk);
+  const mp4 = await mp4Out(frames, !!disk).catch((e) => { decoded?.close(); throw e; });
   trace.file = mp4.kind;
   const ms = (trace.ms = { decode: 0, draw: 0, encode: 0 });
   let made = false;
@@ -334,12 +350,6 @@ async function encodeVideo({ video, file, width, height, draw, onProgress, signa
   const budget = Math.max(6, Math.min(48, Math.floor(400e6 / (width * height * 4))));
   const wasPaused = video.paused, was = video.currentTime;
   video.pause();
-  // Frames in order from the file when it can be read here, else by seeking the <video> (also if decoding fails midway)
-  // (not waited for for ever: a file that takes over 12 s to open is stepped through the <video> instead)
-  trace.step = 'file';
-  const opening = file ? openFrames(file, duration).catch(() => null) : Promise.resolve(null);
-  let decoded: Frames | null = await Promise.race([opening, new Promise<null>((r) => setTimeout(() => r(null), 12000))]);
-  if (!decoded && file) opening.then((late) => late?.close());
   seekMisses = 0;
   try {
     /** The picture at `at` seconds of the video: decoded from the file in order (`from`), else by seeking the <video> */
