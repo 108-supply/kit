@@ -16,6 +16,9 @@ import type { Frames } from './video-decode';
 /** The file reader (mp4box, about 200 KB) is loaded with the first video that is made, not with the page: most visits
     never make one. If it cannot be loaded the frames are taken from the <video> instead, as for any file it cannot read. */
 const openFrames = async (...args: [Blob, number, number?]) => (await import('./video-decode')).openFrames(...args);
+/** A video file's own frames per second, read from its index (0 = not known). For a tool that offers a lower rate:
+    what a render without `fps` will be made at is rateFor(await fileRate(file)). */
+export const fileRate = async (file: Blob): Promise<number> => { try { return await (await import('./video-decode')).rateOf(file); } catch { return 0; } };
 
 /** Where a video render is (shown in the "slow" note, so a stuck render on a phone tells us where it waits) */
 export const trace = { step: '', /** frames per second of the last video made */ fps: 0, /** where the last MP4 was kept while it was made: 'disk' or 'memory' */ file: '',

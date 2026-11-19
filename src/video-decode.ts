@@ -58,6 +58,26 @@ function description(file: ReturnType<typeof createFile>, id: number) {
   return undefined;
 }
 
+/** Frames per second where the video moves quickest: how long a frame lasts there (the tenth shortest of a hundred).
+    A camera's frames all last the same, a screen recording holds a still frame for long and its average would say
+    too little. 0 = not known. */
+function rateOfSamples(samples: Sample[]) {
+  const lasts = samples.slice(0, 1200).map((s) => s.duration / s.timescale).filter((d) => d > 0).sort((x, y) => x - y);
+  return lasts.length > 1 ? 1 / lasts[Math.floor(lasts.length / 10)] : 0;
+}
+
+/** The file's own frames per second, from its index alone (nothing is decoded); 0 when it cannot be read. The index
+    is kept, so making the video afterwards does not read it again. */
+export async function rateOf(blob: Blob): Promise<number> {
+  if (!blob.size) return 0;
+  try {
+    const parsed = await index(blob);
+    const track = parsed?.info.videoTracks[0];
+    if (!parsed || !track) return 0;
+    return rateOfSamples(parsed.file.getTrackSamplesInfo(track.id) ?? []);
+  } catch { return 0; }
+}
+
 /** The frames of the first `seconds` of the file. With `from`, decoding starts at the keyframe just before that time
     (frames before it are not asked for). */
 export async function openFrames(blob: Blob, seconds: number, from = 0): Promise<Frames | null> {
@@ -93,10 +113,7 @@ export async function openFrames(blob: Blob, seconds: number, from = 0): Promise
     for (let k = 0; k < samples.length && samples[k].dts <= until; k++) if (samples[k].is_sync && samples[k].cts <= at) start = k;
   }
   const todo = samples.slice(start).filter((s) => s.dts <= until);
-  // How long a frame lasts where the video moves quickest (the tenth shortest of a hundred): a camera's frames all
-  // last the same, a screen recording holds a still frame for long and its average would say too little
-  const lasts = todo.slice(0, 1200).map((s) => s.duration / s.timescale).filter((d) => d > 0).sort((x, y) => x - y);
-  const fps = lasts.length > 1 ? 1 / lasts[Math.floor(lasts.length / 10)] : 0;
+  const fps = rateOfSamples(todo);
 
   const frames: VideoFrame[] = [];
   let failed: unknown = null;
