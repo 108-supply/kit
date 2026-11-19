@@ -10,7 +10,7 @@
 
    `fps` and `bitrate` change the defaults (60 fps, ~0.12 bit a pixel): Grainwash makes 30 fps at a higher rate,
    because grain is the hardest thing there is for a video encoder. */
-import { ArrayBufferTarget, Muxer } from 'mp4-muxer';
+import { ArrayBufferTarget, Muxer, StreamTarget } from 'mp4-muxer';
 import type { Frames } from './video-decode';
 
 /** The file reader (mp4box, about 200 KB) is loaded with the first video that is made, not with the page: most visits
@@ -18,7 +18,9 @@ import type { Frames } from './video-decode';
 const openFrames = async (...args: [Blob, number, number?]) => (await import('./video-decode')).openFrames(...args);
 
 /** Where a video render is (shown in the "slow" note, so a stuck render on a phone tells us where it waits) */
-export const trace = { step: '' };
+export const trace = { step: '', /** where the last MP4 was kept while it was made: 'disk' or 'memory' */ file: '',
+  /** where the last render's time went, in ms: reading the video's frames, drawing them, encoding (with its waits) */
+  ms: { decode: 0, draw: 0, encode: 0 } };
 
 /** Frames per second when the file does not say (and the fewest a video is made with) */
 export const VIDEO_FPS = 30;
@@ -118,6 +120,50 @@ export async function canMakeVideo(w: number, h: number, fps = VIDEO_FPS, rate: 
   return (webcodecs && !!(await pickCodec(w, h, rate(w, h, fps), fps))) || canRecord();
 }
 
+/** The disk did not take the file (no room, or this browser's private files do not work): memory from then on */
+let diskDown = false;
+
+/** Where the MP4 is kept while it is made.
+    In memory (as always): every encoded frame is held until the end, then the file is put together, so at the very end
+    the browser holds the video several times over (measured: 4–5 times; a minute of 4K is 375 MB).
+    On disk (`disk`, where the browser has private files it can write to, OPFS): the frames are written to a file as
+    they come, room for the index is kept at the front (the number of frames is known), and the Blob handed back is that
+    file. Memory stays flat however long the video is. Anything that goes wrong setting it up gives memory instead. */
+async function mp4Out(frames: number, disk: boolean) {
+  if (disk && !diskDown) {
+    try {
+      const made = await Promise.race([(async () => {
+        if (!('createWritable' in FileSystemFileHandle.prototype)) return null;
+        const dir = await (await navigator.storage.getDirectory()).getDirectoryHandle('kit-video', { create: true });
+        // older renders go, but for the newest: it may still be waiting to be saved
+        const names: string[] = [];
+        for await (const name of (dir as any).keys()) names.push(name);
+        for (const name of names.sort().slice(0, -1)) await dir.removeEntry(name).catch(() => {});
+        const handle = await dir.getFileHandle(`${Date.now()}.mp4`, { create: true });
+        return { handle, writer: await handle.createWritable() };
+      })(), new Promise<null>((r) => setTimeout(() => r(null), 4000))]);
+      if (made) {
+        const { handle, writer } = made;
+        let chain: Promise<unknown> = Promise.resolve();
+        let failed: unknown = null;
+        const target = new StreamTarget({
+          chunked: true, chunkSize: 8 << 20,
+          onData: (data, position) => { chain = chain.then(() => writer.write({ type: 'write', position, data: data as BufferSource })).catch((e) => { failed ??= e; }); },
+        });
+        /** Waits for what is being written (so pieces never pile up in memory); a failed write stops the render */
+        const idle = async () => { await chain; if (failed) { diskDown = true; console.warn('video file on disk failed', failed); throw new Error('disk'); } };
+        return {
+          kind: 'disk', target, idle, fastStart: { expectedVideoChunks: frames + 2 } as const,
+          async blob() { await idle(); await writer.close(); const f = await handle.getFile(); return f.slice(0, f.size, 'video/mp4'); },
+          drop() { writer.abort().catch(() => {}); },
+        };
+      }
+    } catch { /* memory */ }
+  }
+  const target = new ArrayBufferTarget();
+  return { kind: 'memory', target, idle: async () => {}, fastStart: 'in-memory' as const, async blob() { return new Blob([target.buffer], { type: 'video/mp4' }); }, drop() {} };
+}
+
 /** A decoded frame of the video, for draw: as it is stored, with the turn that makes it play upright */
 export interface Feed { frame: VideoFrame; width: number; height: number; turns: number }
 
@@ -135,6 +181,9 @@ export interface RenderVideo {
   fps?: number;
   /** Bits per second (default about 0.12 bit a pixel, at most 24–30 Mbit/s for 1080p and 50 for 4K) */
   bitrate?: Bitrate;
+  /** Keep the MP4 on disk while it is made (the browser's private files), not in memory: see mp4Out. Memory is used
+      when the browser cannot, or when writing fails (the render then starts again). */
+  disk?: boolean;
   /** A perfect loop: the video, then the same frames backwards (twice as long, at most 30 s of the file). Only
       frame by frame (WebCodecs); a browser that records the video as it plays makes it once, forwards. */
   loop?: boolean;
@@ -151,6 +200,7 @@ export async function renderVideo(opts: RenderVideo): Promise<Blob> {
   if (webcodecs && (await pickCodec(opts.width, opts.height, bitrate(opts.width, opts.height, VIDEO_FPS)))) {
     // An encoder that says yes to 60 fps and then gives nothing back is tried once more at 30 fps (same size)
     try { return await watched(opts); } catch (e) {
+      if ((e as Error)?.message === 'disk' && !opts.signal?.cancelled) { opts.onProgress?.(0); return watched({ ...opts, disk: false }); }
       if ((e as Error)?.message !== 'encoder stalled' || (opts.fps ?? fpsFor(opts.width, opts.height)) <= 30 || opts.signal?.cancelled || document.hidden) throw e;
       console.warn('video encoder stalled at 60 fps, trying 30');
       opts.onProgress?.(0);
@@ -239,7 +289,7 @@ async function recordVideo({ video, width, height, draw, onProgress, signal }: R
 /** 60 fps, 1080p and 4K */
 const fpsFor = (_w: number, _h: number) => VIDEO_MAX_FPS;
 
-async function encodeVideo({ video, file, width, height, draw, onProgress, signal, fps: asked, loop }: RenderVideo, want = asked ?? fpsFor(width, height)): Promise<Blob> {
+async function encodeVideo({ video, file, width, height, draw, onProgress, signal, fps: asked, loop, disk }: RenderVideo, want = asked ?? fpsFor(width, height)): Promise<Blob> {
   // a perfect loop is twice as long: half of the longest video goes in
   const duration = Math.min(loop ? VIDEO_MAX_SECONDS / 2 : VIDEO_MAX_SECONDS, Number.isFinite(video.duration) ? video.duration : 0);
   // 60 fps always; 30 when this device cannot encode that size at that rate
@@ -255,7 +305,11 @@ async function encodeVideo({ video, file, width, height, draw, onProgress, signa
   if (!picked) throw new Error('This browser cannot make MP4 video');
   const { config, mux } = picked;
 
-  const muxer = new Muxer({ target: new ArrayBufferTarget(), video: { codec: mux, width, height, frameRate: fps }, fastStart: 'in-memory' });
+  const mp4 = await mp4Out(frames, !!disk);
+  trace.file = mp4.kind;
+  const ms = (trace.ms = { decode: 0, draw: 0, encode: 0 });
+  let made = false;
+  const muxer = new Muxer({ target: mp4.target, video: { codec: mux, width, height, frameRate: fps }, fastStart: mp4.fastStart });
   let failed: unknown = null;
   let out = 0;
   const end = Math.round((frames * 1e6) / fps);
@@ -295,6 +349,7 @@ async function encodeVideo({ video, file, width, height, draw, onProgress, signa
       // iOS can take the encoder away while Safari is in the background
       if (encoder.state !== 'configured') throw new Error('interrupted');
       let feed: Feed | undefined;
+      const t0 = performance.now();
       const n = i < 3 ? `${i + 1} ` : '';
       if (i < 3 || i % 30 === 0) trace.step = `${n}decode ${fps}fps ${width}×${height}`;
       if (from) {
@@ -311,6 +366,8 @@ async function encodeVideo({ video, file, width, height, draw, onProgress, signa
       }
       if (!feed) { if (i < 3) trace.step = `${n}seek`; await seek(video, at); }
       if (i < 3) trace.step = `${n}draw${feed ? '' : ' video'}`;
+      const t1 = performance.now();
+      ms.decode += t1 - t0;
       if (seekMisses >= 4) throw new Error('stalled');
       let src: ReturnType<typeof draw>;
       try { src = draw(feed); } catch (e) {
@@ -318,17 +375,20 @@ async function encodeVideo({ video, file, width, height, draw, onProgress, signa
         return null; // this browser cannot draw the decoded frames: the <video> is stepped instead
       }
       if (!src) throw new Error('No picture');
+      ms.draw += performance.now() - t1;
       return src;
     };
     /** Frame i of the MP4 (a picture, or a frame kept from it), then waits for the encoder to keep up */
     const push = async (src: CanvasImageSource | OffscreenCanvas | VideoFrame, i: number) => {
       const n = i < 3 ? `${i + 1} ` : '';
       if (i < 3) trace.step = `${n}encode`;
+      const t2 = performance.now();
       const frame = src instanceof VideoFrame ? src : new VideoFrame(src as CanvasImageSource, { timestamp: stamp(i), duration: Math.round(1e6 / fps) });
       encoder.encode(frame, { keyFrame: i % (fps * 2) === 0 });
       frame.close();
       if (!sent) sent = performance.now();
       if (frozen()) throw new Error('encoder stalled');
+      await mp4.idle();
       // Let the encoder keep up, so frames do not pile up in memory. Not for ever: Safari's encoder holds on to a
       // batch of frames before it lets any go, and waiting for its queue to empty first stopped the render at 7 %.
       // So when the queue does not go down, the limit goes up (to at most 48 frames).
@@ -344,6 +404,7 @@ async function encodeVideo({ video, file, width, height, draw, onProgress, signa
         if (encoder.encodeQueueSize === q) still++; else { q = encoder.encodeQueueSize; still = 0; }
       }
       if (encoder.encodeQueueSize > limit) limit = Math.min(budget, limit + 8);
+      ms.encode += performance.now() - t2;
     };
     /** The picture at `at`, from `from` when it can, else from the <video> (from then on: `lost` says so) */
     let lost = false;
@@ -415,8 +476,11 @@ async function encodeVideo({ video, file, width, height, draw, onProgress, signa
     }
     if (failed) throw failed;
     muxer.finalize();
-    return new Blob([muxer.target.buffer], { type: 'video/mp4' });
+    const blob = await mp4.blob();
+    made = true;
+    return blob;
   } finally {
+    if (!made) mp4.drop();
     document.removeEventListener('visibilitychange', onVis);
     decoded?.close();
     if (encoder.state !== 'closed') encoder.close();
