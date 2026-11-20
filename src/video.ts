@@ -221,6 +221,8 @@ export interface RenderVideo {
       Safari cannot make it (see canMakeAlphaVideo). The browser's encoder drops alpha, so the colour and the alpha
       are encoded apart and put together in the file (mediabunny, loaded only for this). */
   alpha?: boolean;
+  /** Each frame as it goes into the file (to show it while the video is made; draw it at once, it closes after) */
+  onFrame?: (frame: VideoFrame) => void;
 }
 
 /** Whether this browser can make a video that keeps its transparency (a WebM; not Safari) */
@@ -355,7 +357,7 @@ export const rateFor = (own: number, most = VIDEO_MAX_FPS) => {
   return Math.min(most, r < 24 ? VIDEO_FPS : r);
 };
 
-async function encodeVideo({ video, file, width, height, draw, onProgress, signal, fps: asked, loop, magic: wantMagic, disk, alpha }: RenderVideo, want = asked ?? fpsFor(width, height)): Promise<Blob> {
+async function encodeVideo({ video, file, width, height, draw, onProgress, signal, fps: asked, loop, magic: wantMagic, disk, alpha, onFrame }: RenderVideo, want = asked ?? fpsFor(width, height)): Promise<Blob> {
   // a perfect loop is twice as long: half of the longest video goes in
   const duration = Math.min(loop ? VIDEO_MAX_SECONDS / 2 : VIDEO_MAX_SECONDS, Number.isFinite(video.duration) ? video.duration : 0);
   // Frames in order from the file when it can be read here, else by seeking the <video> (also if decoding fails midway)
@@ -461,6 +463,7 @@ async function encodeVideo({ video, file, width, height, draw, onProgress, signa
       if (i < 3) trace.step = `${n}encode`;
       const t2 = performance.now();
       const frame = src instanceof VideoFrame ? src : new VideoFrame(src as CanvasImageSource, { timestamp: stamp(i), duration: Math.round(1e6 / fps) });
+      try { onFrame?.(frame); } catch { /* showing it never stops the render */ }
       if (webm) {
         try { await webm.add(frame, i % (fps * 2) === 0); } finally { frame.close(); }
         out++;
