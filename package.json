@@ -25,6 +25,7 @@
     "./video": "./src/video.ts",
     "./video-decode": "./src/video-decode.ts",
     "./shape": "./src/shape.ts",
+    "./export-bar": "./src/export-bar.ts",
     "./system.css": "./src/styles/system.css",
     "./tokens.css": "./src/styles/tokens.css",
     "./base.css": "./src/styles/base.css",
