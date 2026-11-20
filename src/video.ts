@@ -191,6 +191,26 @@ export interface RenderVideo {
   /** A perfect loop: the video, then the same frames backwards (twice as long, at most 30 s of the file). Only
       frame by frame (WebCodecs); a browser that records the video as it plays makes it once, forwards. */
   loop?: boolean;
+  /** Magic loop (with loop): the video slows to a stop at its end, turns, and plays back, slowing again into its start,
+      so the two halves meet without a jolt. The ends are stretched (an ease-in-out over the first and last 15 % of
+      the file, at most 0.8 s each), the middle plays at its own speed; in-between frames are blended. */
+  magic?: boolean;
+}
+
+/** Magic loop: where in the file (seconds) the forward half is at output time t (seconds), and how long that half is.
+    The speed rises from 0 to 1 over the first `r` seconds of the file along half a cosine (which takes 2r of output
+    time), stays 1, and falls the same way into the end. */
+export function magicTime(duration: number) {
+  const r = Math.min(0.8, duration * 0.15);
+  const total = duration + 2 * r;
+  const ramp = (t: number) => (r > 0 ? t / 2 - (r / Math.PI) * Math.sin((Math.PI * t) / (2 * r)) : t);
+  const at = (t: number) => {
+    const x = Math.min(total, Math.max(0, t));
+    if (x <= 2 * r) return ramp(x);
+    if (x >= total - 2 * r) return duration - ramp(total - x);
+    return r + (x - 2 * r);
+  };
+  return { total, at };
 }
 
 /** Frame by frame everywhere (WebCodecs): every frame of your video gets its own render, so the MP4 is smooth however
@@ -300,7 +320,7 @@ export const rateFor = (own: number, most = VIDEO_MAX_FPS) => {
   return Math.min(most, r < 24 ? VIDEO_FPS : r);
 };
 
-async function encodeVideo({ video, file, width, height, draw, onProgress, signal, fps: asked, loop, disk }: RenderVideo, want = asked ?? fpsFor(width, height)): Promise<Blob> {
+async function encodeVideo({ video, file, width, height, draw, onProgress, signal, fps: asked, loop, magic: wantMagic, disk }: RenderVideo, want = asked ?? fpsFor(width, height)): Promise<Blob> {
   // a perfect loop is twice as long: half of the longest video goes in
   const duration = Math.min(loop ? VIDEO_MAX_SECONDS / 2 : VIDEO_MAX_SECONDS, Number.isFinite(video.duration) ? video.duration : 0);
   // Frames in order from the file when it can be read here, else by seeking the <video> (also if decoding fails midway)
@@ -317,7 +337,13 @@ async function encodeVideo({ video, file, width, height, draw, onProgress, signa
   let picked = await pickCodec(width, height, bitrate(width, height, fps), fps);
   if (!picked && fps > 30) { fps = 30; picked = await pickCodec(width, height, bitrate(width, height, fps), fps); }
   const forward = Math.max(1, Math.floor(duration * fps));
-  const frames = loop && forward > 2 ? forward * 2 - 2 : forward;
+  // Magic loop: the forward half is longer (its ends are stretched); outN of its frames, each at source position q(i)
+  // (in frames of the file at this rate, fractional between two of them: those two are blended)
+  const magic = !!(loop && wantMagic && forward > 8);
+  const mt = magicTime(forward / fps);
+  const outN = magic ? Math.max(forward, Math.round(mt.total * fps)) : forward;
+  const q = (i: number) => (magic ? Math.min(forward - 1, Math.max(0, (mt.at((i * mt.total) / (outN - 1)) / (forward / fps)) * (forward - 1))) : i);
+  const frames = loop && outN > 2 ? outN * 2 - 2 : outN;
   // the middle of each frame's slot, so a 30 fps source never lands between two of its own frames
   const timeOf = (k: number) => Math.min(duration - 0.001, (k + 0.5) / fps);
   const stamp = (i: number) => Math.round((i * 1e6) / fps);
@@ -428,44 +454,109 @@ async function encodeVideo({ video, file, width, height, draw, onProgress, signa
       return (await pictureAt(at, i, null))!;
     };
 
-    // Forward: the video as it plays
-    let done = 0;
-    for (let i = 0; i < forward; i++) {
-      const src = await picture(timeOf(i), i, decoded);
-      if (lost && decoded) { decoded.close(); decoded = null; }
-      await push(src, i);
-      onProgress?.(++done / frames);
-    }
-    decoded?.close();
-    decoded = null;
-
-    // A perfect loop: the same frames back to the start (the last and the first are not shown twice). A decoder only
-    // goes forward, so the way back is made in pieces: each piece is decoded forward from its keyframe, its pictures
-    // are kept (as many as fit in about 250 MB), then they go to the encoder last first.
-    const piece = Math.max(4, Math.min(60, Math.floor(250e6 / (width * height * 4))));
-    // (only for a loop: without one the video ends with its last frame)
-    for (let j = loop ? forward - 2 : 0; j >= 1;) {
-      const lo = Math.max(1, j - piece + 1);
-      let back: Frames | null = null;
-      if (file && !lost) {
-        const opening = openFrames(file, duration, timeOf(lo)).catch(() => null);
-        back = await Promise.race([opening, new Promise<null>((r) => setTimeout(() => r(null), 12000))]);
-        if (!back) { lost = true; opening.then((late) => late?.close()); }
-      }
-      const kept: VideoFrame[] = [];
-      try {
-        for (let k = lo; k <= j; k++) {
-          const i = frames - k;
-          const src = await picture(timeOf(k), i, back);
-          kept.push(new VideoFrame(src as CanvasImageSource, { timestamp: stamp(i), duration: Math.round(1e6 / fps) }));
-          onProgress?.(++done / frames);
+    if (magic) {
+      /* Magic loop. Each output frame i is the file at position q(i): the two frames around it are kept (copies),
+         and blended by how far between them it falls. Forward first; then the way back in pieces (a decoder only goes
+         forward): each piece decoded forward from its keyframe, its output frames kept, then given last first. */
+      let blender: OffscreenCanvas | null = null;
+      const blend = (A: VideoFrame, B: VideoFrame | null, w: number, ts: number) => {
+        if (!B || w < 0.02) return new VideoFrame(A, { timestamp: ts, duration: Math.round(1e6 / fps) });
+        if (w > 0.98) return new VideoFrame(B, { timestamp: ts, duration: Math.round(1e6 / fps) });
+        blender ??= new OffscreenCanvas(width, height);
+        const g = blender.getContext('2d')!;
+        g.globalAlpha = 1;
+        g.drawImage(A, 0, 0, width, height);
+        g.globalAlpha = w;
+        g.drawImage(B, 0, 0, width, height);
+        return new VideoFrame(blender, { timestamp: ts, duration: Math.round(1e6 / fps) });
+      };
+      /** Output frames lo..hi (in order) from the decoder `from`, each handed to `use` */
+      const run = async (lo: number, hi: number, from: Frames | null, use: (f: VideoFrame, i: number) => Promise<void>) => {
+        let ka = -1, A: VideoFrame | null = null, kb = -1, B: VideoFrame | null = null;
+        const grab = async (k: number, i: number) => new VideoFrame((await picture(timeOf(k), i, lost ? null : from)) as CanvasImageSource, { timestamp: 0 });
+        try {
+          for (let i = lo; i <= hi; i++) {
+            const p = q(i);
+            const a = Math.min(forward - 1, Math.floor(p + 1e-6));
+            const w = p - a;
+            if (ka !== a) {
+              if (kb === a && B) { A?.close(); A = B; ka = kb; B = null; kb = -1; }
+              else { A?.close(); B?.close(); B = null; kb = -1; A = await grab(a, i); ka = a; }
+            }
+            if (w >= 0.02 && a + 1 < forward && kb !== a + 1) { B?.close(); B = await grab(a + 1, i); kb = a + 1; }
+            const ts = stamp(i);
+            await use(blend(A!, kb === a + 1 ? B : null, w, ts), i);
+            onProgress?.(++done / frames);
+          }
+        } finally { A?.close(); B?.close(); }
+      };
+      let done = 0;
+      await run(0, outN - 1, decoded, (f, i) => push(f, i));
+      decoded?.close();
+      decoded = null;
+      const piece = Math.max(4, Math.min(60, Math.floor(250e6 / (width * height * 4))));
+      for (let j = outN - 2; j >= 1;) {
+        const lo = Math.max(1, j - piece + 1);
+        let back: Frames | null = null;
+        if (file && !lost) {
+          const opening = openFrames(file, duration, timeOf(Math.floor(q(lo)))).catch(() => null);
+          back = await Promise.race([opening, new Promise<null>((r) => setTimeout(() => r(null), 12000))]);
+          if (!back) { lost = true; opening.then((late) => late?.close()); }
         }
-        while (kept.length) await push(kept.pop()!, frames - (lo + kept.length));
-      } finally {
-        kept.forEach((f) => f.close());
-        back?.close();
+        const kept: VideoFrame[] = [];
+        try {
+          await run(lo, j, back, async (f, i) => {
+            const t = frames - i;
+            kept.push(new VideoFrame(f, { timestamp: stamp(t), duration: Math.round(1e6 / fps) }));
+            f.close();
+          });
+          while (kept.length) await push(kept.pop()!, frames - (lo + kept.length));
+        } finally {
+          kept.forEach((f) => f.close());
+          back?.close();
+        }
+        j = lo - 1;
       }
-      j = lo - 1;
+    } else {
+      // Forward: the video as it plays
+      let done = 0;
+      for (let i = 0; i < forward; i++) {
+        const src = await picture(timeOf(i), i, decoded);
+        if (lost && decoded) { decoded.close(); decoded = null; }
+        await push(src, i);
+        onProgress?.(++done / frames);
+      }
+      decoded?.close();
+      decoded = null;
+
+      // A perfect loop: the same frames back to the start (the last and the first are not shown twice). A decoder only
+      // goes forward, so the way back is made in pieces: each piece is decoded forward from its keyframe, its pictures
+      // are kept (as many as fit in about 250 MB), then they go to the encoder last first.
+      const piece = Math.max(4, Math.min(60, Math.floor(250e6 / (width * height * 4))));
+      // (only for a loop: without one the video ends with its last frame)
+      for (let j = loop ? forward - 2 : 0; j >= 1;) {
+        const lo = Math.max(1, j - piece + 1);
+        let back: Frames | null = null;
+        if (file && !lost) {
+          const opening = openFrames(file, duration, timeOf(lo)).catch(() => null);
+          back = await Promise.race([opening, new Promise<null>((r) => setTimeout(() => r(null), 12000))]);
+          if (!back) { lost = true; opening.then((late) => late?.close()); }
+        }
+        const kept: VideoFrame[] = [];
+        try {
+          for (let k = lo; k <= j; k++) {
+            const i = frames - k;
+            const src = await picture(timeOf(k), i, back);
+            kept.push(new VideoFrame(src as CanvasImageSource, { timestamp: stamp(i), duration: Math.round(1e6 / fps) }));
+            onProgress?.(++done / frames);
+          }
+          while (kept.length) await push(kept.pop()!, frames - (lo + kept.length));
+        } finally {
+          kept.forEach((f) => f.close());
+          back?.close();
+        }
+        j = lo - 1;
+      }
     }
     // The last frames: wait for the encoder, but not for ever. If every frame came back the file is complete even
     // when flush itself never ends (Safari). Safari holds its last frames until more come: copies of the last frame
