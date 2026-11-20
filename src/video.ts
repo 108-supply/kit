@@ -376,7 +376,8 @@ async function encodeVideo({ video, file, width, height, draw, onProgress, signa
   encoder.configure(config);
 
   let limit = 4;
-  const budget = Math.max(6, Math.min(48, Math.floor(400e6 / (width * height * 4))));
+  // the magic loop keeps pictures of its own as well (see piece): the encoder may hold less
+  const budget = Math.max(6, Math.min(48, Math.floor((magic ? 200e6 : 400e6) / (width * height * 4))));
   const wasPaused = video.paused, was = video.currentTime;
   video.pause();
   seekMisses = 0;
@@ -494,7 +495,9 @@ async function encodeVideo({ video, file, width, height, draw, onProgress, signa
       await run(0, outN - 1, decoded, (f, i) => push(f, i));
       decoded?.close();
       decoded = null;
-      const piece = Math.max(4, Math.min(60, Math.floor(250e6 / (width * height * 4))));
+      // Kept pictures are the file's own size (a 4K phone video: 33 MB each) or the output's: about 96 MB of them, as
+      // Safari ran out of memory with more
+      const piece = Math.max(2, Math.min(60, Math.floor(96e6 / (Math.max(width * height, video.videoWidth * video.videoHeight) * 4))));
       for (let j = outN - 2; j >= 1;) {
         const lo = Math.max(1, j - piece + 1);
         let back: Frames | null = null;
