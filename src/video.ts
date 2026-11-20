@@ -168,6 +168,28 @@ async function mp4Out(frames: number, disk: boolean) {
   return { kind: 'memory', target, idle: async () => {}, fastStart: 'in-memory' as const, async blob() { return new Blob([target.buffer], { type: 'video/mp4' }); }, drop() {} };
 }
 
+/** The WebM that keeps transparency (mediabunny: VP9, the alpha encoded as a second picture beside each frame) */
+async function alphaOut(bitrate: number, fps: number) {
+  const { Output, WebMOutputFormat, BufferTarget, VideoSampleSource, VideoSample } = await import('mediabunny');
+  const target = new BufferTarget();
+  const output = new Output({ format: new WebMOutputFormat(), target });
+  const source = new VideoSampleSource({ codec: 'vp9', bitrate, alpha: 'keep', keyFrameInterval: 2 });
+  output.addVideoTrack(source, { frameRate: fps });
+  await output.start();
+  return {
+    async add(frame: VideoFrame, key: boolean) {
+      const sample = new VideoSample(frame.clone());
+      try { await source.add(sample, { keyFrame: key }); } finally { sample.close(); }
+    },
+    async finish() {
+      source.close();
+      await output.finalize();
+      return new Blob([target.buffer!], { type: 'video/webm' });
+    },
+    drop() { output.cancel().catch(() => {}); },
+  };
+}
+
 /** A decoded frame of the video, for draw: as it is stored, with the turn that makes it play upright */
 export interface Feed { frame: VideoFrame; width: number; height: number; turns: number }
 
@@ -195,6 +217,19 @@ export interface RenderVideo {
       so the two halves meet without a jolt. The ends are stretched (an ease-in-out over the first and last 15 % of
       the file, at most 0.8 s each), the middle plays at its own speed; in-between frames are blended. */
   magic?: boolean;
+  /** Keep the transparency: a WebM (VP9 with its alpha) instead of the MP4. Chrome, Edge and Firefox make and play it;
+      Safari cannot make it (see canMakeAlphaVideo). The browser's encoder drops alpha, so the colour and the alpha
+      are encoded apart and put together in the file (mediabunny, loaded only for this). */
+  alpha?: boolean;
+}
+
+/** Whether this browser can make a video that keeps its transparency (a WebM; not Safari) */
+export async function canMakeAlphaVideo(w: number, h: number, fps = VIDEO_FPS) {
+  if (SAFARI || !('VideoEncoder' in window)) return false;
+  try {
+    const { canEncodeVideo } = await import('mediabunny');
+    return await canEncodeVideo('vp9', { width: w, height: h, bitrate: defaultBitrate(w, h, fps) });
+  } catch { return false; }
 }
 
 /** Magic loop: where in the file (seconds) the forward half is at output time t (seconds), and how long that half is.
@@ -320,7 +355,7 @@ export const rateFor = (own: number, most = VIDEO_MAX_FPS) => {
   return Math.min(most, r < 24 ? VIDEO_FPS : r);
 };
 
-async function encodeVideo({ video, file, width, height, draw, onProgress, signal, fps: asked, loop, magic: wantMagic, disk }: RenderVideo, want = asked ?? fpsFor(width, height)): Promise<Blob> {
+async function encodeVideo({ video, file, width, height, draw, onProgress, signal, fps: asked, loop, magic: wantMagic, disk, alpha }: RenderVideo, want = asked ?? fpsFor(width, height)): Promise<Blob> {
   // a perfect loop is twice as long: half of the longest video goes in
   const duration = Math.min(loop ? VIDEO_MAX_SECONDS / 2 : VIDEO_MAX_SECONDS, Number.isFinite(video.duration) ? video.duration : 0);
   // Frames in order from the file when it can be read here, else by seeking the <video> (also if decoding fails midway)
@@ -349,6 +384,8 @@ async function encodeVideo({ video, file, width, height, draw, onProgress, signa
   const stamp = (i: number) => Math.round((i * 1e6) / fps);
   if (!picked) { decoded?.close(); throw new Error('This browser cannot make MP4 video'); }
   const { config, mux } = picked;
+  // Transparency: the frames go to a WebM (see RenderVideo.alpha) instead of the MP4's encoder
+  const webm = alpha ? await alphaOut(bitrate(width, height, fps), fps).catch((e) => { decoded?.close(); throw e; }) : null;
 
   const mp4 = await mp4Out(frames, !!disk).catch((e) => { decoded?.close(); throw e; });
   trace.file = mp4.kind;
@@ -387,7 +424,7 @@ async function encodeVideo({ video, file, width, height, draw, onProgress, signa
       if (signal?.cancelled) throw new Error('cancelled');
       if (failed) throw failed;
       // iOS can take the encoder away while Safari is in the background
-      if (encoder.state !== 'configured') throw new Error('interrupted');
+      if (!webm && encoder.state !== 'configured') throw new Error('interrupted');
       let feed: Feed | undefined;
       const t0 = performance.now();
       const n = i < 3 ? `${i + 1} ` : '';
@@ -424,6 +461,12 @@ async function encodeVideo({ video, file, width, height, draw, onProgress, signa
       if (i < 3) trace.step = `${n}encode`;
       const t2 = performance.now();
       const frame = src instanceof VideoFrame ? src : new VideoFrame(src as CanvasImageSource, { timestamp: stamp(i), duration: Math.round(1e6 / fps) });
+      if (webm) {
+        try { await webm.add(frame, i % (fps * 2) === 0); } finally { frame.close(); }
+        out++;
+        ms.encode += performance.now() - t2;
+        return;
+      }
       encoder.encode(frame, { keyFrame: i % (fps * 2) === 0 });
       frame.close();
       if (!sent) sent = performance.now();
@@ -457,8 +500,7 @@ async function encodeVideo({ video, file, width, height, draw, onProgress, signa
 
     if (magic) {
       /* Magic loop. Each output frame i is the file at position q(i): the two frames around it are kept (copies),
-         and blended by how far between them it falls. Forward first; then the way back in pieces (a decoder only goes
-         forward): each piece decoded forward from its keyframe, its output frames kept, then given last first. */
+         and blended by how far between them it falls. Forward first, then the way back (below). */
       let blender: OffscreenCanvas | null = null;
       const blend = (A: VideoFrame, B: VideoFrame | null, w: number, ts: number) => {
         if (!B || w < 0.02) return new VideoFrame(A, { timestamp: ts, duration: Math.round(1e6 / fps) });
@@ -491,34 +533,35 @@ async function encodeVideo({ video, file, width, height, draw, onProgress, signa
           }
         } finally { A?.close(); B?.close(); }
       };
+      /* The way back is the same pictures as the way there, last first. The file is read once: while going forward
+         each picture is also kept as a small compressed copy (a JPEG, or a WebP with its transparency; about 0.3 MB
+         at 1080p), and the way back is made from those. (Reading the file again for each piece of the way back, as
+         before, ran Safari out of memory at exactly half way.) */
       let done = 0;
-      await run(0, outN - 1, decoded, (f, i) => push(f, i));
+      const keep = alpha ? { type: 'image/webp', quality: 0.92 } : { type: 'image/jpeg', quality: 0.92 };
+      const copies: (Blob | null)[] = new Array(outN).fill(null);
+      let copier: OffscreenCanvas | null = null;
+      await run(0, outN - 1, decoded, async (f, i) => {
+        if (i > 0 && i < outN - 1) {
+          copier ??= new OffscreenCanvas(width, height);
+          const g = copier.getContext('2d')!;
+          g.clearRect(0, 0, width, height);
+          g.drawImage(f, 0, 0, width, height);
+          copies[i] = await copier.convertToBlob(keep);
+        }
+        await push(f, i);
+      });
       decoded?.close();
       decoded = null;
-      // Kept pictures are the file's own size (a 4K phone video: 33 MB each) or the output's: about 96 MB of them, as
-      // Safari ran out of memory with more
-      const piece = Math.max(2, Math.min(60, Math.floor(96e6 / (Math.max(width * height, video.videoWidth * video.videoHeight) * 4))));
-      for (let j = outN - 2; j >= 1;) {
-        const lo = Math.max(1, j - piece + 1);
-        let back: Frames | null = null;
-        if (file && !lost) {
-          const opening = openFrames(file, duration, timeOf(Math.floor(q(lo)))).catch(() => null);
-          back = await Promise.race([opening, new Promise<null>((r) => setTimeout(() => r(null), 12000))]);
-          if (!back) { lost = true; opening.then((late) => late?.close()); }
-        }
-        const kept: VideoFrame[] = [];
-        try {
-          await run(lo, j, back, async (f, i) => {
-            const t = frames - i;
-            kept.push(new VideoFrame(f, { timestamp: stamp(t), duration: Math.round(1e6 / fps) }));
-            f.close();
-          });
-          while (kept.length) await push(kept.pop()!, frames - (lo + kept.length));
-        } finally {
-          kept.forEach((f) => f.close());
-          back?.close();
-        }
-        j = lo - 1;
+      copier = null;
+      for (let j = outN - 2; j >= 1; j--) {
+        if (signal?.cancelled) throw new Error('cancelled');
+        if (failed) throw failed;
+        const i = frames - j;
+        const pic = await createImageBitmap(copies[j]!);
+        copies[j] = null;
+        try { await push(new VideoFrame(pic, { timestamp: stamp(i), duration: Math.round(1e6 / fps) }), i); } finally { pic.close(); }
+        onProgress?.(++done / frames);
       }
     } else {
       // Forward: the video as it plays
@@ -565,6 +608,11 @@ async function encodeVideo({ video, file, width, height, draw, onProgress, signa
     // when flush itself never ends (Safari). Safari holds its last frames until more come: copies of the last frame
     // (after the end, so not kept) push them out. If frames are still missing after a while, say so.
     trace.step = 'finish';
+    if (webm) {
+      const blob = await webm.finish();
+      made = true;
+      return blob;
+    }
     const flushed = encoder.flush().then(() => true, (e) => { failed ??= e; return true; });
     const until = performance.now() + 20000;
     const last = draw();
@@ -587,7 +635,7 @@ async function encodeVideo({ video, file, width, height, draw, onProgress, signa
     made = true;
     return blob;
   } finally {
-    if (!made) mp4.drop();
+    if (!made) { mp4.drop(); webm?.drop(); }
     document.removeEventListener('visibilitychange', onVis);
     decoded?.close();
     if (encoder.state !== 'closed') encoder.close();
