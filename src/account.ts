@@ -128,7 +128,7 @@ export const account = {
   },
   /** Opens the 108 sign-in window on this page (`then` runs once you're in). Off *.108.supply: the site's
       sign-in, which comes back to this page. */
-  signIn(opts: { mode?: 'signin' | 'signup'; then?: (me: Account) => void } = {}) {
+  signIn(opts: { mode?: 'signin' | 'signup'; then?: (me: Account) => void; title?: string; lead?: string } = {}) {
     if (!onOurDomain()) {
       location.href = `${ACCOUNT_ORIGIN}/?return=${encodeURIComponent(location.href)}`;
       return;
