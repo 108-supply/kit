@@ -20,6 +20,9 @@ export interface SignInOptions {
   mode?: 'signin' | 'signup';
   /** Runs once you are signed in (after the name step) */
   then?: (me: Account) => void;
+  /** Your own words for the first screen (a tool's own moment, like Mockup Gem after the free saves) */
+  title?: string;
+  lead?: string;
 }
 
 const X = '<svg viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M205.66 194.34a8 8 0 0 1-11.32 11.32L128 139.31l-66.34 66.35a8 8 0 0 1-11.32-11.32L116.69 128 50.34 61.66a8 8 0 0 1 11.32-11.32L128 116.69l66.34-66.35a8 8 0 0 1 11.32 11.32L139.31 128Z"/></svg>';
@@ -333,10 +336,10 @@ export function openSignIn(opts: SignInOptions = {}) {
   if (!root) build();
   afterSignIn = opts.then ?? null;
   const signup = opts.mode === 'signup';
-  $('[data-title]').textContent = signup ? 'Join 108' : 'Welcome to 108';
-  $('[data-lead]').textContent = signup
+  $('[data-title]').textContent = opts.title ?? (signup ? 'Join 108' : 'Welcome to 108');
+  $('[data-lead]').textContent = opts.lead ?? (signup
     ? 'One account for your templates, visuals and tools. No password needed.'
-    : 'Your templates, visuals and tools in one place. Bought before? Use that email.';
+    : 'Your templates, visuals and tools in one place. Bought before? Use that email.');
   root!.querySelectorAll('form').forEach((f) => f.reset());
   paintCode();
   showStep('email');
