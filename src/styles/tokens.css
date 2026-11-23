@@ -68,6 +68,7 @@
   /* Content stops growing here on very wide screens; backgrounds stay full width */
   --container-max: 2944px; /* full width up to a 3008px wide screen (32in Pro Display XDR at its default scaling) */
   --frame-padding: 0.5rem; /* inset of the hero and light sections (Osmo "contained") */
+  --content-lg: 55rem; /* 880px: the client logo row under the homepage intro (Ariel 2026-11-23) */
   --content-md: 42.75rem;
   --content-narrow: 28rem;
 
