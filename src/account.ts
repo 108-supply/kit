@@ -27,6 +27,8 @@ export interface Account {
   member?: { since?: string | null; no?: number | null } | null;
   /** The site knows you're signed in but could not read the rest just now (name, what you own): don't ask for a name */
   stale?: boolean;
+  /** Said yes to the release emails (the first sign-in, a free download, the account window's switch) */
+  newsletter?: boolean;
 }
 
 /** Mockup Gem Pro: the old one-time product and the two subscriptions (they share one benefit) */
