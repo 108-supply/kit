@@ -44,6 +44,9 @@ export function creatureOf(seed: string): Creature {
   return CREATURES.find((c) => c.id === s) ?? CREATURES[hash(s) % CREATURES.length];
 }
 
+/** The pictures' version (108-supply/108-supply → lib/creature.ts CREATURE_SET): the site keeps them 30 days, so a new
+    set gets a new query. Since set 5 each picture is the first frame of its loop (./live-creature). */
+export const CREATURE_SET = '5';
 export const creatureUrl = (seed: string) => `${ACCOUNT_ORIGIN}/creatures/${creatureOf(seed).id}.webp`;
 
 /** <img> of the creature, filling its box. size = the pixel size it is shown at (sets width/height for layout). */

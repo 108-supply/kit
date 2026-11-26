@@ -1,5 +1,5 @@
 /* The 108 sign-in window, the same one as on 108.supply, opened right inside a tool: email → 6-digit code → (first
-   time) your creature and name, one block (./identity), skip allowed. Nobody leaves the tool. It talks to the site's account API (ACCOUNT_ORIGIN/api/auth/*) with
+   time) the welcome (./welcome): your creature, your name, then Ariel asks about his emails. Nobody leaves the tool. It talks to the site's account API (ACCOUNT_ORIGIN/api/auth/*) with
    credentials; the session cookie is set on .108.supply, so the site and every tool see the same login at once.
    Off *.108.supply (localhost, previews) the cookie can't be shared, so signIn() there still goes to the site.
 
@@ -10,7 +10,7 @@
    Looks: centred glass window on desktop, a bottom sheet on phones, no outlines; the site's copy and steps
    (108-supply/108-supply → components/Account.astro, scripts/account.ts). Styled here from the 108 tokens. */
 import { ACCOUNT_ORIGIN, account, setAccount, type Account } from './account';
-import { identityHtml, mountIdentity, type Identity } from './identity';
+import { mountWelcome, welcomeBack, welcomeDots, welcomeHtml, WELCOME_CSS, type Welcome } from './welcome';
 import { sound } from './sound';
 import { googleAvailable, signInWithGoogle } from './google';
 import { visitContext } from './visit';
@@ -34,7 +34,7 @@ export const GOOGLE_G = '<svg class="kit-signin-g" viewBox="0 0 48 48" aria-hidd
 const HTML = `
 <div class="kit-signin-overlay" data-close></div>
 <div class="kit-signin-panel" tabindex="-1">
-  <div class="win-bar"><span class="win-title">Sign in</span><button class="win-close" type="button" aria-label="Close" data-close>${X}</button></div>
+  <div class="win-bar">${welcomeBack()}<span class="win-title">Sign in</span>${welcomeDots()}<button class="win-close" type="button" aria-label="Close" data-close>${X}</button></div>
   <form class="kit-signin-step" data-step="email" novalidate>
     <h2 class="kit-signin-title" id="kit-signin-title" data-title></h2>
     <p class="kit-signin-lead" data-lead></p>
@@ -56,14 +56,7 @@ const HTML = `
     ${button('Sign in')}
     <p class="kit-signin-hint"><button type="button" data-back>Use another email</button><button type="button" data-resend>Send again</button></p>
   </form>
-  <form class="kit-signin-step" data-step="name" novalidate>
-    <h2 class="kit-signin-title">Pick your creature and name</h2>
-    <p class="kit-signin-lead">You can change both any time in your account.</p>
-    ${identityHtml()}
-    <p class="kit-signin-error" data-error role="alert"></p>
-    ${button('Continue')}
-    <p class="kit-signin-hint"><button type="button" data-skip>Skip for now</button></p>
-  </form>
+  ${welcomeHtml()}
 </div>`;
 
 const CSS = `
@@ -113,9 +106,6 @@ const CSS = `
 .kit-signin-hint { display: flex; justify-content: center; gap: var(--gap-05); margin: var(--gap-05) 0 0; }
 .kit-signin-hint button { padding: 0; border: 0; background: none; color: var(--ink-2); font: inherit; cursor: pointer; transition: color 0.3s var(--ease-smooth); }
 @media (hover: hover) { .kit-signin-hint button:hover { color: var(--ink-1); } }
-/* The name step: the identity block, its field like the others */
-.kit-signin-step .kid { margin-bottom: var(--gap-02); }
-.kit-signin-step .kid-field { margin-top: var(--gap-04); }
 @media (max-width: 767px) {
   .kit-signin { padding: var(--gap-02); align-items: end; }
   /* The same sheet as every window on phones: up from the bottom, floating, all corners rounded */
@@ -145,7 +135,7 @@ let afterSignIn: ((me: Account) => void) | null = null;
 let me: Account = { signedIn: false };
 let pendingEmail = '';
 let verifying = false;
-let identity: Identity | null = null;
+let welcome: Welcome | null = null;
 let ownUpdate = false; // setAccount from this window: its own steps decide what comes next
 
 async function api<T>(path: string, body: unknown, method = 'POST'): Promise<{ status: number; body: T }> {
@@ -162,7 +152,7 @@ const fine = () => matchMedia('(pointer: fine)').matches;
 
 function build() {
   const s = document.createElement('style');
-  s.textContent = CSS;
+  s.textContent = CSS + WELCOME_CSS;
   document.head.append(s);
   root = document.createElement('div');
   root.className = 'kit-signin';
@@ -173,11 +163,10 @@ function build() {
   root.innerHTML = HTML;
   document.body.append(root);
 
-  const [emailForm, codeForm, nameForm] = Array.from(root.querySelectorAll<HTMLFormElement>('form'));
+  const [emailForm, codeForm] = Array.from(root.querySelectorAll<HTMLFormElement>('[data-step="email"], [data-step="code"]'));
   emailForm.addEventListener('submit', (e) => { e.preventDefault(); sendCode(emailForm); });
   codeForm.addEventListener('submit', (e) => { e.preventDefault(); verify(codeForm); });
-  nameForm.addEventListener('submit', (e) => { e.preventDefault(); saveName(nameForm); });
-  identity = mountIdentity(nameForm.querySelector<HTMLElement>('.kid')!);
+  welcome = mountWelcome(root);
   // Six digits typed or pasted (or filled in by iOS from the email): sign in without pressing the button
   const code = codeForm.querySelector<HTMLInputElement>('input')!;
   code.addEventListener('input', () => {
@@ -204,14 +193,13 @@ function build() {
     // Google said yes: the site's answer can lag a moment behind the new cookie, so ask a few times
     for (let i = 0; i < 4; i++) {
       me = await account.refresh();
-      if (me.signedIn) { sound.success(); return me.name || me.stale ? finish() : askName(); }
+      if (me.signedIn) { sound.success(); return needsWelcome(me) ? askName() : finish(); }
       await new Promise((r) => setTimeout(r, 700));
     }
     $('[data-step="email"] [data-error]').textContent = 'Google said yes, but the sign-in did not reach us. Try again, or use a code.';
   });
   $('[data-back]').addEventListener('click', () => { sound.tap(); showStep('email'); });
   $('[data-resend]').addEventListener('click', () => { sound.tap(); sendCode(emailForm); });
-  $('[data-skip]').addEventListener('click', () => { sound.tap(); finish(); });
   root.querySelectorAll('[data-close]').forEach((b) => b.addEventListener('click', () => { sound.tap(); close(); }));
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' && root && !root.hidden) { e.stopPropagation(); close(); }
@@ -221,17 +209,17 @@ function build() {
     if (!a.signedIn || ownUpdate || !root || root.hidden) return;
     if ($('[data-step="name"]').classList.contains('is-active')) return;
     me = a;
-    // Google comes back this way too (the page wakes up and asks the site): no name yet, so ask for it
-    if (me.name || me.stale) finish(); else askName();
+    // Google comes back this way too (the page wakes up and asks the site): a new account gets the welcome
+    if (needsWelcome(me)) askName(); else finish();
   });
 }
 
 function showStep(name: 'email' | 'code' | 'name') {
   root!.querySelectorAll<HTMLElement>('[data-step]').forEach((s) => s.classList.toggle('is-active', s.dataset.step === name));
   root!.querySelectorAll<HTMLElement>('[data-error]').forEach((e) => (e.textContent = ''));
-  if (name === 'name') identity!.show();
+  if (name !== 'name') welcome?.stop();
   // A keyboard pops up on phones, so only the code step focuses its field there
-  if (fine() || name === 'code') setTimeout(() => $<HTMLInputElement>(`[data-step="${name}"] input`).focus({ preventScroll: true }), 50);
+  if (name !== 'name' && (fine() || name === 'code')) setTimeout(() => $<HTMLInputElement>(`[data-step="${name}"] input`).focus({ preventScroll: true }), 50);
 }
 
 function paintCode() {
@@ -280,8 +268,8 @@ async function verify(form: HTMLFormElement) {
     form.reset();
     paintCode();
     sound.success();
-    // First sign in: no name yet, ask for it before anything else
-    if (!me.name && !me.stale) return askName();
+    // A new account (no name or creature yet): the welcome before anything else
+    if (needsWelcome(me)) return askName();
     finish();
   } catch {
     // The answer got lost but the session may be set: then you're in, otherwise say so
@@ -291,30 +279,33 @@ async function verify(form: HTMLFormElement) {
   finally { verifying = false; submit.removeAttribute('aria-busy'); }
 }
 
-/** No name on the account yet (a new email, or Google gave none): your creature and name in one go, skip allowed */
+/** A new account: no name, or a creature never picked (Google gives a name, so it is asked all the same) */
+const needsWelcome = (m: Account) => !m.stale && (!m.name || !m.avatar);
+
+/** The welcome (./welcome): your creature, your name, then Ariel asks about his emails (left out when you are on
+    the list already) */
 function askName() {
   if ($('[data-step="name"]').classList.contains('is-active')) return;
-  identity!.set(me, true);
+  welcome?.start(me, { emails: !me.newsletter, done: saveWelcome });
   showStep('name');
 }
 
-async function saveName(form: HTMLFormElement) {
-  const err = form.querySelector<HTMLElement>('[data-error]')!;
-  const submit = form.querySelector<HTMLElement>('[type=submit]:not([hidden])')!;
-  // Only what you changed is saved: the creature you stopped on, the name you typed (both, one, or none)
-  const patch = identity!.changes(me);
-  if (!patch.name) delete patch.name;
-  if (!Object.keys(patch).length) return finish();
-  submit.setAttribute('aria-busy', 'true');
+async function saveWelcome(r: { avatar: string; name: string; newsletter?: boolean }) {
+  const err = $('[data-step="name"] [data-error]');
+  const patch: { name: string; avatar: string; newsletter?: boolean } = { name: r.name, avatar: r.avatar };
+  // Only a yes is sent: "Not now" leaves things as they are
+  if (r.newsletter) patch.newsletter = true;
+  welcome?.busy(true);
   try {
     const { status } = await api('/api/me', patch, 'PATCH');
     if (status !== 200) { err.textContent = errorText(); return; }
-    me = { ...me, ...patch };
+    me = { ...me, ...patch, newsletter: !!(r.newsletter || me.newsletter) };
+    ownUpdate = true;
     setAccount(me);
-    form.reset();
+    ownUpdate = false;
     finish();
   } catch { err.textContent = errorText(); }
-  finally { submit.removeAttribute('aria-busy'); }
+  finally { welcome?.busy(false); }
 }
 
 function finish() {
@@ -327,7 +318,7 @@ function finish() {
 function close() {
   if (!root) return;
   root.classList.remove('is-open');
-  setTimeout(() => { if (root && !root.classList.contains('is-open')) root.hidden = true; }, OUT);
+  setTimeout(() => { if (root && !root.classList.contains('is-open')) { root.hidden = true; welcome?.stop(); } }, OUT);
   lastFocus?.focus({ preventScroll: true });
 }
 
@@ -340,7 +331,7 @@ export function openSignIn(opts: SignInOptions = {}) {
   $('[data-lead]').textContent = opts.lead ?? (signup
     ? 'One account for your templates, visuals and tools. No password needed.'
     : 'Your templates, visuals and tools in one place. Bought before? Use that email.');
-  root!.querySelectorAll('form').forEach((f) => f.reset());
+  root!.querySelectorAll<HTMLFormElement>('[data-step="email"], [data-step="code"]').forEach((f) => f.reset());
   paintCode();
   showStep('email');
   if (!root!.hidden && root!.classList.contains('is-open')) return;

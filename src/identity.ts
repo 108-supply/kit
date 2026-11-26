@@ -14,7 +14,8 @@
 
    Same drum as Snip Snap's shapes. Pictures from ACCOUNT_ORIGIN/creatures. Styled from the 108 tokens. */
 import { ACCOUNT_ORIGIN, type Account } from './account';
-import { CREATURES, creatureOf } from './avatar';
+import { CREATURES, CREATURE_SET, creatureOf } from './avatar';
+import { createLive } from './live-creature';
 import { sound } from './sound';
 
 const LEFT = 'M165.66,202.34a8,8,0,0,1-11.32,11.32l-80-80a8,8,0,0,1,0-11.32l80-80a8,8,0,0,1,11.32,11.32L91.31,128Z';
@@ -30,7 +31,7 @@ export function identityHtml({ label = false, name = true } = {}) {
   return `<div class="kid${name ? '' : ' kid--big'}">
   <div class="kid-drum" data-kid-window>
     <div class="kid-track" role="radiogroup" aria-label="Your creature">
-      ${CREATURES.map((c, i) => `<button type="button" class="kid-item" role="radio" aria-checked="false" aria-label="${c.name}" tabindex="-1" data-i="${i}"><img src="${ACCOUNT_ORIGIN}/creatures/${c.id}.webp" alt="" width="256" height="256" loading="lazy" decoding="async" draggable="false" /></button>`).join('')}
+      ${CREATURES.map((c, i) => `<button type="button" class="kid-item" role="radio" aria-checked="false" aria-label="${c.name}" tabindex="-1" data-i="${i}"><img src="${ACCOUNT_ORIGIN}/creatures/${c.id}.webp?${CREATURE_SET}" alt="" width="256" height="256" loading="lazy" decoding="async" draggable="false" /></button>`).join('')}
     </div>
   </div>
   <div class="kid-turn">
@@ -77,6 +78,10 @@ const CSS = `
 @keyframes kid-story-in { from { opacity: 0; } }
 @media (max-width: 767px) { .kid--big .kid-drum { --tile: 9rem; } }
 @media (prefers-reduced-motion: reduce) { .kid-story.is-in { animation: none; } }
+/* The loop of the creature in the middle (live: true): over the still, cut out by the still's own shape */
+.kid-live { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; pointer-events: none; opacity: 0;
+  -webkit-mask-size: 100% 100%; mask-size: 100% 100%; -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat; transition: opacity 0.3s var(--ease-smooth); }
+.kid-live.is-on { opacity: 1; }
 `;
 
 export interface Identity {
@@ -89,9 +94,12 @@ export interface Identity {
   changes(me: Account): { name?: string; avatar?: string };
   /** The creature in the middle gets the focus */
   focus(): void;
+  /** Stops the middle creature's loop while the block is out of sight (show() starts it again) */
+  rest(): void;
 }
 
-export function mountIdentity(el: HTMLElement): Identity {
+/** live: the creature that stops in the middle of the drum plays its loop (./live-creature) */
+export function mountIdentity(el: HTMLElement, opts: { live?: boolean } = {}): Identity {
   if (!document.getElementById('kid-style')) {
     const s = document.createElement('style');
     s.id = 'kid-style';
@@ -113,6 +121,8 @@ export function mountIdentity(el: HTMLElement): Identity {
   let centred = -1;
   let raf = 0;
   let dirty = false;
+  // One loop for the whole drum: in the middle creature once the drum stands still, gone as it turns
+  const live = opts.live ? createLive() : null;
 
   function measure() {
     geo.half = win.clientWidth / 2;
@@ -165,6 +175,11 @@ export function mountIdentity(el: HTMLElement): Identity {
         it.setAttribute('aria-checked', String(j === now));
         it.tabIndex = j === now ? 0 : -1;
       });
+    }
+    if (live) {
+      const off = Math.abs(drum.v - Math.round(drum.v));
+      if (off < 0.004 && !swipe) live.show(items[now], CREATURES[now].id);
+      else if (off > 0.05) live.hide();
     }
   }
   /** Turns the drum to a slot: fast at first, then slowing into place (expo out, no overshoot) */
@@ -255,5 +270,6 @@ export function mountIdentity(el: HTMLElement): Identity {
       return out;
     },
     focus() { items[mod(Math.round(drum.v))]?.focus({ preventScroll: true }); },
+    rest() { live?.hide(); },
   };
 }
