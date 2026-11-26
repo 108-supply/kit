@@ -292,14 +292,16 @@ function askName() {
 
 async function saveWelcome(r: { avatar: string; name: string; newsletter?: boolean }) {
   const err = $('[data-step="name"] [data-error]');
-  const patch: { name: string; avatar: string; newsletter?: boolean } = { name: r.name, avatar: r.avatar };
+  // emails: the answer, kept on the Polar customer (signup_emails) for Ariel to read
+  const patch: { name: string; avatar: string; newsletter?: boolean; emails: string } = { name: r.name, avatar: r.avatar,
+    emails: r.newsletter === undefined ? 'already' : r.newsletter ? 'yes' : 'not now' };
   // Only a yes is sent: "Not now" leaves things as they are
   if (r.newsletter) patch.newsletter = true;
   welcome?.busy(true);
   try {
     const { status } = await api('/api/me', patch, 'PATCH');
     if (status !== 200) { err.textContent = errorText(); return; }
-    me = { ...me, ...patch, newsletter: !!(r.newsletter || me.newsletter) };
+    me = { ...me, name: r.name, avatar: r.avatar, newsletter: !!(r.newsletter || me.newsletter) };
     ownUpdate = true;
     setAccount(me);
     ownUpdate = false;
